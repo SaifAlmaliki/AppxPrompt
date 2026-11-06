@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppxPrompt Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+
+    .container {
+      max-width: 1520px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1280px;
+      display: block;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>AppxPrompt Architecture</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">Next.js agent that plans, builds, previews, and ships Expo SDK 54 apps</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1520 980" font-family="JetBrains Mono, ui-monospace, monospace">
+        <defs>
+          <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399" />
+          </marker>
+          <marker id="arrow-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa" />
+          </marker>
+          <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24" />
+          </marker>
+          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <marker id="arrow-slate" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#020617" />
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- Arrows (behind components) -->
+        <polyline points="110,136 110,176" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow-slate)"/>
+
+        <polyline points="200,220 214,220 214,108 246,108" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+        <polyline points="517,136 517,200" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <polyline points="517,258 517,282 360,282 360,308" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <polyline points="333,308 333,270 702,270 702,308" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <polyline points="870,258 870,296 521,296 521,308" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="200,840 200,766 238,766 238,448 702,448 702,432" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="500,432 500,462 1022,462 1022,256 1244,256 1244,236" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+        <polyline points="702,432 702,462" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+        <polyline points="867,432 867,462" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+
+        <polyline points="548,432 548,476 1349,476 1349,456" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="1349,404 1349,356 1028,356 1028,229 944,229" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrow-rose)"/>
+
+        <polyline points="331,200 331,158 994,158 994,430 1052,430" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrow-rose)"/>
+
+        <polyline points="740,200 740,168 1008,168 1008,528 1052,528" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="944,370 1028,370 1028,488 1349,488 1349,496" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <polyline points="1232,840 1232,790 1470,790 1470,22 970,22 970,146 660,146 660,200" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="521,568 521,578 966,578 966,828 544,828 544,840" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)"/>
+
+        <polyline points="706,568 706,594 1486,594 1486,828 888,828 888,840" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+        <polyline points="888,840 888,778 110,778 110,510" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+        <polyline points="200,368 214,368 214,672 246,672" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+        <!-- Region boundaries -->
+        <rect x="228" y="48" width="752" height="708" rx="12" fill="rgba(251, 191, 36, 0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+        <rect x="240" y="176" width="724" height="98" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+        <rect x="1036" y="376" width="420" height="236" rx="12" fill="rgba(251, 191, 36, 0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+        <rect x="1044" y="652" width="400" height="104" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+        <rect x="20" y="796" width="1436" height="112" rx="12" fill="rgba(251, 191, 36, 0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+
+        <!-- People and clients -->
+        <rect x="20" y="78" width="180" height="58" rx="6" fill="#0f172a"/>
+        <rect x="20" y="78" width="180" height="58" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+
+        <rect x="20" y="176" width="180" height="112" rx="6" fill="#0f172a"/>
+        <rect x="20" y="176" width="180" height="112" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+
+        <rect x="20" y="328" width="180" height="80" rx="6" fill="#0f172a"/>
+        <rect x="20" y="328" width="180" height="80" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+
+        <rect x="20" y="448" width="180" height="62" rx="6" fill="#0f172a"/>
+        <rect x="20" y="448" width="180" height="62" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+
+        <!-- Pages -->
+        <rect x="246" y="80" width="170" height="56" rx="6" fill="#0f172a"/>
+        <rect x="246" y="80" width="170" height="56" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="428" y="80" width="178" height="56" rx="6" fill="#0f172a"/>
+        <rect x="428" y="80" width="178" height="56" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="618" y="80" width="166" height="56" rx="6" fill="#0f172a"/>
+        <rect x="618" y="80" width="166" height="56" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="796" y="80" width="164" height="56" rx="6" fill="#0f172a"/>
+        <rect x="796" y="80" width="164" height="56" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+
+        <!-- API routes -->
+        <rect x="246" y="200" width="170" height="58" rx="6" fill="#0f172a"/>
+        <rect x="246" y="200" width="170" height="58" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="428" y="200" width="178" height="58" rx="6" fill="#0f172a"/>
+        <rect x="428" y="200" width="178" height="58" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="618" y="200" width="166" height="58" rx="6" fill="#0f172a"/>
+        <rect x="618" y="200" width="166" height="58" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="796" y="200" width="148" height="58" rx="6" fill="#0f172a"/>
+        <rect x="796" y="200" width="148" height="58" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+
+        <!-- Domain services -->
+        <rect x="246" y="308" width="174" height="124" rx="6" fill="#0f172a"/>
+        <rect x="246" y="308" width="174" height="124" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="428" y="308" width="186" height="124" rx="6" fill="#0f172a"/>
+        <rect x="428" y="308" width="186" height="124" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="622" y="308" width="160" height="124" rx="6" fill="#0f172a"/>
+        <rect x="622" y="308" width="160" height="124" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="790" y="308" width="154" height="124" rx="6" fill="#0f172a"/>
+        <rect x="790" y="308" width="154" height="124" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+
+        <!-- Ship -->
+        <rect x="246" y="508" width="174" height="60" rx="6" fill="#0f172a"/>
+        <rect x="246" y="508" width="174" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="428" y="508" width="186" height="60" rx="6" fill="#0f172a"/>
+        <rect x="428" y="508" width="186" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="622" y="508" width="168" height="60" rx="6" fill="#0f172a"/>
+        <rect x="622" y="508" width="168" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <rect x="798" y="508" width="146" height="60" rx="6" fill="#0f172a"/>
+        <rect x="798" y="508" width="146" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+
+        <!-- Generated app -->
+        <rect x="246" y="608" width="698" height="128" rx="8" fill="#0f172a"/>
+        <rect x="246" y="608" width="698" height="128" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="260" y="636" width="214" height="84" rx="6" fill="#0f172a"/>
+        <rect x="260" y="636" width="214" height="84" rx="6" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="486" y="636" width="214" height="84" rx="6" fill="#0f172a"/>
+        <rect x="486" y="636" width="214" height="84" rx="6" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="712" y="636" width="216" height="84" rx="6" fill="#0f172a"/>
+        <rect x="712" y="636" width="216" height="84" rx="6" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="1.5"/>
+
+        <!-- Jobs chain pill -->
+        <rect x="720" y="468" width="118" height="16" rx="4" fill="#0f172a"/>
+        <rect x="720" y="468" width="118" height="16" rx="4" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+
+        <!-- Postgres, AI, CloudHike, security contents -->
+        <rect x="1044" y="80" width="400" height="156" rx="6" fill="#0f172a"/>
+        <rect x="1044" y="80" width="400" height="156" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+
+        <rect x="1044" y="276" width="400" height="60" rx="6" fill="#0f172a"/>
+        <rect x="1044" y="276" width="400" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+
+        <rect x="1052" y="404" width="190" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1052" y="404" width="190" height="52" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <rect x="1258" y="404" width="182" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1258" y="404" width="182" height="52" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <rect x="1052" y="496" width="190" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1052" y="496" width="190" height="64" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <rect x="1258" y="496" width="182" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1258" y="496" width="182" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+
+        <!-- Connected accounts -->
+        <rect x="40" y="840" width="320" height="48" rx="6" fill="#0f172a"/>
+        <rect x="40" y="840" width="320" height="48" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <rect x="384" y="840" width="320" height="48" rx="6" fill="#0f172a"/>
+        <rect x="384" y="840" width="320" height="48" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <rect x="728" y="840" width="320" height="48" rx="6" fill="#0f172a"/>
+        <rect x="728" y="840" width="320" height="48" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <rect x="1072" y="840" width="320" height="48" rx="6" fill="#0f172a"/>
+        <rect x="1072" y="840" width="320" height="48" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+
+        <!-- Labels -->
+        <text x="244" y="68" fill="#fbbf24" font-size="10" font-weight="600">AppxPrompt server · Next.js App Router</text>
+        <text x="252" y="192" fill="#fb7185" font-size="8">appxprompt_session · HttpOnly · owner or shared viewer</text>
+
+        <text x="110" y="100" fill="white" font-size="11" font-weight="600" text-anchor="middle">Person</text>
+        <text x="110" y="118" fill="#94a3b8" font-size="9" text-anchor="middle">Browser</text>
+
+        <text x="110" y="198" fill="white" font-size="11" font-weight="600" text-anchor="middle">Web app</text>
+        <text x="110" y="216" fill="#94a3b8" font-size="8" text-anchor="middle">Home · Workspace</text>
+        <text x="110" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">Pricing · Billing</text>
+        <text x="110" y="244" fill="#94a3b8" font-size="8" text-anchor="middle">Chat · canvas · code</text>
+        <text x="110" y="262" fill="#22d3ee" font-size="8" text-anchor="middle">HTTPS</text>
+
+        <text x="110" y="350" fill="white" font-size="11" font-weight="600" text-anchor="middle">Sandbox iframe</text>
+        <text x="110" y="368" fill="#94a3b8" font-size="8" text-anchor="middle">react-native-web</text>
+        <text x="110" y="382" fill="#94a3b8" font-size="8" text-anchor="middle">postMessage only</text>
+        <text x="110" y="396" fill="#fb7185" font-size="7" text-anchor="middle">no allow-same-origin</text>
+
+        <text x="110" y="472" fill="white" font-size="11" font-weight="600" text-anchor="middle">Expo Go</text>
+        <text x="110" y="490" fill="#94a3b8" font-size="9" text-anchor="middle">Snack · SDK 54</text>
+
+        <text x="331" y="102" fill="white" font-size="11" font-weight="600" text-anchor="middle">Home</text>
+        <text x="331" y="118" fill="#94a3b8" font-size="8" text-anchor="middle">/ · prompt · projects</text>
+
+        <text x="517" y="102" fill="white" font-size="11" font-weight="600" text-anchor="middle">Workspace</text>
+        <text x="517" y="118" fill="#94a3b8" font-size="8" text-anchor="middle">/workspace/[id]</text>
+
+        <text x="701" y="102" fill="white" font-size="11" font-weight="600" text-anchor="middle">Pricing · Billing</text>
+        <text x="701" y="118" fill="#94a3b8" font-size="8" text-anchor="middle">/pricing · /billing</text>
+
+        <text x="878" y="102" fill="white" font-size="11" font-weight="600" text-anchor="middle">Auth return</text>
+        <text x="878" y="118" fill="#94a3b8" font-size="8" text-anchor="middle">/auth/callback</text>
+
+        <text x="331" y="222" fill="white" font-size="11" font-weight="600" text-anchor="middle">Auth API</text>
+        <text x="331" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">email · Google · GitHub</text>
+
+        <text x="517" y="222" fill="white" font-size="11" font-weight="600" text-anchor="middle">Agent route</text>
+        <text x="517" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">NDJSON · build_events</text>
+
+        <text x="701" y="222" fill="white" font-size="11" font-weight="600" text-anchor="middle">Project API</text>
+        <text x="701" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">files · share · images</text>
+
+        <text x="870" y="222" fill="white" font-size="11" font-weight="600" text-anchor="middle">Jobs worker</text>
+        <text x="870" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">HMAC build-step</text>
+
+        <text x="333" y="332" fill="white" font-size="11" font-weight="600" text-anchor="middle">Planner</text>
+        <text x="333" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">propose_plan</text>
+        <text x="333" y="364" fill="#94a3b8" font-size="8" text-anchor="middle">confirm_plan</text>
+        <text x="333" y="378" fill="#94a3b8" font-size="8" text-anchor="middle">update_app · set_theme</text>
+        <text x="333" y="392" fill="#94a3b8" font-size="8" text-anchor="middle">setup_backend</text>
+        <text x="333" y="410" fill="#34d399" font-size="7" text-anchor="middle">OpenAI Agents SDK</text>
+
+        <text x="521" y="332" fill="white" font-size="11" font-weight="600" text-anchor="middle">Build pipeline</text>
+        <text x="521" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">foundation</text>
+        <text x="521" y="364" fill="#94a3b8" font-size="8" text-anchor="middle">then components</text>
+        <text x="521" y="378" fill="#94a3b8" font-size="8" text-anchor="middle">then one screen / step</text>
+        <text x="521" y="392" fill="#94a3b8" font-size="8" text-anchor="middle">validate-screen</text>
+        <text x="521" y="410" fill="#34d399" font-size="7" text-anchor="middle">lease · queue next</text>
+
+        <text x="702" y="332" fill="white" font-size="11" font-weight="600" text-anchor="middle">Credits</text>
+        <text x="702" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">chargeForBuild</text>
+        <text x="702" y="364" fill="#94a3b8" font-size="8" text-anchor="middle">Free 100 · Pro 1,000</text>
+        <text x="702" y="378" fill="#94a3b8" font-size="8" text-anchor="middle">conditional UPDATE</text>
+        <text x="702" y="392" fill="#94a3b8" font-size="8" text-anchor="middle">idempotent ledger</text>
+        <text x="702" y="410" fill="#34d399" font-size="7" text-anchor="middle">lib/billing</text>
+
+        <text x="867" y="332" fill="white" font-size="11" font-weight="600" text-anchor="middle">Data gateway</text>
+        <text x="867" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">/api/apps/[id]</text>
+        <text x="867" y="364" fill="#94a3b8" font-size="8" text-anchor="middle">auth · records</text>
+        <text x="867" y="378" fill="#94a3b8" font-size="8" text-anchor="middle">file uploads</text>
+        <text x="867" y="396" fill="#34d399" font-size="7" text-anchor="middle">no app secrets</text>
+
+        <text x="333" y="532" fill="white" font-size="11" font-weight="600" text-anchor="middle">ZIP export</text>
+        <text x="333" y="548" fill="#94a3b8" font-size="8" text-anchor="middle">full Expo project</text>
+
+        <text x="521" y="532" fill="white" font-size="11" font-weight="600" text-anchor="middle">GitHub push</text>
+        <text x="521" y="548" fill="#94a3b8" font-size="8" text-anchor="middle">appxprompt/ branch</text>
+
+        <text x="706" y="532" fill="white" font-size="11" font-weight="600" text-anchor="middle">EAS publish</text>
+        <text x="706" y="548" fill="#94a3b8" font-size="8" text-anchor="middle">.aab · .apk · .ipa · web</text>
+
+        <text x="871" y="532" fill="white" font-size="11" font-weight="600" text-anchor="middle">Sharing</text>
+        <text x="871" y="548" fill="#94a3b8" font-size="8" text-anchor="middle">invite · public list</text>
+
+        <text x="595" y="626" fill="white" font-size="11" font-weight="600" text-anchor="middle">Generated app · Expo SDK 54 · Expo Router</text>
+
+        <text x="367" y="658" fill="white" font-size="11" font-weight="600" text-anchor="middle">Screens + theme</text>
+        <text x="367" y="676" fill="#94a3b8" font-size="8" text-anchor="middle">@/theme tokens</text>
+        <text x="367" y="690" fill="#94a3b8" font-size="8" text-anchor="middle">app/ screen files</text>
+        <text x="367" y="706" fill="#22d3ee" font-size="7" text-anchor="middle">inline edits write back</text>
+
+        <text x="593" y="658" fill="white" font-size="11" font-weight="600" text-anchor="middle">@/lib/backend</text>
+        <text x="593" y="676" fill="#94a3b8" font-size="8" text-anchor="middle">localStorage preview</text>
+        <text x="593" y="690" fill="#94a3b8" font-size="8" text-anchor="middle">or CloudHike provider</text>
+        <text x="593" y="706" fill="#22d3ee" font-size="7" text-anchor="middle">public strips backend</text>
+
+        <text x="820" y="658" fill="white" font-size="11" font-weight="600" text-anchor="middle">preview-runtime</text>
+        <text x="820" y="676" fill="#94a3b8" font-size="8" text-anchor="middle">frame.html</text>
+        <text x="820" y="690" fill="#94a3b8" font-size="8" text-anchor="middle">runtime.js via esbuild</text>
+        <text x="820" y="706" fill="#22d3ee" font-size="7" text-anchor="middle">postMessage</text>
+
+        <text x="779" y="479" fill="#fb923c" font-size="7" font-weight="600" text-anchor="middle">Jobs chain</text>
+
+        <text x="1244" y="104" fill="white" font-size="12" font-weight="600" text-anchor="middle">PostgreSQL</text>
+        <text x="1244" y="120" fill="#a78bfa" font-size="8" text-anchor="middle">Drizzle · pool 5 · prepare: false</text>
+        <text x="1164" y="142" fill="#94a3b8" font-size="8" text-anchor="middle">users</text>
+        <text x="1324" y="142" fill="#94a3b8" font-size="8" text-anchor="middle">credit_transactions</text>
+        <text x="1164" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">projects · messages</text>
+        <text x="1324" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">project_assets</text>
+        <text x="1164" y="174" fill="#94a3b8" font-size="8" text-anchor="middle">screens</text>
+        <text x="1324" y="174" fill="#94a3b8" font-size="8" text-anchor="middle">builds · build_events</text>
+        <text x="1164" y="190" fill="#94a3b8" font-size="8" text-anchor="middle">project_backends</text>
+        <text x="1324" y="190" fill="#94a3b8" font-size="8" text-anchor="middle">project_shares</text>
+        <text x="1164" y="206" fill="#94a3b8" font-size="8" text-anchor="middle">github · expo</text>
+        <text x="1324" y="206" fill="#94a3b8" font-size="8" text-anchor="middle">app_builds</text>
+        <text x="1244" y="222" fill="#94a3b8" font-size="8" text-anchor="middle">web_publishes</text>
+
+        <text x="1244" y="300" fill="white" font-size="11" font-weight="600" text-anchor="middle">Model API</text>
+        <text x="1244" y="318" fill="#94a3b8" font-size="8" text-anchor="middle">AI_BASE_URL · Chat Completions · claude-sonnet-5-5</text>
+
+        <text x="1052" y="396" fill="#fbbf24" font-size="10" font-weight="600">CloudHike</text>
+
+        <text x="1147" y="424" fill="white" font-size="11" font-weight="600" text-anchor="middle">CloudHike Auth</text>
+        <text x="1147" y="442" fill="#94a3b8" font-size="8" text-anchor="middle">AppxPrompt accounts</text>
+
+        <text x="1349" y="424" fill="white" font-size="11" font-weight="600" text-anchor="middle">CloudHike Jobs</text>
+        <text x="1349" y="442" fill="#94a3b8" font-size="8" text-anchor="middle">at-least-once steps</text>
+
+        <text x="1147" y="518" fill="white" font-size="11" font-weight="600" text-anchor="middle">Object storage</text>
+        <text x="1147" y="536" fill="#94a3b8" font-size="8" text-anchor="middle">S3 · prompt files</text>
+        <text x="1147" y="550" fill="#fbbf24" font-size="7" text-anchor="middle">S3_* credentials</text>
+
+        <text x="1349" y="516" fill="white" font-size="11" font-weight="600" text-anchor="middle">App backend</text>
+        <text x="1349" y="532" fill="#94a3b8" font-size="8" text-anchor="middle">Postgres · Auth · Storage</text>
+        <text x="1349" y="546" fill="#a78bfa" font-size="7" text-anchor="middle">app_* · appxprompt_values</text>
+
+        <text x="1060" y="674" fill="#fb7185" font-size="10" font-weight="600">Trust boundary</text>
+        <text x="1060" y="694" fill="#94a3b8" font-size="8">Session cookie lasts 7 days and stays HttpOnly</text>
+        <text x="1060" y="710" fill="#94a3b8" font-size="8">Job HMAC (t, v1) covers the raw body</text>
+        <text x="1060" y="726" fill="#94a3b8" font-size="8">Tokens sealed with CLOUDHIKE_ENCRYPTION_KEY</text>
+        <text x="1060" y="742" fill="#94a3b8" font-size="8">OAuth state cookies bind the callback to the browser</text>
+
+        <text x="36" y="816" fill="#fbbf24" font-size="10" font-weight="600">Connected accounts</text>
+
+        <text x="200" y="858" fill="white" font-size="11" font-weight="600" text-anchor="middle">Stripe</text>
+        <text x="200" y="874" fill="#94a3b8" font-size="8" text-anchor="middle">Checkout · invoice webhooks</text>
+
+        <text x="544" y="858" fill="white" font-size="11" font-weight="600" text-anchor="middle">GitHub</text>
+        <text x="544" y="874" fill="#94a3b8" font-size="8" text-anchor="middle">OAuth · repo scope · Contents API</text>
+
+        <text x="888" y="858" fill="white" font-size="11" font-weight="600" text-anchor="middle">Expo</text>
+        <text x="888" y="874" fill="#94a3b8" font-size="8" text-anchor="middle">Snack · EAS Build · EAS Hosting</text>
+
+        <text x="1232" y="858" fill="white" font-size="11" font-weight="600" text-anchor="middle">ImageKit</text>
+        <text x="1232" y="874" fill="#94a3b8" font-size="8" text-anchor="middle">optional · at most 8 images per step</text>
+
+        <text x="250" y="300" fill="#34d399" font-size="8" text-anchor="middle">tools</text>
+        <text x="300" y="286" fill="#34d399" font-size="8" text-anchor="middle">charge</text>
+        <text x="700" y="286" fill="#fbbf24" font-size="8" text-anchor="middle">run step</text>
+        <text x="300" y="478" fill="#fbbf24" font-size="8" text-anchor="middle">webhook</text>
+        <text x="900" y="452" fill="#a78bfa" font-size="8" text-anchor="middle">Drizzle</text>
+        <text x="1100" y="468" fill="#fbbf24" font-size="8" text-anchor="middle">enqueue</text>
+        <text x="1160" y="350" fill="#fb7185" font-size="8" text-anchor="middle">HMAC callback</text>
+        <text x="600" y="596" fill="#94a3b8" font-size="8" text-anchor="middle">git push</text>
+        <text x="1180" y="582" fill="#fbbf24" font-size="8" text-anchor="middle">native + web</text>
+        <text x="480" y="772" fill="#22d3ee" font-size="8" text-anchor="middle">Snack QR</text>
+        <text x="1180" y="40" fill="#fbbf24" font-size="8" text-anchor="middle">AI images</text>
+        <text x="128" y="640" fill="#22d3ee" font-size="8">postMessage</text>
+
+        <!-- Legend, below every boundary -->
+        <text x="36" y="944" fill="white" font-size="10" font-weight="600">Legend</text>
+
+        <rect x="100" y="934" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="122" y="943" fill="#94a3b8" font-size="8">Frontend</text>
+
+        <rect x="210" y="934" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="232" y="943" fill="#94a3b8" font-size="8">Backend</text>
+
+        <rect x="320" y="934" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="342" y="943" fill="#94a3b8" font-size="8">Database</text>
+
+        <rect x="440" y="934" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="462" y="943" fill="#94a3b8" font-size="8">Cloud / external</text>
+
+        <rect x="590" y="934" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="612" y="943" fill="#94a3b8" font-size="8">Security</text>
+
+        <line x1="700" y1="939" x2="724" y2="939" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <text x="730" y="943" fill="#94a3b8" font-size="8">Auth / HMAC</text>
+
+        <rect x="840" y="934" width="16" height="10" rx="2" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="862" y="943" fill="#94a3b8" font-size="8">Jobs chain</text>
+
+        <rect x="970" y="934" width="16" height="10" rx="2" fill="transparent" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="992" y="943" fill="#94a3b8" font-size="8">Boundary</text>
+
+        <rect x="1090" y="934" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="1112" y="943" fill="#94a3b8" font-size="8">Person / device</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>Plan, then build</h3>
+        </div>
+        <ul>
+          <li>• Planner proposes a plan. Generation starts only after confirm.</li>
+          <li>• chargeForBuild deducts credits in one conditional UPDATE.</li>
+          <li>• Each CloudHike step writes foundation, components, or one screen, then queues the next.</li>
+          <li>• build_events replay on the same NDJSON stream after a reconnect.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>Data plane</h3>
+        </div>
+        <ul>
+          <li>• AppxPrompt Postgres via Drizzle. Prepared statements are off for PgBouncer.</li>
+          <li>• Generated apps call /api/apps and never hold database or storage credentials.</li>
+          <li>• Preview data stays in localStorage until a CloudHike backend is connected.</li>
+          <li>• A public home preview strips plan.backend, so visitors only see sample data.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3>Trust and shipping</h3>
+        </div>
+        <ul>
+          <li>• Sign-in is CloudHike Auth. The session cookie is HttpOnly for 7 days.</li>
+          <li>• CloudHike, GitHub, and Expo tokens are encrypted at rest.</li>
+          <li>• Job callbacks need a recent HMAC over the raw body.</li>
+          <li>• Ship a ZIP, a GitHub branch, or EAS native and web builds.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">
+      AppxPrompt · Next.js App Router · Expo SDK 54 · Drizzle · CloudHike · OpenAI Agents SDK
+    </p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>
