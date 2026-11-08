@@ -11,9 +11,9 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "AppxPrompt — Build mobile apps with AI",
+  title: "AppForge — Build mobile apps with AI",
   description:
-    "Describe your idea and AppxPrompt's AI agent designs and builds your iOS and Android app.",
+    "Describe your idea and AppForge's AI agent designs and builds your iOS and Android app.",
 };
 
 export default function RootLayout({

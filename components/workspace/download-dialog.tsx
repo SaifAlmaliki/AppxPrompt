@@ -12,7 +12,7 @@ const SETUP_COMMANDS = `npm install
 npx expo start`
 
 function fileNameFrom(response: Response) {
-  return response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "appxprompt-project.zip"
+  return response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "appforge-project.zip"
 }
 
 export function DownloadDialog({

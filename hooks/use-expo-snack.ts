@@ -61,7 +61,7 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
         const { files, dependencies } = latest.current!
         const snack = new Snack({
           sdkVersion: SNACK_SDK_VERSION,
-          name: "AppxPrompt preview",
+          name: "AppForge preview",
           files,
           dependencies,
           codeChangesDelay: CODE_CHANGES_DELAY_MS,

@@ -6,7 +6,7 @@ import { SignInDialogProvider } from "@/components/home/sign-in-dialog"
 import { SiteHeader } from "@/components/home/site-header"
 
 export const metadata: Metadata = {
-  title: "Usage & billing — AppxPrompt",
+  title: "Usage & billing — AppForge",
   description: "See your plan, the credits you have left, and how many projects you've used.",
 }
 
@@ -36,7 +36,7 @@ export default function BillingPage() {
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} AppForge. All rights reserved.</p>
           </div>
         </footer>
       </div>

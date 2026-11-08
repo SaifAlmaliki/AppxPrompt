@@ -82,7 +82,7 @@ function PublicApps() {
   return (
     <section id="explore" className="scroll-mt-24">
       <SectionHeading
-        title="Built with AppxPrompt"
+        title="Built with AppForge"
         description="Real apps from the community. Open one and try it."
         action={
           <Button

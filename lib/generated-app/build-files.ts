@@ -23,9 +23,9 @@ export const EAS_JSON = `${JSON.stringify(
 /** The workflow that builds one file type. EAS runs it from the text sent with the build, so it isn't a project file. */
 export function buildWorkflow(format: AppBuildFormat) {
   return {
-    fileName: `appxprompt-${format}.yml`,
+    fileName: `appforge-${format}.yml`,
     yamlConfig: [
-      `name: AppxPrompt .${format}`,
+      `name: AppForge .${format}`,
       "",
       "jobs:",
       "  build:",
@@ -44,9 +44,9 @@ export function buildWorkflow(format: AppBuildFormat) {
 /** The workflow that exports the app for the web and makes it the live version of its EAS Hosting site. */
 export function webWorkflow() {
   return {
-    fileName: "appxprompt-web.yml",
+    fileName: "appforge-web.yml",
     yamlConfig: [
-      "name: AppxPrompt web",
+      "name: AppForge web",
       "",
       "jobs:",
       "  deploy:",

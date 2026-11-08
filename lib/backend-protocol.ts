@@ -20,7 +20,7 @@ export type BackendServiceStatus = { type: BackendService; status: string }
 
 /** What the workspace shows about a project's backend. */
 export type BackendStatus = {
-  /** Whether this AppxPrompt deployment has its CloudHike app credentials. */
+  /** Whether this AppForge deployment has its CloudHike app credentials. */
   available: boolean
   /** Whether the person's CloudHike account is connected. */
   accountConnected: boolean

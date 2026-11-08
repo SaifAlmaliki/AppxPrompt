@@ -45,7 +45,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 rounded-full border border-white/60 bg-white/65 pr-2 pl-3 shadow-[0_8px_32px_-12px_rgba(76,29,149,0.25)] ring-1 ring-black/[0.03] backdrop-blur-xl sm:pl-4">
         <div className="flex items-center gap-8">
-          <Link href="/" aria-label="AppxPrompt home">
+          <Link href="/" aria-label="AppForge home">
             <Logo className="size-8 rounded-full" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">

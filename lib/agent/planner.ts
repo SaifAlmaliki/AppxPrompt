@@ -304,7 +304,7 @@ const setupBackend = tool<typeof backendSchema, PlannerContext>({
 })
 
 const plannerAgent = new Agent<PlannerContext>({
-  name: "AppxPrompt Planner",
+  name: "AppForge Planner",
   model: PLANNER_MODEL,
   instructions: (runContext) => plannerInstructions(runContext.context),
   tools: [proposePlan, confirmPlan, updateApp, setTheme, setupBackend],

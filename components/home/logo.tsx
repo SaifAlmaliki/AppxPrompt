@@ -20,7 +20,7 @@ export function Logo({
         <SparklesIcon className="size-1/2" />
       </span>
       {showText && (
-        <span className="text-lg font-semibold tracking-tight">AppxPrompt</span>
+        <span className="text-lg font-semibold tracking-tight">AppForge</span>
       )}
     </span>
   )

@@ -15,7 +15,7 @@ import { isBackendLinked, setUpBackend } from "@/lib/cloudhike/backend"
 import { fillGeneratedImages, hasGeneratedImages } from "@/lib/imagekit"
 
 const builderAgent = new Agent({
-  name: "AppxPrompt Screen Builder",
+  name: "AppForge Screen Builder",
   model: BUILDER_MODEL,
   instructions: BUILDER_INSTRUCTIONS,
 })

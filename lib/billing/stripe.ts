@@ -19,7 +19,7 @@ let client: Stripe | null = null
 
 function stripe() {
   const key = process.env.STRIPE_SECRET_KEY
-  if (!key || !process.env.STRIPE_PRO_PRICE_ID) throw new BillingError("Payments aren't set up on this AppxPrompt server yet.", 503)
+  if (!key || !process.env.STRIPE_PRO_PRICE_ID) throw new BillingError("Payments aren't set up on this AppForge server yet.", 503)
   return (client ??= new Stripe(key))
 }
 

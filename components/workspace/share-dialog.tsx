@@ -160,7 +160,7 @@ export function ShareDialog({
           <GlobeIcon className="mt-0.5 size-4 shrink-0 text-violet-600" />
           <div className="min-w-0 flex-1">
             <label htmlFor="project-public" className="text-sm font-medium">
-              Show on the AppxPrompt home page
+              Show on the AppForge home page
             </label>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
               Anyone can try the app on sample data and read its code, and they'll see your name. They can't see your chat or real

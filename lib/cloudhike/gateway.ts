@@ -45,8 +45,8 @@ type AppConnection = {
 }
 
 // Kept across dev hot reloads, so each one doesn't leave pools connected.
-const globalForApps = globalThis as unknown as { appxpromptApps?: Map<string, AppConnection> }
-const connections = (globalForApps.appxpromptApps ??= new Map<string, AppConnection>())
+const globalForApps = globalThis as unknown as { appforgeApps?: Map<string, AppConnection> }
+const connections = (globalForApps.appforgeApps ??= new Map<string, AppConnection>())
 
 function connect(url: string) {
   return postgres(url, { prepare: false, max: POOL_SIZE, idle_timeout: 60, connect_timeout: 10, onnotice: () => {} })
@@ -163,7 +163,7 @@ export function cleanFields(input: unknown): Record<string, unknown> | null {
 }
 
 function foreignKeyName(table: AppTable, column: AppColumn) {
-  return `appxprompt_fk_${createHash("sha256").update(`${table.name}.${column.column}`).digest("hex").slice(0, 16)}`
+  return `appforge_fk_${createHash("sha256").update(`${table.name}.${column.column}`).digest("hex").slice(0, 16)}`
 }
 
 /** Adds rows that all have the same columns. One already there stays as it is. */
@@ -224,7 +224,7 @@ async function updateTables(tx: postgres.TransactionSql, tables: Map<string, App
 /** After records have moved, since a link that doesn't fit shouldn't stop them moving. */
 async function addForeignKeys(tx: postgres.TransactionSql, tables: Map<string, AppTable>) {
   const constraints = await tx<{ conname: string }[]>`
-    select conname from pg_constraint where connamespace = current_schema()::regnamespace and conname like 'appxprompt_fk_%'`
+    select conname from pg_constraint where connamespace = current_schema()::regnamespace and conname like 'appforge_fk_%'`
   const has = new Set(constraints.map((row) => row.conname))
   for (const table of tables.values()) {
     for (const column of table.columns) {

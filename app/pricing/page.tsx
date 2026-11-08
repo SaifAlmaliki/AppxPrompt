@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { EDIT_CREDITS, IMAGE_CREDITS, PLANS, PRO_MONTHLY_CREDITS, SCREEN_CREDITS, SMALL_APP_CREDITS } from "@/lib/plans"
 
 export const metadata: Metadata = {
-  title: "Pricing — AppxPrompt",
+  title: "Pricing — AppForge",
   description: "Start free and build your first apps with AI. Upgrade to Pro for unlimited projects and iOS and Android exports.",
 }
 
@@ -97,7 +97,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} AppForge. All rights reserved.</p>
           </div>
         </footer>
       </div>

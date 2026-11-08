@@ -114,7 +114,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" aria-label="AppxPrompt home">
+        <Link href="/" aria-label="AppForge home">
           <Logo />
         </Link>
         <Link

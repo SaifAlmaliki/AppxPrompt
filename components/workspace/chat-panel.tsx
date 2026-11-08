@@ -101,7 +101,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
         <span className="flex size-6 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white">
           <SparklesIcon className="size-3.5" />
         </span>
-        <h2 className="text-sm font-semibold">AppxPrompt Agent</h2>
+        <h2 className="text-sm font-semibold">AppForge Agent</h2>
         <div className="ml-auto flex items-center gap-2">
           {busy && (
             <span className="inline-flex items-center gap-1.5 text-xs text-violet-700">
@@ -287,7 +287,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               </div>
             )}
             <label htmlFor="chat-prompt" className="sr-only">
-              Message the AppxPrompt agent
+              Message the AppForge agent
             </label>
             <textarea
               id="chat-prompt"

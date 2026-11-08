@@ -15,13 +15,13 @@ import {
 } from "@/lib/themes"
 
 const foundationAgent = new Agent({
-  name: "AppxPrompt Foundation Designer",
+  name: "AppForge Foundation Designer",
   model: BUILDER_MODEL,
   instructions: FOUNDATION_INSTRUCTIONS,
 })
 
 const dataChangeAgent = new Agent({
-  name: "AppxPrompt Data Designer",
+  name: "AppForge Data Designer",
   model: BUILDER_MODEL,
   instructions: DATA_CHANGE_INSTRUCTIONS,
 })
