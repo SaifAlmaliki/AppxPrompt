@@ -26,6 +26,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# project MCP config holds a personal API key
+.cursor/mcp.json
+
 # vercel
 .vercel
 
