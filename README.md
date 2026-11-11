@@ -99,7 +99,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Push to GitHub |
 | `IMAGEKIT_ENABLED`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT` | AI images. Without them, apps use placeholder images |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID` | Pro subscriptions |
-| `AI_MODEL`, `AI_BUILDER_MODEL` | Different models. Both default to `claude-sonnet-5-5` |
+| `AI_MODEL`, `AI_BUILDER_MODEL` | Different models. Both default to `anthropic/claude-sonnet-5.5` |
 | `DEFAULT_SCREEN_COUNT` | Most screens in a plan unless someone asks for more. Defaults to 3 |
 
 Publishing doesn't need a server-side Expo key, because each person connects their own Expo access token.

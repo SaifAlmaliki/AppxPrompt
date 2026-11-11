@@ -8,7 +8,8 @@ import { PLANS } from "@/lib/plans"
 // Responses API), and traces would go to OpenAI's dashboard, so both are
 // configured here once per process.
 
-const DEFAULT_MODEL = "claude-sonnet-5-5"
+// CloudHike model ids are provider-prefixed. GET {AI_BASE_URL}/models lists them.
+const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5"
 
 /** Model for understanding the request, planning, and chatting. */
 export const PLANNER_MODEL = process.env.AI_MODEL || DEFAULT_MODEL

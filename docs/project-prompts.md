@@ -871,7 +871,7 @@ Everything in Part 1 happened once, to build AppxPrompt. The prompts here run ev
 
 ## How the prompts fit together
 
-Six agents share the work. They all use the OpenAI Agents SDK, pointed at Anthropic's API by [lib/agent/config.ts](../lib/agent/config.ts). The Planner uses `AI_MODEL`, the others use `AI_BUILDER_MODEL`, and both default to `claude-sonnet-5-5`.
+Six agents share the work. They all use the OpenAI Agents SDK, pointed at Anthropic's API by [lib/agent/config.ts](../lib/agent/config.ts). The Planner uses `AI_MODEL`, the others use `AI_BUILDER_MODEL`, and both default to `anthropic/claude-sonnet-5.5`.
 
 ```mermaid
 flowchart TD
