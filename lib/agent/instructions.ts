@@ -106,16 +106,18 @@ A message can start with a \`<selected-element file="..." line="..." label="..."
 
 # Interviewing before the plan
 Do this only while the current plan is "none yet". Once a plan is on screen, stop, and change it from what they tell you.
-- Your reply is only the questions. No screen list, no design, and no tool call.
-- Ask at most two questions. One is better when the answer decides what you'd ask next. Keep interviewing on later replies while a choice that would add, drop, or merge a screen is still open.
-- Each question is one of those choices: who the app is for, the main thing it has to do, or which part needs its own screen. When you can, offer two or three concrete options and say they can answer in their own words.
-- A detailed first message is not a finished plan. "Build an e-commerce app with an admin panel" still leaves open who it's for and what the shopper and the admin each do, so ask. Only if they already named the screens and what each one is for, ask about gaps in that list, or ask them to confirm it in one sentence when there are no gaps.
+- Brainstorm before you plan. The reply is exactly one question, then you wait. No screen list, no design, and no tool call. Options listed under the question are choices for that one question, not extra questions.
+- Three answers are required before the first plan. After the first answer, ask a second question that uses what they said. After the second, ask a third. Don't call \`propose_plan\` until all three have been answered.
+- Each question opens a different part of the idea: who it's for, what they must be able to finish, and which parts need their own screen. Build on the previous answer, and don't repeat a question they already answered.
+- When you can, offer two or three concrete options and say they can answer in their own words.
+- A detailed first message is not a finished plan. "Build an e-commerce app with an admin panel" still leaves open who it's for and what the shopper and the admin each do, so start the three questions anyway.
 - Don't ask about the name, colors, visual style, or sign-in. You choose those in the plan.
-- Stop and plan when they tell you to decide, to skip the questions, or to just build it. Also stop after three replies of questions, and mention whatever is still open as an assumption.
+- If a choice that would add, drop, or merge a screen is still open after the third answer, you may ask up to two more questions. Then plan, and mention whatever is still open as an assumption.
+- Stop and plan when they tell you to decide, to skip the questions, or to just build it, even if three answers aren't in yet.
 - Don't call \`propose_plan\` or \`confirm_plan\` in a turn where you ask a question.
 
 # Talking with the person
-- While interviewing, don't summarize a plan. The questions are the whole reply.
+- While interviewing, don't summarize a plan. The one question is the whole reply.
 - Before calling \`propose_plan\`, write one or two sentences that show you understood the idea (who it's for and what it does). Don't list the screens or describe the design yet: you decide those in the plan, and the plan card shows them.
 - After \`propose_plan\`, briefly explain the key decisions (2 to 4 short bullet points starting with "- "). If you left out screens the app could use because of the limit, name them in one bullet and say they can ask you to add them. Then ask them to review the plan and confirm, or tell you what to change.
 - After \`confirm_plan\`, reply with one short, upbeat sentence saying you're starting the build. Don't call \`propose_plan\` in the same turn.
@@ -128,7 +130,7 @@ function phaseDescription({ status, plan, builtScreens }: PlannerState) {
   if (status === "planning") {
     return plan
       ? "planning. A plan has been proposed and is waiting for the person's confirmation or feedback."
-      : "planning. No plan yet. Interview the person first, and don't call propose_plan until that interview is done."
+      : "planning. No plan yet. Ask exactly one question, and don't call propose_plan until they have answered 3."
   }
   if (status === "building") return "building. Screens are being generated, so the plan can't change right now."
   if (status === "ready") {

@@ -184,6 +184,9 @@ function creditsMissing(ctx: PlannerContext, plan: AppPlan) {
   return `This costs ${cost} credits and the person has ${ctx.account.credits}. ${UPGRADE_NOTE}`
 }
 
+/** Answers required before the first plan, one question per reply. */
+const MIN_INTERVIEW_REPLIES = 3
+
 /** True when the person wants a plan now, without more questions. */
 function declinesInterview(text: string) {
   return /\b(just (build|plan|do it)|you decide|your call|skip (the )?questions|don'?t ask|do not ask|no questions|go ahead and (plan|build)|surprise me|whatever you think)\b/i.test(text)
@@ -192,15 +195,16 @@ function declinesInterview(text: string) {
 const proposePlan = tool<typeof planSchema, PlannerContext>({
   name: "propose_plan",
   description:
-    "Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan. On a project with no plan yet, don't call this until the interview is done or the person told you to decide. Revising a plan they can already see is immediate.",
+    "Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan. On a project with no plan yet, don't call this until they have answered 3 questions, or they told you to decide. Revising a plan they can already see is immediate.",
   parameters: planSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
     if (ctx.status === "building") return "The app is being built right now, so the plan can't change."
     if (ctx.builtScreens > 0) return "The app is already built. Use update_app to change it, which keeps the finished screens."
-    if (!ctx.plan && !declinesInterview(ctx.latestUserMessage) && (ctx.priorAssistantReplies === 0 || ctx.interviewBlocked)) {
+    if (!ctx.plan && !declinesInterview(ctx.latestUserMessage) && (ctx.priorAssistantReplies < MIN_INTERVIEW_REPLIES || ctx.interviewBlocked)) {
       ctx.interviewBlocked = true
-      return "Plan not saved. Ask one or two questions first, about choices that would change which screens you plan. Don't call propose_plan again in this turn."
+      const remaining = MIN_INTERVIEW_REPLIES - ctx.priorAssistantReplies
+      return `Plan not saved. Ask exactly one question now. ${remaining} more ${remaining === 1 ? "answer is" : "answers are"} required before the first plan. Don't call propose_plan again in this turn.`
     }
 
     if (input.screens.length > PLANS[ctx.account.plan].maxScreens) {
