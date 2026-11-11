@@ -63,7 +63,7 @@ export async function exchangeGitHubCode(code: string, redirectUri: string) {
   return data.access_token as string
 }
 
-/** Tells GitHub to forget the token, so disconnecting really ends AppForge's access. */
+/** Tells GitHub to forget the token, so disconnecting really ends AppxPrompt's access. */
 export async function revokeGitHubToken(accessToken: string) {
   const credentials = Buffer.from(`${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`).toString("base64")
   await fetch(`${API_URL}/applications/${process.env.GITHUB_CLIENT_ID}/grant`, {
@@ -72,7 +72,7 @@ export async function revokeGitHubToken(accessToken: string) {
       accept: "application/vnd.github+json",
       authorization: `Basic ${credentials}`,
       "content-type": "application/json",
-      "user-agent": "AppForge",
+      "user-agent": "AppxPrompt",
     },
     body: JSON.stringify({ access_token: accessToken }),
     cache: "no-store",
@@ -100,7 +100,7 @@ export class GitHubClient {
       headers: {
         accept: "application/vnd.github+json",
         authorization: `Bearer ${this.accessToken}`,
-        "user-agent": "AppForge",
+        "user-agent": "AppxPrompt",
         "x-github-api-version": "2022-11-28",
         ...(init.body === undefined ? {} : { "content-type": "application/json" }),
       },

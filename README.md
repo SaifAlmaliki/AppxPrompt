@@ -1,6 +1,6 @@
-# AppForge
+# AppxPrompt
 
-**Describe an app and get a working one.** AppForge is an AI agent that turns an idea into a real Expo (React Native) mobile app. It plans the screens with you, builds them one at a time, and lets you preview, edit, and publish the result.
+**Describe an app and get a working one.** AppxPrompt is an AI agent that turns an idea into a real Expo (React Native) mobile app. It plans the screens with you, builds them one at a time, and lets you preview, edit, and publish the result.
 
 ## Features
 
@@ -35,7 +35,7 @@ flowchart LR
 
 Six specialized agents share the work. Generated code runs in a sandboxed frame, and each step of a build is a background job, so a build isn't limited by one request's timeout.
 
-- **[docs/project-prompts.md](docs/project-prompts.md)** has every prompt used to build AppForge, chapter by chapter, and every prompt its agents use at runtime.
+- **[docs/project-prompts.md](docs/project-prompts.md)** has every prompt used to build AppxPrompt, chapter by chapter, and every prompt its agents use at runtime.
 - **[docs/app-builder-roadmap.md](docs/app-builder-roadmap.md)** explains how builds, previews, backends, publishing, and billing work.
 
 ## Tech stack

@@ -57,7 +57,7 @@ export function WorkspaceHeader({
 
   return (
     <header className="relative z-20 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center md:grid-cols-[1fr_auto_1fr] gap-3 border-b border-border/60 bg-white/80 px-3 backdrop-blur-xl sm:px-4">
-      <Link href="/" aria-label="AppForge home" className="justify-self-start rounded-xl">
+      <Link href="/" aria-label="AppxPrompt home" className="justify-self-start rounded-xl">
         <span className="hidden sm:inline">
           <Logo className="size-8 rounded-full" />
         </span>

@@ -31,7 +31,7 @@ export type AppBuildSummary = {
 }
 
 export type PublishStatus = {
-  /** Whether this AppForge server has publishing set up. */
+  /** Whether this AppxPrompt server has publishing set up. */
   available: boolean
   /** Null until the person connects. The token itself never comes back from the server. */
   expo: { account: string } | null

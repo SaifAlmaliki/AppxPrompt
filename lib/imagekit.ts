@@ -62,7 +62,7 @@ function getEndpoint() {
   return process.env.IMAGEKIT_URL_ENDPOINT!.replace(/\/+$/, "")
 }
 
-const projectFolder = (projectId: string) => `/appforge/${projectId}`
+const projectFolder = (projectId: string) => `/appxprompt/${projectId}`
 
 async function saveFile(projectId: string, file: Parameters<ImageKit["files"]["upload"]>[0]["file"], fileName: string) {
   const uploaded = await getClient().files.upload({
@@ -190,7 +190,9 @@ function replaceWrittenUrls(text: string, change: (written: { url: string; promp
   if (!text.includes(GENERATED_IMAGE_PATH)) return text
   const start = `${getEndpoint()}/${GENERATED_IMAGE_PATH}`.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")
   const written = new RegExp(`${start}([^/"\`\\n]+)/([^"'\`\\s?]+)(?:\\?[^"'\`\\s]*)?`, "g")
-  return text.replace(written, (url, prompt: string, name: string) => (name.startsWith("appforge/") ? url : change({ url, prompt, name })))
+  return text.replace(written, (url, prompt: string, name: string) =>
+    name.startsWith("appxprompt/") || name.startsWith("appforge/") ? url : change({ url, prompt, name })
+  )
 }
 
 function placeholderImage(prompt: string) {

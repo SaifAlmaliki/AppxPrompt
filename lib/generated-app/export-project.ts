@@ -91,7 +91,7 @@ export function projectSlug(name: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 50)
     .replace(/-+$/, "")
-  return slug || "appforge-app"
+  return slug || "appxprompt-app"
 }
 
 function packageFile(slug: string, sources: { code: string }[]) {
@@ -121,7 +121,7 @@ function packageFile(slug: string, sources: { code: string }[]) {
 
 /** A store id from a name. Only letters and digits work on both stores, and it can't start with a digit. */
 export function storeIdentifier(slug: string, suffix = "") {
-  return `com.appforge.${slug.replace(/-/g, "").replace(/^[0-9]+/, "") || "app"}${suffix}`
+  return `com.appxprompt.${slug.replace(/-/g, "").replace(/^[0-9]+/, "") || "app"}${suffix}`
 }
 
 /** A published project's identity. Once it exists it wins over anything derived from the app's current name. */
@@ -162,7 +162,7 @@ function readmeFile(name: string, plan: AppPlan | null) {
     : "The app saves its data on the device. `lib/backend/` is where that can move to a cloud backend without changing any screen."
   return `# ${name}
 ${plan?.tagline ? `\n${plan.tagline}\n` : ""}
-Built with AppForge. This is a standard [Expo](https://expo.dev) project using Expo Router.
+Built with AppxPrompt. This is a standard [Expo](https://expo.dev) project using Expo Router.
 
 ## Run it
 

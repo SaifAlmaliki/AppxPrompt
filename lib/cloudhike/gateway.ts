@@ -45,8 +45,8 @@ type AppConnection = {
 }
 
 // Kept across dev hot reloads, so each one doesn't leave pools connected.
-const globalForApps = globalThis as unknown as { appforgeApps?: Map<string, AppConnection> }
-const connections = (globalForApps.appforgeApps ??= new Map<string, AppConnection>())
+const globalForApps = globalThis as unknown as { appxpromptApps?: Map<string, AppConnection> }
+const connections = (globalForApps.appxpromptApps ??= new Map<string, AppConnection>())
 
 function connect(url: string) {
   return postgres(url, { prepare: false, max: POOL_SIZE, idle_timeout: 60, connect_timeout: 10, onnotice: () => {} })
@@ -163,7 +163,34 @@ export function cleanFields(input: unknown): Record<string, unknown> | null {
 }
 
 function foreignKeyName(table: AppTable, column: AppColumn) {
-  return `appforge_fk_${createHash("sha256").update(`${table.name}.${column.column}`).digest("hex").slice(0, 16)}`
+  return `appxprompt_fk_${createHash("sha256").update(`${table.name}.${column.column}`).digest("hex").slice(0, 16)}`
+}
+
+/** Earlier builds used these names. Rename them before creating anything, so existing rows stay put. */
+async function renamePreviousNames(tx: postgres.TransactionSql) {
+  await tx.unsafe(`
+    do $$
+    begin
+      if to_regclass('appforge_values') is not null and to_regclass('appxprompt_values') is null then
+        alter table appforge_values rename to appxprompt_values;
+      end if;
+      if to_regclass('appforge_records') is not null and to_regclass('appxprompt_records') is null then
+        alter table appforge_records rename to appxprompt_records;
+      end if;
+      if to_regclass('appforge_records_legacy') is not null and to_regclass('appxprompt_records_legacy') is null then
+        alter table appforge_records_legacy rename to appxprompt_records_legacy;
+      end if;
+    end $$
+  `)
+  const constraints = await tx<{ conname: string; relname: string }[]>`
+    select c.conname, t.relname
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    where c.connamespace = current_schema()::regnamespace and c.conname like 'appforge_fk_%'`
+  for (const { conname, relname } of constraints) {
+    const next = `appxprompt_fk_${conname.slice("appforge_fk_".length)}`
+    await tx.unsafe(`alter table ${quote(relname)} rename constraint ${quote(conname)} to ${quote(next)}`)
+  }
 }
 
 /** Adds rows that all have the same columns. One already there stays as it is. */
@@ -224,7 +251,7 @@ async function updateTables(tx: postgres.TransactionSql, tables: Map<string, App
 /** After records have moved, since a link that doesn't fit shouldn't stop them moving. */
 async function addForeignKeys(tx: postgres.TransactionSql, tables: Map<string, AppTable>) {
   const constraints = await tx<{ conname: string }[]>`
-    select conname from pg_constraint where connamespace = current_schema()::regnamespace and conname like 'appforge_fk_%'`
+    select conname from pg_constraint where connamespace = current_schema()::regnamespace and conname like 'appxprompt_fk_%'`
   const has = new Set(constraints.map((row) => row.conname))
   for (const table of tables.values()) {
     for (const column of table.columns) {
@@ -270,6 +297,7 @@ export async function prepareAppDatabase(env: AppEnvironment, collections: DataC
   try {
     await client.begin(async (tx) => {
       await tx`select pg_advisory_xact_lock(${PREPARE_LOCK})`
+      await renamePreviousNames(tx)
       await tx.unsafe(CREATE_VALUES_TABLE)
       await updateTables(tx, tables)
       await moveLegacyRecords(tx, tables)

@@ -8,4 +8,4 @@ export function isSocialProvider(value: string): value is SocialProvider {
 }
 
 /** Where the composer parks an unsent prompt while the browser visits the provider. */
-export const PENDING_PROMPT_KEY = "appforge:pending-prompt"
+export const PENDING_PROMPT_KEY = "appxprompt:pending-prompt"

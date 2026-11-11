@@ -203,7 +203,7 @@ export function GitHubDialog({
           </p>
         ) : status && !status.available ? (
           <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-            GitHub isn't set up on this AppForge server yet.
+            GitHub isn't set up on this AppxPrompt server yet.
           </p>
         ) : showConnect ? (
           <ConnectView
@@ -265,7 +265,7 @@ function ConnectView({ projectId, notice }: { projectId: string; notice: string 
     <>
       <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheckIcon className="mt-px size-3.5 shrink-0 text-emerald-600" />
-        You sign in on GitHub, and AppForge never sees your password. GitHub asks for access to your repositories, which AppForge only uses to list them and to push when you ask.
+        You sign in on GitHub, and AppxPrompt never sees your password. GitHub asks for access to your repositories, which AppxPrompt only uses to list them and to push when you ask.
       </p>
       {notice && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">

@@ -144,14 +144,14 @@ async function refreshBuilds(projectId: string, userId: number) {
       continue
     }
     if (!expo) {
-      await recordBuild(build.id, { status: "failed", error: "Expo was disconnected, so AppForge can't follow this build. It may still finish on expo.dev." })
+      await recordBuild(build.id, { status: "failed", error: "Expo was disconnected, so AppxPrompt can't follow this build. It may still finish on expo.dev." })
       continue
     }
     try {
       await recordBuild(build.id, reportFromRun(await readWorkflowRun(unseal(expo.accessToken), build.easRunId)))
     } catch (cause) {
       if (cause instanceof ExpoError && cause.unauthorized) {
-        await recordBuild(build.id, { status: "failed", error: "Expo stopped accepting your token, so AppForge can't follow this build. It may still finish on expo.dev." })
+        await recordBuild(build.id, { status: "failed", error: "Expo stopped accepting your token, so AppxPrompt can't follow this build. It may still finish on expo.dev." })
       } else {
         // Only the network, most likely. The next look tries again.
         console.error(`Checking on app build ${build.id} failed`, cause)
@@ -228,7 +228,7 @@ export async function startBuild(project: Project, userId: number, format: AppBu
   if (project.platform !== "ios-android" && project.platform !== platform) {
     throw new PublishBlockedError(`This project was made for ${project.platform === "ios" ? "iOS" : "Android"} only.`)
   }
-  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppForge server yet.")
+  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppxPrompt server yet.")
 
   const expo = await loadExpoConnection(userId)
   if (!expo) throw new PublishBlockedError("Connect your Expo account first.", "expo")

@@ -116,7 +116,7 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
         <PlanCard
           plan="free"
           current={!isPending && !!user && !isPro}
-          tagline="Try AppForge and build your first apps."
+          tagline="Try AppxPrompt and build your first apps."
           price="$0"
           period="forever"
           action={

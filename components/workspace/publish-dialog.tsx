@@ -183,7 +183,7 @@ export function PublishDialog({
           </p>
         ) : !status.available ? (
           <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-            Publishing isn't set up on this AppForge server yet.
+            Publishing isn't set up on this AppxPrompt server yet.
           </p>
         ) : !status.expo ? (
           <ConnectExpo onConnected={() => void load()} />
@@ -314,7 +314,7 @@ function ConnectExpo({ onConnected }: { onConnected: () => void }) {
     <form className="space-y-3" onSubmit={(event) => void submit(event)}>
       <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheckIcon className="mt-px size-3.5 shrink-0 text-emerald-600" />
-        Websites and builds run on your own Expo account. AppForge encrypts your token, and only uses it to publish your app and follow its progress.
+        Websites and builds run on your own Expo account. AppxPrompt encrypts your token, and only uses it to publish your app and follow its progress.
       </p>
       <div className="space-y-1.5">
         <label htmlFor="expo-token" className="text-sm font-medium">

@@ -63,7 +63,7 @@ export async function PUT(request: Request, context: Context) {
       if (!REPO_NAME.test(name) || name === "." || name === "..") {
         return error("Repository names can only use letters, numbers, hyphens, underscores, and periods.", 400)
       }
-      const description = project.plan?.tagline ?? `${project.title}, built with AppForge`
+      const description = project.plan?.tagline ?? `${project.title}, built with AppxPrompt`
       await createAndLinkRepository(project.id, user.id, name, body.create.private !== false, description)
     } else {
       return error("Invalid request.", 400)

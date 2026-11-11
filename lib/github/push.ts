@@ -14,7 +14,7 @@ const UPLOADS_AT_ONCE = 6
 export type FileChanges = { added: string[]; updated: string[]; removed: string[] }
 
 /**
- * What AppForge has pushed, by path: each file's git blob id, or null once it's been removed.
+ * What AppxPrompt has pushed, by path: each file's git blob id, or null once it's been removed.
  * Removed files stay listed because each new branch starts from the default branch, which
  * can still have a file that was only removed on a branch nobody merged.
  */
@@ -71,18 +71,18 @@ export function updateCommitMessage(changes: FileChanges, screenNames: Record<st
   const subject = joined && joined.length <= 72 ? joined : joined ? `Update ${total} ${total === 1 ? "file" : "files"} across the app` : "Update project configuration"
 
   const section = (title: string, paths: string[]) => (paths.length ? [`${title}:`, ...paths.map((path) => `- ${path}`), ""] : [])
-  const body = [...section("Added", changes.added), ...section("Updated", changes.updated), ...section("Removed", changes.removed), "Pushed from AppForge."]
+  const body = [...section("Added", changes.added), ...section("Updated", changes.updated), ...section("Removed", changes.removed), "Pushed from AppxPrompt."]
   return `${subject}\n\n${body.join("\n")}`
 }
 
 function firstCommitMessage(appName: string, fileCount: number) {
-  return `Add ${appName} Expo project\n\n${fileCount} files: the screens, shared components, theme, data, backend setup, and project configuration.\n\nPushed from AppForge.`
+  return `Add ${appName} Expo project\n\n${fileCount} files: the screens, shared components, theme, data, backend setup, and project configuration.\n\nPushed from AppxPrompt.`
 }
 
-/** A branch name that sorts by time, such as `appforge/update-20261101-143012`. */
+/** A branch name that sorts by time, such as `appxprompt/update-20261101-143012`. */
 function branchName(kind: "update" | "initial", attempt: number) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15)
-  return `appforge/${kind}-${stamp}${attempt > 0 ? `-${randomBytes(2).toString("hex")}` : ""}`
+  return `appxprompt/${kind}-${stamp}${attempt > 0 ? `-${randomBytes(2).toString("hex")}` : ""}`
 }
 
 async function uploadBlobs(
@@ -169,7 +169,7 @@ export async function pushFiles(
   }
 
   // What's there now decides what to send. Files the repository has that this project
-  // never pushed are left alone: only files AppForge itself pushed get removed.
+  // never pushed are left alone: only files AppxPrompt itself pushed get removed.
   let baseTree: string | null = null
   let existing: Record<string, string> = {}
   if (!empty) {

@@ -55,8 +55,8 @@ export class ProjectRun {
   }
 }
 
-const globalForRuns = globalThis as unknown as { appforgeRuns?: Map<string, ProjectRun> }
-const runs = (globalForRuns.appforgeRuns ??= new Map())
+const globalForRuns = globalThis as unknown as { appxpromptRuns?: Map<string, ProjectRun> }
+const runs = (globalForRuns.appxpromptRuns ??= new Map())
 
 export function getRun(projectId: string) {
   return runs.get(projectId)

@@ -12,13 +12,13 @@ import {
 import { componentProblems, visibleCode } from "@/lib/agent/validate-screen"
 
 const libraryAgent = new Agent({
-  name: "AppForge Component Designer",
+  name: "AppxPrompt Component Designer",
   model: BUILDER_MODEL,
   instructions: COMPONENT_LIBRARY_INSTRUCTIONS,
 })
 
 const componentAgent = new Agent({
-  name: "AppForge Component Builder",
+  name: "AppxPrompt Component Builder",
   model: BUILDER_MODEL,
   instructions: COMPONENT_INSTRUCTIONS,
 })

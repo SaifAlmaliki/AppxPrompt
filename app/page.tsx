@@ -45,7 +45,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="mt-7 max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">
-              Describe what you want to build. AppForge designs the screens,
+              Describe what you want to build. AppxPrompt designs the screens,
               writes the code, and gets it ready for iOS and Android.
             </p>
 
@@ -62,7 +62,7 @@ export default function Home() {
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppForge. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
           </div>
         </footer>
       </div>

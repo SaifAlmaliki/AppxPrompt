@@ -120,7 +120,7 @@ function ConnectView({
           <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700">Default provider</span>
         </div>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Once you're connected, the AppForge agent deploys what your app needs and connects it for you.
+          Once you're connected, the AppxPrompt agent deploys what your app needs and connects it for you.
         </p>
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {FEATURES.map(({ icon: Icon, label }) => (
@@ -134,7 +134,7 @@ function ConnectView({
 
       <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheckIcon className="mt-px size-3.5 shrink-0 text-emerald-600" />
-        You sign in on CloudHike, and AppForge never sees your password. Services run in your account and usage is billed to your workspace there.
+        You sign in on CloudHike, and AppxPrompt never sees your password. Services run in your account and usage is billed to your workspace there.
       </p>
 
       {shownError && (
@@ -145,7 +145,7 @@ function ConnectView({
 
       {!backend.available ? (
         <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-          CloudHike isn't set up on this AppForge server yet.
+          CloudHike isn't set up on this AppxPrompt server yet.
         </p>
       ) : backend.accountConnected ? (
         <Button className="h-10 rounded-full" disabled={pending} onClick={link}>
@@ -222,7 +222,7 @@ function ConnectedView({
 
       {!backend.accountConnected && (
         <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">
-          Your app keeps running, but CloudHike no longer accepts AppForge's access, so nothing new can be deployed.{" "}
+          Your app keeps running, but CloudHike no longer accepts AppxPrompt's access, so nothing new can be deployed.{" "}
           <a href={`/api/projects/${projectId}/backend/connect`} className="font-medium text-violet-700 hover:underline">
             Connect CloudHike again
           </a>

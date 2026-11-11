@@ -9,7 +9,7 @@ export const CLOUDHIKE_URL = (process.env.CLOUDHIKE_URL || "https://cloudhike.de
 
 export const CLOUDHIKE_CALLBACK_PATH = "/api/cloudhike/callback"
 
-/** The token is wrong or the person disconnected AppForge in CloudHike, so they have to connect again. */
+/** The token is wrong or the person disconnected AppxPrompt in CloudHike, so they have to connect again. */
 export class CloudHikeAuthError extends Error {
   constructor() {
     super("CloudHike no longer accepts this connection. Connect your account again.")

@@ -21,7 +21,7 @@ function error(message: string, status: number) {
 }
 
 /**
- * Runs the AppForge agent for a project and streams its progress as
+ * Runs the AppxPrompt agent for a project and streams its progress as
  * newline-delimited JSON `AgentEvent`s. If the agent is already working on the
  * project, `start` attaches to that run instead of starting another.
  */

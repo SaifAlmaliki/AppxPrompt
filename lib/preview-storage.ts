@@ -7,7 +7,7 @@ type Listener = (storage: PreviewStorage, source: unknown) => void
 
 const listeners = new Map<string, Set<Listener>>()
 
-const storageKey = (projectId: string) => `appforge:preview:${projectId}`
+const storageKey = (projectId: string) => `appxprompt:preview:${projectId}`
 
 export function readPreviewStorage(projectId: string): PreviewStorage {
   try {

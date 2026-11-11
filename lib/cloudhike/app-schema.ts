@@ -21,10 +21,10 @@ export type AppTable = {
 }
 
 /** Saved values can be anything a screen wants to keep, so this is the one table that holds JSON. */
-export const VALUES_TABLE = "appforge_values"
+export const VALUES_TABLE = "appxprompt_values"
 /** Where apps kept everything before they had tables. Renamed, not deleted, once it's been moved out. */
-export const LEGACY_TABLE = "appforge_records"
-export const LEGACY_BACKUP_TABLE = "appforge_records_legacy"
+export const LEGACY_TABLE = "appxprompt_records"
+export const LEGACY_BACKUP_TABLE = "appxprompt_records_legacy"
 
 // CloudHike's other services may share this database, so the app's tables get a prefix of their own.
 const TABLE_PREFIX = "app_"

@@ -1,9 +1,9 @@
-# AppForge Project Prompts
+# AppxPrompt Project Prompts
 
-Every prompt behind AppForge, an AI agent that turns an idea into a working Expo (React Native) app. The project was built over 15 chapters by giving prompts to an AI coding agent ([Claude Code](https://claude.com/claude-code)), and the finished product runs prompts of its own.
+Every prompt behind AppxPrompt, an AI agent that turns an idea into a working Expo (React Native) app. The project was built over 15 chapters by giving prompts to an AI coding agent ([Claude Code](https://claude.com/claude-code)), and the finished product runs prompts of its own.
 
-- **[Part 1: Build prompts](#part-1-build-prompts)** are what we typed to build AppForge, chapter by chapter, with what each one is for and what actually shipped.
-- **[Part 2: Runtime prompts](#part-2-runtime-prompts)** are what AppForge sends to its own AI agents when someone builds an app.
+- **[Part 1: Build prompts](#part-1-build-prompts)** are what we typed to build AppxPrompt, chapter by chapter, with what each one is for and what actually shipped.
+- **[Part 2: Runtime prompts](#part-2-runtime-prompts)** are what AppxPrompt sends to its own AI agents when someone builds an app.
 
 ## Contents
 
@@ -79,7 +79,7 @@ The same habits run through all 15 chapters, and they carry over to any project:
 ```text
 Let's implement the Home Screen Layout for our AI Agent Mobile App Builder platform.
 
-The idea is to display a header with the app name **"AppForge"**, along with some menu options.
+The idea is to display a header with the app name **"AppxPrompt"**, along with some menu options.
 
 Then, create a hero section with a prompt textarea where users can enter their ideas. Include an option to attach files to the prompt with a nice preview, a send button, etc.
 
@@ -218,7 +218,7 @@ We also want an option in the App Preview section to scan a QR code for the Expo
 
 For now, **focus only on the Workspace Layout**. Use dummy data or keep sections blank. Later, we will implement all the actual functionality and logic.
 
-Make sure the design is **professional, clean, user-friendly, and consistent with our existing AppForge theme**.
+Make sure the design is **professional, clean, user-friendly, and consistent with our existing AppxPrompt theme**.
 ```
 
 **Why it's written this way:** it names every region, left to right, and says what each will eventually hold. Dummy data lets the layout be judged before the features behind it exist.
@@ -379,7 +379,7 @@ Users should simply authenticate with CloudHike, and then, using **CloudHike MCP
 
 Make sure the AI Agent handles implementing, deploying, and connecting these CloudHike services to the generated mobile app so that the app can store, retrieve, and sync live data with CloudHike.dev.
 
-As developers, we first need to configure the **Client ID and Client Secret** for our AppForge platform so users can connect their own CloudHike accounts later.
+As developers, we first need to configure the **Client ID and Client Secret** for our AppxPrompt platform so users can connect their own CloudHike accounts later.
 
 **CloudHike Integration Documentation:** [https://cloudhike.dev/docs/connect](https://cloudhike.dev/docs/connect) 
 
@@ -389,10 +389,10 @@ Also, move the existing **Share** option under the **Export** menu, or replace E
 
 Once CloudHike is successfully connected, display a clear **CloudHike Backend Connected** status in the Workspace, so users can easily see that their app is connected to the backend.
 
-Make sure the entire integration is secure, professional, user-friendly, and consistent with our existing AppForge UI/UX design.
+Make sure the entire integration is secure, professional, user-friendly, and consistent with our existing AppxPrompt UI/UX design.
 ```
 
-**Why it's written this way:** it separates what the AppForge developer sets up once (client ID and secret) from what each user does (click Connect Backend), and links the integration docs.
+**Why it's written this way:** it separates what the AppxPrompt developer sets up once (client ID and secret) from what each user does (click Connect Backend), and links the integration docs.
 
 **What shipped:** the prompt has the agent using CloudHike MCP directly, but it doesn't. Raw MCP tools could read secrets and reach the user's other projects, so the agent gets one narrow tool, `setup_backend`, and server code makes the MCP calls. **Limiting what an AI agent can do was worth changing the plan for.**
 
@@ -459,7 +459,7 @@ For example, if a user selects a button, they should be able to type "Change thi
 
 Most importantly, make the entire editing experience **fast, smooth, and interactive**. When users manually edit any component or change its properties, the changes should be reflected **immediately on the screen without requiring regeneration or reloading**.
 
-Keep the editing interface clean, professional, intuitive, and consistent with our existing AppForge UI/UX design.
+Keep the editing interface clean, professional, intuitive, and consistent with our existing AppxPrompt UI/UX design.
 ```
 
 **Why it's written this way:** the worked example ("Change this button's background color to blue") shows exactly how the chat and the selected element must connect. The last requirement, instant updates with no reload, drove the design: an edit appears as a live override first, then gets written into the source code.
@@ -513,7 +513,7 @@ Most importantly, when users make changes to any screen through inline editing, 
 
 Make sure the Expo integration is smooth, reliable, and easy to use, with proper loading states, connection status, and error handling.
 
-Keep the App Preview section **clean, professional, spacious, and consistent with our existing AppForge UI/UX design**.
+Keep the App Preview section **clean, professional, spacious, and consistent with our existing AppxPrompt UI/UX design**.
 ```
 
 **Why it's written this way:** the requirement that matters is live updates "without requiring users to rescan the QR code". That rules out building the app once and serving a fixed bundle.
@@ -521,7 +521,7 @@ Keep the App Preview section **clean, professional, spacious, and consistent wit
 ### Prompt 9.2: Switch to Expo Snack
 
 ```text
-So can we do this: The QR code comes from Expo Snack, targeting SDK 54. AppForge sends the generated app's code to Snack, and Snack gives back a project URL (exp://...). We turn that URL into a QR code. When you scan it with the Expo Go app on your phone, the app loads and runs live. The same Snack session also drives the web preview in the browser. Generated apps use React Navigation instead of Expo Router because it runs more reliably in Snack. This was tested against real Expo and works.
+So can we do this: The QR code comes from Expo Snack, targeting SDK 54. AppxPrompt sends the generated app's code to Snack, and Snack gives back a project URL (exp://...). We turn that URL into a QR code. When you scan it with the Expo Go app on your phone, the app loads and runs live. The same Snack session also drives the web preview in the browser. Generated apps use React Navigation instead of Expo Router because it runs more reliably in Snack. This was tested against real Expo and works.
 ```
 
 **What shipped:** QR codes and phone updates go through Snack ([lib/generated-app/snack-project.ts](../lib/generated-app/snack-project.ts)). The workspace preview kept its own `react-native-web` runtime. On Snack, imports become relative and a small file on top of React Navigation stands in for Expo Router, so the screens themselves don't change.
@@ -573,7 +573,7 @@ Make sure the transformed image is immediately reflected in the App Preview and 
 
 Also, ensure that the updated image is properly saved and remains available when users reopen their projects.
 
-Keep the ImageKit integration smooth, professional, and consistent with our existing AppForge Inline Editing UI/UX.
+Keep the ImageKit integration smooth, professional, and consistent with our existing AppxPrompt Inline Editing UI/UX.
 
 **Documentation:** [https://imagekit.io/docs/image-transformation](https://imagekit.io/docs/image-transformation)
 ```
@@ -645,14 +645,14 @@ Make sure the GitHub integration handles authentication, repository selection, b
 
 Also, display proper loading states, progress updates, success messages, and error handling throughout the export and GitHub push process.
 
-Keep the entire Export Project experience **simple, professional, user-friendly, and consistent with our existing AppForge UI/UX design**.
+Keep the entire Export Project experience **simple, professional, user-friendly, and consistent with our existing AppxPrompt UI/UX design**.
 
  Also for Share Project Functionality, Open dialog and enter user email id to which he want to share and once added then they can share the prpjec with that user.
 ```
 
 **Why it's written this way:** the first-push and later-push cases are spelled out separately, so a person's repository is never overwritten.
 
-**What shipped:** the first push goes to the default branch only if the repository is empty, and every other push goes to a new `appforge/...` branch. Sharing is view-only, and works for people who already have an account.
+**What shipped:** the first push goes to the default branch only if the repository is empty, and every other push goes to a new `appxprompt/...` branch. Sharing is view-only, and works for people who already have an account.
 
 ---
 
@@ -683,7 +683,7 @@ But can we build directly on our platform instead of the Expo platform?
 ```
 
 ```text
-What do you mean? Do we need a server? For example if this AppForge platform is deployed on Vercel, can I build ipa and aab files and export them?
+What do you mean? Do we need a server? For example if this AppxPrompt platform is deployed on Vercel, can I build ipa and aab files and export them?
 ```
 
 ```text
@@ -695,7 +695,7 @@ Give me a short prompt to implement this feature.
 The conversation above produced this prompt, which is why it reads differently from the others:
 
 ```text
-Add a background "Publish" feature that exports generated Expo apps as .aab, .apk or .ipa. Reuse the existing GitHub push and zip export code. AppForge stays on Vercel, so no builds may run there.
+Add a background "Publish" feature that exports generated Expo apps as .aab, .apk or .ipa. Reuse the existing GitHub push and zip export code. AppxPrompt stays on Vercel, so no builds may run there.
 
 UI:
 
@@ -726,7 +726,7 @@ Can we just use Expo to build this? I think we can keep it simple instead of Git
 Yes, use Expo only. Also use Expo for .ipa and .aab file generation as well. Easy and quick.
 ```
 
-**What shipped:** this replaced the GitHub Actions design in Prompt 12.1. AppForge uploads the exported project and starts an EAS workflow directly, so GitHub isn't involved at all, and build status is checked when someone looks rather than sent to a webhook. Trying the planned design showed a simpler one was available.
+**What shipped:** this replaced the GitHub Actions design in Prompt 12.1. AppxPrompt uploads the exported project and starts an EAS workflow directly, so GitHub isn't involved at all, and build status is checked when someone looks rather than sent to a webhook. Trying the planned design showed a simpler one was available.
 
 ---
 
@@ -769,7 +769,7 @@ Once the app is successfully published, display the **live website URL** with a 
 
 Make sure the entire publishing process is secure, smooth, and user-friendly, with proper loading states, success messages, and error handling.
 
-Keep the Publish dialog and App Preview updates **clean, professional, and consistent with our existing AppForge UI/UX design**.
+Keep the Publish dialog and App Preview updates **clean, professional, and consistent with our existing AppxPrompt UI/UX design**.
 ```
 
 **Why it's written this way:** "without creating a new deployment project every time" is the key line, because the app's address has to stay the same across updates.
@@ -811,16 +811,16 @@ For users who are **not signed in**, display actual applications created by othe
 
 Make sure these public project cards show real app previews. When a visitor clicks on a project card, open a **preview dialog** displaying the actual running application, where they can interact with the app, navigate between screens, click buttons, and explore its functionality.
 
-This will allow new visitors to experience what AppForge can actually build before signing up.
+This will allow new visitors to experience what AppxPrompt can actually build before signing up.
 
 Make sure only projects that users have made public are displayed to visitors, while private projects remain accessible only to their owners.
 
 Also, ensure that the project previews load properly, display the latest generated app screens, and provide a smooth, interactive experience.
 
-Keep the entire homepage **clean, professional, responsive, and consistent with our existing AppForge UI/UX design**.
+Keep the entire homepage **clean, professional, responsive, and consistent with our existing AppxPrompt UI/UX design**.
 ```
 
-**Why it's written this way:** it covers signed-in people and visitors separately, gives the reason ("experience what AppForge can actually build before signing up"), and sets the privacy rule: only projects made public are listed.
+**Why it's written this way:** it covers signed-in people and visitors separately, gives the reason ("experience what AppxPrompt can actually build before signing up"), and sets the privacy rule: only projects made public are listed.
 
 **What shipped:** cards have no stored preview images. Each one runs the app itself in a sandboxed frame, so it always shows the latest screens, and loads only when near the screen. Visitors get sample data and never reach the owner's backend.
 
@@ -845,7 +845,7 @@ Just tell me and help: how can I use credits for the free and paid tiers? Also f
 ### Prompt 15.1: Free and Pro plans
 
 ```text
-Implement Free and Pro subscription plans in AppForge with a clean, modern pricing page. **Free:** 2 projects, 100 one-time credits that never expire (approx. 2 small apps + 4 edits). **Pro:** Unlimited projects, 1,000 credits monthly (approx. 25 small apps or 200 edits), with unused credits expiring at renewal. Max 5 Screen Per Project. If it exceed show Popopup dialog about Join Paid Plan. Make sure it applied to actual user credits , propelry deduct it as well. Also restrict Free user to not export/publish as ios or android, but they can publish as a web.
+Implement Free and Pro subscription plans in AppxPrompt with a clean, modern pricing page. **Free:** 2 projects, 100 one-time credits that never expire (approx. 2 small apps + 4 edits). **Pro:** Unlimited projects, 1,000 credits monthly (approx. 25 small apps or 200 edits), with unused credits expiring at renewal. Max 5 Screen Per Project. If it exceed show Popopup dialog about Join Paid Plan. Make sure it applied to actual user credits , propelry deduct it as well. Also restrict Free user to not export/publish as ios or android, but they can publish as a web.
 
 Integrate plan limits, AI credit tracking and deduction, upgrade/downgrade functionality, and payment subscriptions into the existing authentication, database, and AI agent workflows. Show remaining credits and current plan in the user dashboard, with upgrade prompts when limits are reached.
 ```
@@ -867,7 +867,7 @@ These follow-ups came after `73eb9c3`:
 
 # Part 2: Runtime prompts
 
-Everything in Part 1 happened once, to build AppForge. The prompts here run every time someone builds an app. They live in [lib/agent/instructions.ts](../lib/agent/instructions.ts), and the text below is a snapshot from commit `73eb9c3`, so **that file is the source of truth if the two ever differ.**
+Everything in Part 1 happened once, to build AppxPrompt. The prompts here run every time someone builds an app. They live in [lib/agent/instructions.ts](../lib/agent/instructions.ts), and the text below is a snapshot from commit `73eb9c3`, so **that file is the source of truth if the two ever differ.**
 
 ## How the prompts fit together
 
@@ -936,7 +936,7 @@ export function plannerInstructions(state: PlannerState) {
   const { maxScreens } = PLANS[state.account.plan]
   // A Sign In screen comes on top of these, and it all has to fit.
   const screenTarget = Math.max(Math.min(DEFAULT_SCREEN_COUNT, maxScreens - 1), 1)
-  return `You are the AppForge Agent, a senior mobile product designer and React Native engineer. You turn a person's app idea into a working Expo (React Native) app. You talk with them in the AppForge workspace chat, which streams your words to them as you write them.
+  return `You are the AppxPrompt Agent, a senior mobile product designer and React Native engineer. You turn a person's app idea into a working Expo (React Native) app. You talk with them in the AppxPrompt workspace chat, which streams your words to them as you write them.
 
 # How a project goes
 1. Understand: read the request (and any earlier chat) carefully. Work out who the app is for, the problem it solves, the core user journeys, and the data each screen shows.
@@ -948,7 +948,7 @@ export function plannerInstructions(state: PlannerState) {
 # Current project
 - Phase: ${phaseDescription(state)}
 - Target platform: ${PLATFORM_LABELS[state.platform]}
-- AppForge plan: ${PLANS[state.account.plan].name}, with ${state.account.credits} credits left. Each new screen costs ${SCREEN_CREDITS} credits and each round of changes ${EDIT_CREDITS}. Chatting and switching themes are free. If a tool reports a plan limit, tell them plainly and never say the work happened.
+- AppxPrompt plan: ${PLANS[state.account.plan].name}, with ${state.account.credits} credits left. Each new screen costs ${SCREEN_CREDITS} credits and each round of changes ${EDIT_CREDITS}. Chatting and switching themes are free. If a tool reports a plan limit, tell them plainly and never say the work happened.
 - Backend: ${backendDescription(state.backend)}
 ${state.assetNames.length > 0 ? `- Reference files attached to the first prompt: ${state.assetNames.join(", ")}. You can only see their names, so use them as hints and don't claim to have read them.\n` : ""}- Current plan: ${state.plan ? `\n```json\n${JSON.stringify({ ...state.plan, themePackage: undefined, collections: undefined, components: undefined, pendingChanges: undefined }, null, 2)}\n```` : "none yet"}
 ${state.plan?.collections ? `- Data the app stores: ${state.plan.collections.map((c) => `${c.name} (${c.fields.map((f) => f.name).join(", ")})`).join("; ") || "nothing yet"}\n` : ""}${state.plan?.components?.length ? `- Shared components: ${state.plan.components.map((c) => componentDescription(c, state.rows)).join("; ")}\n` : ""}${state.plan?.themePackage ? `- Themes: ${state.plan.themePackage.themes.map((t) => `${t.name} (id "${t.id}", ${t.mode}${t.id === state.plan?.themePackage?.activeThemeId ? ", active" : ""})`).join("; ")}\n` : ""}
@@ -1043,7 +1043,7 @@ function componentDescription(component: AppComponent, rows: PlannerState["rows"
 }
 
 function backendDescription(backend: BackendStatus) {
-  if (!backend.available) return "not available on this AppForge server, so data stays on the device."
+  if (!backend.available) return "not available on this AppxPrompt server, so data stays on the device."
   if (!isBackendConnected(backend)) {
     return backend.state === "disconnected"
       ? "not connected, so data stays on the device."
@@ -1123,7 +1123,7 @@ Runs once, right after the plan is confirmed and before any screen. Everything l
 <summary><strong>Full Foundation Designer prompts</strong></summary>
 
 ````text
-export const FOUNDATION_INSTRUCTIONS = `You are the AppForge foundation designer. Before any screen of a mobile app is written, you decide its theme package and its data, and every screen is then built on them.
+export const FOUNDATION_INSTRUCTIONS = `You are the AppxPrompt foundation designer. Before any screen of a mobile app is written, you decide its theme package and its data, and every screen is then built on them.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -1170,7 +1170,7 @@ Runs when a chat change needs data the app doesn't store yet. Built screens depe
 <summary><strong>Full Data Designer prompts</strong></summary>
 
 ````text
-export const DATA_CHANGE_INSTRUCTIONS = `You are the AppForge data designer. A mobile app is already built, and it needs to store more than it does today.
+export const DATA_CHANGE_INSTRUCTIONS = `You are the AppxPrompt data designer. A mobile app is already built, and it needs to store more than it does today.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -1234,7 +1234,7 @@ This must look like a top-tier app on the App Store. Use a consistent type scale
 <summary><strong>Component Designer and Builder system prompts</strong></summary>
 
 ````text
-export const COMPONENT_LIBRARY_INSTRUCTIONS = `You are the AppForge component designer, an expert React Native engineer with the eye of a senior product designer. Before any screen of a mobile app is written, you write the shared components those screens are built from.
+export const COMPONENT_LIBRARY_INSTRUCTIONS = `You are the AppxPrompt component designer, an expert React Native engineer with the eye of a senior product designer. Before any screen of a mobile app is written, you write the shared components those screens are built from.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -1250,7 +1250,7 @@ Reply with ONLY one JSON object, with no markdown code fence or explanation:
 
 ${COMPONENT_RULES}`
 
-export const COMPONENT_INSTRUCTIONS = `You are the AppForge component builder, an expert React Native engineer with the eye of a senior product designer. You write one shared component of a mobile app per request, and the app's screens are built from it.
+export const COMPONENT_INSTRUCTIONS = `You are the AppxPrompt component builder, an expert React Native engineer with the eye of a senior product designer. You write one shared component of a mobile app per request, and the app's screens are built from it.
 
 # Output
 - Reply with ONLY the complete contents of one .tsx file. No markdown code fences, no explanations before or after.
@@ -1357,7 +1357,7 @@ The request prompt adds this app's details: its data, components, routes, the sc
 <summary><strong>Full Screen Builder system prompt</strong></summary>
 
 ````text
-export const BUILDER_INSTRUCTIONS = `You are the AppForge screen builder, an expert React Native and Expo engineer with the eye of a senior product designer. You write one screen of an Expo Router app per request. Your screens run live: people tap through them right after you write them.
+export const BUILDER_INSTRUCTIONS = `You are the AppxPrompt screen builder, an expert React Native and Expo engineer with the eye of a senior product designer. You write one screen of an Expo Router app per request. Your screens run live: people tap through them right after you write them.
 
 # Output
 - Reply with ONLY the complete contents of one .tsx file. No markdown code fences, no explanations before or after.

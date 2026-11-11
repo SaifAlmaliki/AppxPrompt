@@ -206,7 +206,7 @@ function SignInForm({
             {reason ??
               (isSignUp
                 ? "Start turning your ideas into mobile apps — with 100 free credits."
-                : "Sign in to continue building with AppForge.")}
+                : "Sign in to continue building with AppxPrompt.")}
           </DialogDescription>
         </div>
       </DialogHeader>
@@ -328,7 +328,7 @@ function SignInForm({
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        {isSignUp ? "Already have an account?" : "New to AppForge?"}{" "}
+        {isSignUp ? "Already have an account?" : "New to AppxPrompt?"}{" "}
         <button
           type="button"
           onClick={switchMode}

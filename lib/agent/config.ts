@@ -15,7 +15,7 @@ export const PLANNER_MODEL = process.env.AI_MODEL || DEFAULT_MODEL
 /** Model for writing screen code. */
 export const BUILDER_MODEL = process.env.AI_BUILDER_MODEL || PLANNER_MODEL
 
-/** The most screens a plan can have on any AppForge plan, even when the person asks for more. */
+/** The most screens a plan can have on any AppxPrompt plan, even when the person asks for more. */
 export const MAX_PLAN_SCREENS = PLANS.pro.maxScreens
 
 /** How many screens a plan has at most, unless the person asks for more. */
@@ -29,7 +29,7 @@ let configured = false
 export function configureAgents() {
   if (configured) return
   if (!process.env.AI_BASE_URL || !process.env.AI_API_KEY) {
-    throw new Error("AI_BASE_URL and AI_API_KEY must be set to run the AppForge agent.")
+    throw new Error("AI_BASE_URL and AI_API_KEY must be set to run the AppxPrompt agent.")
   }
   setDefaultOpenAIClient(
     new OpenAI({ baseURL: process.env.AI_BASE_URL, apiKey: process.env.AI_API_KEY })

@@ -225,7 +225,7 @@ export async function ensureAndroidKeystore(accessToken: string, owner: string, 
       }
     }`,
     {
-      androidAppBuildCredentialsInput: { name: "AppForge", isDefault: true, keystoreId: androidKeystore.createAndroidKeystore.id },
+      androidAppBuildCredentialsInput: { name: "AppxPrompt", isDefault: true, keystoreId: androidKeystore.createAndroidKeystore.id },
       androidAppCredentialsId: credentialsId,
     }
   )

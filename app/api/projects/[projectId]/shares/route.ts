@@ -50,7 +50,7 @@ export async function POST(request: Request, context: Context) {
   // Accounts don't confirm their email, so a share waiting for someone to sign up
   // could be claimed by anyone who signs up with that address. Only existing accounts get one.
   const [person] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-  if (!person) return error("No AppForge account uses this email yet. Ask them to sign up, then share again.", 404)
+  if (!person) return error("No AppxPrompt account uses this email yet. Ask them to sign up, then share again.", 404)
 
   await db.insert(projectShares).values({ projectId: owned.project.id, userId: person.id }).onConflictDoNothing()
   return NextResponse.json({ people: await listPeople(owned.project.id) }, { status: 201 })

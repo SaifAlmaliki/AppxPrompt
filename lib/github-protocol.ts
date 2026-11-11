@@ -15,7 +15,7 @@ export type GitHubLinkedRepository = {
 }
 
 export type GitHubStatus = {
-  /** Whether this AppForge server has GitHub set up. */
+  /** Whether this AppxPrompt server has GitHub set up. */
   available: boolean
   account: { login: string } | null
   repository: GitHubLinkedRepository | null

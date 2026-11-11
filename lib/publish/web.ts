@@ -87,14 +87,14 @@ async function refreshWebPublish(row: WebPublish, userId: number) {
   }
   const expo = await loadExpoConnection(userId)
   if (!expo) {
-    await recordPublish(row, { status: "failed", error: "Expo was disconnected, so AppForge can't follow this publish. It may still finish on expo.dev." })
+    await recordPublish(row, { status: "failed", error: "Expo was disconnected, so AppxPrompt can't follow this publish. It may still finish on expo.dev." })
     return
   }
   try {
     await recordPublish(row, await reportFromRun(await readWebRun(unseal(expo.accessToken), row.easRunId), row.status))
   } catch (cause) {
     if (cause instanceof ExpoError && cause.unauthorized) {
-      await recordPublish(row, { status: "failed", error: "Expo stopped accepting your token, so AppForge can't follow this publish. It may still finish on expo.dev." })
+      await recordPublish(row, { status: "failed", error: "Expo stopped accepting your token, so AppxPrompt can't follow this publish. It may still finish on expo.dev." })
     } else {
       // Only the network, most likely. The next look tries again.
       console.error(`Checking on the website of project ${row.projectId} failed`, cause)
@@ -138,7 +138,7 @@ async function sendToExpo(project: Project, expoToken: string, easOwner: string)
 
 /** Publishes the project's website, or updates it if it has one. Returns as soon as Expo has the app. */
 export async function startWebPublish(project: Project, userId: number): Promise<WebPublishSummary> {
-  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppForge server yet.")
+  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppxPrompt server yet.")
 
   const expo = await loadExpoConnection(userId)
   if (!expo) throw new PublishBlockedError("Connect your Expo account first.", "expo")

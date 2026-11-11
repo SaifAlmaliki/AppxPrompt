@@ -26,7 +26,7 @@ export type PlannerState = {
   rows: { name: string; code: string | null }[]
   assetNames: string[]
   backend: BackendStatus
-  /** The project owner's AppForge plan, and all the credits they have left. */
+  /** The project owner's AppxPrompt plan, and all the credits they have left. */
   account: { plan: PlanId; credits: number }
 }
 
@@ -34,7 +34,7 @@ export function plannerInstructions(state: PlannerState) {
   const { maxScreens } = PLANS[state.account.plan]
   // A Sign In screen comes on top of these, and it all has to fit.
   const screenTarget = Math.max(Math.min(DEFAULT_SCREEN_COUNT, maxScreens - 1), 1)
-  return `You are the AppForge Agent, a senior mobile product designer and React Native engineer. You turn a person's app idea into a working Expo (React Native) app. You talk with them in the AppForge workspace chat, which streams your words to them as you write them.
+  return `You are the AppxPrompt Agent, a senior mobile product designer and React Native engineer. You turn a person's app idea into a working Expo (React Native) app. You talk with them in the AppxPrompt workspace chat, which streams your words to them as you write them.
 
 # How a project goes
 1. Understand: read the request (and any earlier chat) carefully. Work out who the app is for, the problem it solves, the core user journeys, and the data each screen shows.
@@ -46,7 +46,7 @@ export function plannerInstructions(state: PlannerState) {
 # Current project
 - Phase: ${phaseDescription(state)}
 - Target platform: ${PLATFORM_LABELS[state.platform]}
-- AppForge plan: ${PLANS[state.account.plan].name}, with ${state.account.credits} credits left. Each new screen costs ${SCREEN_CREDITS} credits and each round of changes ${EDIT_CREDITS}. Chatting and switching themes are free. If a tool reports a plan limit, tell them plainly and never say the work happened.
+- AppxPrompt plan: ${PLANS[state.account.plan].name}, with ${state.account.credits} credits left. Each new screen costs ${SCREEN_CREDITS} credits and each round of changes ${EDIT_CREDITS}. Chatting and switching themes are free. If a tool reports a plan limit, tell them plainly and never say the work happened.
 - Backend: ${backendDescription(state.backend)}
 ${state.assetNames.length > 0 ? `- Reference files attached to the first prompt: ${state.assetNames.join(", ")}. You can only see their names, so use them as hints and don't claim to have read them.\n` : ""}- Current plan: ${state.plan ? `\n\`\`\`json\n${JSON.stringify({ ...state.plan, themePackage: undefined, collections: undefined, components: undefined, pendingChanges: undefined }, null, 2)}\n\`\`\`` : "none yet"}
 ${state.plan?.collections ? `- Data the app stores: ${state.plan.collections.map((c) => `${c.name} (${c.fields.map((f) => f.name).join(", ")})`).join("; ") || "nothing yet"}\n` : ""}${state.plan?.components?.length ? `- Shared components: ${state.plan.components.map((c) => componentDescription(c, state.rows)).join("; ")}\n` : ""}${state.plan?.themePackage ? `- Themes: ${state.plan.themePackage.themes.map((t) => `${t.name} (id "${t.id}", ${t.mode}${t.id === state.plan?.themePackage?.activeThemeId ? ", active" : ""})`).join("; ")}\n` : ""}
@@ -134,7 +134,7 @@ function componentDescription(component: AppComponent, rows: PlannerState["rows"
 }
 
 function backendDescription(backend: BackendStatus) {
-  if (!backend.available) return "not available on this AppForge server, so data stays on the device."
+  if (!backend.available) return "not available on this AppxPrompt server, so data stays on the device."
   if (!isBackendConnected(backend)) {
     return backend.state === "disconnected"
       ? "not connected, so data stays on the device."
@@ -175,7 +175,7 @@ const DATA_RULES = `- A collection is one kind of record the app stores and its 
 - Settings and the signed-in person aren't collections, so leave those out.
 - shared is true only when everyone using the app should see the same records, such as a public feed or a catalog. Otherwise it's false, and each person only sees their own.`
 
-export const DATA_CHANGE_INSTRUCTIONS = `You are the AppForge data designer. A mobile app is already built, and it needs to store more than it does today.
+export const DATA_CHANGE_INSTRUCTIONS = `You are the AppxPrompt data designer. A mobile app is already built, and it needs to store more than it does today.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -199,7 +199,7 @@ ${change}
 Write the JSON object now.`
 }
 
-export const FOUNDATION_INSTRUCTIONS = `You are the AppForge foundation designer. Before any screen of a mobile app is written, you decide its theme package and its data, and every screen is then built on them.
+export const FOUNDATION_INSTRUCTIONS = `You are the AppxPrompt foundation designer. Before any screen of a mobile app is written, you decide its theme package and its data, and every screen is then built on them.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -263,7 +263,7 @@ ${THEME_RULES}
 # Design
 This must look like a top-tier app on the App Store. Use a consistent type scale (e.g. 30/22/17/15/13), spacing on an 8-point grid, and rounded cards (12 to 20 radius) with soft shadows or hairline borders, never both heavy. Every touchable is a \`Pressable\` with \`style={({ pressed }) => [...]}\` for a pressed state, \`accessibilityRole\`, a target of at least 44 points, and \`accessibilityLabel\` if it's only an icon. Keep names to one or two lines with \`numberOfLines\`, and handle a missing value on a record, since records saved before a field was added don't have it. Use images only through \`{ uri: ... }\`, never local assets. ${COMPONENT_IMAGE_RULE}`
 
-export const COMPONENT_LIBRARY_INSTRUCTIONS = `You are the AppForge component designer, an expert React Native engineer with the eye of a senior product designer. Before any screen of a mobile app is written, you write the shared components those screens are built from.
+export const COMPONENT_LIBRARY_INSTRUCTIONS = `You are the AppxPrompt component designer, an expert React Native engineer with the eye of a senior product designer. Before any screen of a mobile app is written, you write the shared components those screens are built from.
 
 # Output
 Reply with ONLY one JSON object, with no markdown code fence or explanation:
@@ -279,7 +279,7 @@ Reply with ONLY one JSON object, with no markdown code fence or explanation:
 
 ${COMPONENT_RULES}`
 
-export const COMPONENT_INSTRUCTIONS = `You are the AppForge component builder, an expert React Native engineer with the eye of a senior product designer. You write one shared component of a mobile app per request, and the app's screens are built from it.
+export const COMPONENT_INSTRUCTIONS = `You are the AppxPrompt component builder, an expert React Native engineer with the eye of a senior product designer. You write one shared component of a mobile app per request, and the app's screens are built from it.
 
 # Output
 - Reply with ONLY the complete contents of one .tsx file. No markdown code fences, no explanations before or after.
@@ -358,7 +358,7 @@ ${current ? `\n# Current file\n${current}\n\n# Requested change\n${request}\n\n$
 Write the complete file now.`
 }
 
-export const BUILDER_INSTRUCTIONS = `You are the AppForge screen builder, an expert React Native and Expo engineer with the eye of a senior product designer. You write one screen of an Expo Router app per request. Your screens run live: people tap through them right after you write them.
+export const BUILDER_INSTRUCTIONS = `You are the AppxPrompt screen builder, an expert React Native and Expo engineer with the eye of a senior product designer. You write one screen of an Expo Router app per request. Your screens run live: people tap through them right after you write them.
 
 # Output
 - Reply with ONLY the complete contents of one .tsx file. No markdown code fences, no explanations before or after.

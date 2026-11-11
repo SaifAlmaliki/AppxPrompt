@@ -1,4 +1,4 @@
-// Types shared by the AppForge agent (server) and the workspace (client).
+// Types shared by the AppxPrompt agent (server) and the workspace (client).
 // The agent route streams `AgentEvent`s as newline-delimited JSON.
 
 import type { Screen } from "@/db/schema"

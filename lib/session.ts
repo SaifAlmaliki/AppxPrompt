@@ -5,8 +5,8 @@ import { db, users, type User } from "@/db"
 import { getAuthSession, type AuthUser } from "@/lib/cloudhike-auth"
 import type { PlanId } from "@/lib/plans"
 
-export const SESSION_COOKIE = "appforge_session"
-export const OAUTH_STATE_COOKIE = "appforge_oauth_state"
+export const SESSION_COOKIE = "appxprompt_session"
+export const OAUTH_STATE_COOKIE = "appxprompt_oauth_state"
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
 export async function setSessionCookie(token: string) {

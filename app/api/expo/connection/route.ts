@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
   }
 }
 
-/** Disconnects Expo. The token is deleted here, and that was the only copy AppForge had. */
+/** Disconnects Expo. The token is deleted here, and that was the only copy AppxPrompt had. */
 export async function DELETE() {
   const user = await getCurrentUser().catch(() => null)
   if (!user) return error("Please sign in to continue.", 401)
