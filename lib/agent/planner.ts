@@ -21,6 +21,12 @@ type PlannerContext = PlannerState & {
   rows: Pick<Screen, "slug" | "name" | "code">[]
   /** The plan proposed during this turn, saved with the reply. */
   proposedPlan: AppPlan | null
+  /** Assistant replies already saved in this chat, before this turn. */
+  priorAssistantReplies: number
+  /** The person's latest message, used to see if they want to skip the interview. */
+  latestUserMessage: string
+  /** Set once propose_plan is refused this turn, so it isn't tried again until they've been asked something. */
+  interviewBlocked: boolean
   confirmed: boolean
   /** The changes to a built app asked for during this turn, made right after the reply. */
   changes: AppChanges | null
@@ -178,15 +184,24 @@ function creditsMissing(ctx: PlannerContext, plan: AppPlan) {
   return `This costs ${cost} credits and the person has ${ctx.account.credits}. ${UPGRADE_NOTE}`
 }
 
+/** True when the person wants a plan now, without more questions. */
+function declinesInterview(text: string) {
+  return /\b(just (build|plan|do it)|you decide|your call|skip (the )?questions|don'?t ask|do not ask|no questions|go ahead and (plan|build)|surprise me|whatever you think)\b/i.test(text)
+}
+
 const proposePlan = tool<typeof planSchema, PlannerContext>({
   name: "propose_plan",
   description:
-    "Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan.",
+    "Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan. On a project with no plan yet, don't call this until the interview is done or the person told you to decide. Revising a plan they can already see is immediate.",
   parameters: planSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
     if (ctx.status === "building") return "The app is being built right now, so the plan can't change."
     if (ctx.builtScreens > 0) return "The app is already built. Use update_app to change it, which keeps the finished screens."
+    if (!ctx.plan && !declinesInterview(ctx.latestUserMessage) && (ctx.priorAssistantReplies === 0 || ctx.interviewBlocked)) {
+      ctx.interviewBlocked = true
+      return "Plan not saved. Ask one or two questions first, about choices that would change which screens you plan. Don't call propose_plan again in this turn."
+    }
 
     if (input.screens.length > PLANS[ctx.account.plan].maxScreens) {
       return `Plan not saved: ${screenLimitReached(ctx)} Call propose_plan again with what matters most within the limit, folding the rest into those screens.`
@@ -362,6 +377,9 @@ export async function runPlannerTurn(
     proposedPlan: null,
     confirmed: false,
     changes: null,
+    priorAssistantReplies: thread.filter((message) => message.role === "assistant").length,
+    latestUserMessage: [...thread].reverse().find((message) => message.role === "user")?.content ?? "",
+    interviewBlocked: false,
   }
 
   projectRun.emit({ type: "status", label: thread.length > 1 ? "Reading your message…" : "Reading your request…" })
