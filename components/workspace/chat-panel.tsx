@@ -19,6 +19,7 @@ import {
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
 import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
+import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
 import { ELEMENT_LABELS } from "@/lib/preview-protocol"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { cn } from "@/lib/utils"
@@ -55,6 +56,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
   const [draft, setDraft] = React.useState("")
   const [newSessionOpen, setNewSessionOpen] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const following = React.useRef(true)
   const { messages, status, busy, activity, streamingText, reasoning, error, screens, send, startNewSession, sessionRestarted } = agent
 
@@ -73,6 +75,24 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
   const inputLocked = busy || status === "building"
   const attachment = editor.attached ? editor.selection : null
   const attachmentLabel = attachment && (ELEMENT_LABELS[attachment.type] ?? attachment.type)
+  const interviewOpen = !editor.readOnly && !agent.plan && (status === "planning" || status === "failed")
+  const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant")
+  const choiceReply =
+    interviewOpen &&
+    !!latestAssistant &&
+    !latestAssistant.plan &&
+    chatPieces(latestAssistant.content, true).some((piece) => piece.type === "choices")
+  const picked = numberReply(draft) ?? []
+
+  function pickChoice(n: number) {
+    setDraft((current) => {
+      const selected = numberReply(current)
+      if (selected === null) return current
+      const next = selected.includes(n) ? selected.filter((value) => value !== n) : [...selected, n].sort((a, b) => a - b)
+      return next.join(", ")
+    })
+    inputRef.current?.focus()
+  }
 
   // Keep the newest output in view while the agent streams, unless the person scrolled up.
   React.useEffect(() => {
@@ -185,7 +205,12 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               ) : (
                 <div className="min-w-0 flex-1 space-y-3 pt-1">
                   <span className="sr-only">Agent: </span>
-                  <MessageText text={message.content} />
+                  <MessageText
+                    text={message.content}
+                    numberBullets={!message.plan}
+                    picked={message.id === latestAssistant?.id ? picked : undefined}
+                    onPick={choiceReply && message.id === latestAssistant?.id && !busy ? pickChoice : undefined}
+                  />
                   {message.plan && (
                     <PlanCard
                       screens={screens}
@@ -290,6 +315,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               Message the AppxPrompt agent
             </label>
             <textarea
+              ref={inputRef}
               id="chat-prompt"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -307,9 +333,11 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                   ? "Building your screens…"
                   : attachment
                     ? `Ask for a change to this ${attachmentLabel?.toLowerCase()}…`
-                    : agent.plan
-                    ? "Ask for changes… e.g. Add a settings screen"
-                    : "Message the agent…"
+                    : choiceReply
+                      ? "Reply with a number, like 1"
+                      : agent.plan
+                        ? "Ask for changes… e.g. Add a settings screen"
+                        : "Message the agent…"
               }
               className="field-sizing-content block max-h-40 min-h-12 w-full resize-none bg-transparent px-2 pt-1.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed"
             />
@@ -408,23 +436,38 @@ function Reasoning({ text, active }: { text: string; active: boolean }) {
   )
 }
 
-/** Plain-text replies, with "- " lines shown as bullet lists and **bold** spans. */
-function MessageText({ text, streaming }: { text: string; streaming?: boolean }) {
-  const blocks = text.split(/\n{2,}/)
+/** Plain-text replies, with "- " lines as bullets, numbered interview options, and **bold** spans. */
+function MessageText({
+  text,
+  streaming,
+  numberBullets,
+  onPick,
+  picked,
+}: {
+  text: string
+  streaming?: boolean
+  numberBullets?: boolean
+  onPick?: (n: number) => void
+  picked?: number[]
+}) {
+  const pieces = chatPieces(text, numberBullets)
+  const selected = new Set(picked)
   return (
     <div className="space-y-2.5 text-sm leading-relaxed text-foreground">
-      {blocks.map((block, i) => {
-        const caret = streaming && i === blocks.length - 1 ? <StreamingCaret /> : null
-        const lines = block.split("\n")
-        if (lines.every((line) => /^\s*[-*•] /.test(line))) {
+      {pieces.map((piece, i) => {
+        const caret = streaming && i === pieces.length - 1 ? <StreamingCaret /> : null
+        if (piece.type === "choices") {
+          return <ChoiceList key={i} items={piece.items} caret={caret} onPick={onPick} selected={selected} />
+        }
+        if (piece.type === "list") {
           return (
             <ul key={i} className="space-y-1">
-              {lines.map((line, j) => (
+              {piece.items.map((item, j) => (
                 <li key={j} className="flex gap-2">
                   <span aria-hidden className="mt-2 size-1 shrink-0 rounded-full bg-violet-400" />
                   <span>
-                    <InlineText text={line.replace(/^\s*[-*•] /, "")} />
-                    {j === lines.length - 1 && caret}
+                    <InlineText text={item} />
+                    {j === piece.items.length - 1 && caret}
                   </span>
                 </li>
               ))}
@@ -433,12 +476,67 @@ function MessageText({ text, streaming }: { text: string; streaming?: boolean })
         }
         return (
           <p key={i} className="whitespace-pre-wrap">
-            <InlineText text={block} />
+            <InlineText text={piece.text} />
             {caret}
           </p>
         )
       })}
+      {onPick && !/reply with a number/i.test(text) && (
+        <p className="text-xs text-muted-foreground">Tap a number, or type it below.</p>
+      )}
     </div>
+  )
+}
+
+function ChoiceList({
+  items,
+  caret,
+  onPick,
+  selected,
+}: {
+  items: InterviewChoice[]
+  caret: React.ReactNode
+  onPick?: (n: number) => void
+  selected: Set<number>
+}) {
+  return (
+    <ul aria-label="Choices" className="space-y-1.5">
+      {items.map((item, index) => {
+        const on = selected.has(item.n)
+        const body = (
+          <>
+            <span
+              className={cn(
+                "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                on ? "bg-violet-600 text-white" : "bg-violet-100 text-violet-800"
+              )}
+            >
+              {item.n}
+            </span>
+            <span className="min-w-0 flex-1 pt-0.5">
+              <InlineText text={item.text} />
+              {index === items.length - 1 && caret}
+            </span>
+          </>
+        )
+        const className = cn(
+          "flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-left text-sm leading-relaxed",
+          on ? "border-violet-400 bg-violet-50" : "border-border/70 bg-white",
+          onPick && "cursor-pointer hover:border-violet-300 hover:bg-violet-50/80"
+        )
+        return (
+          <li key={item.n}>
+            {onPick ? (
+              <button type="button" aria-pressed={on} onClick={() => onPick(item.n)} className={cn(className, "min-h-11")}>
+                {body}
+              </button>
+            ) : (
+              <div className={className}>{body}</div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 

@@ -12,6 +12,7 @@ import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
 import { getBackendStatus, setUpBackend } from "@/lib/cloudhike/backend"
 import { buildCost, PLANS } from "@/lib/plans"
+import { expandNumberReply } from "@/lib/interview-choices"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
 
 type PlannerContext = PlannerState & {
@@ -337,8 +338,14 @@ const TOOL_STATUS: Record<string, string> = {
   setup_backend: "Setting up your backend…",
 }
 
-function toInputItems(thread: Pick<ChatMessage, "role" | "content">[]): AgentInputItem[] {
-  return thread.map((m) => (m.role === "user" ? user(m.content) : assistant(m.content)))
+function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {
+  return thread.map((message, index) => {
+    if (message.role === "assistant") return assistant(message.content)
+    const previous = thread.slice(0, index).findLast((item) => item.role === "assistant")
+    // "1" or "1, 3" means those interview options. The chat keeps the number; the model reads the option.
+    const content = previous ? expandNumberReply(message.content, previous.content, Boolean(previous.plan)) : message.content
+    return user(content)
+  })
 }
 
 /**
@@ -356,7 +363,7 @@ export async function runPlannerTurn(
 
   // Requests a finished build took care of are left out, so the agent can't act on them again.
   const thread = await db
-    .select({ role: messages.role, content: messages.content })
+    .select({ role: messages.role, content: messages.content, plan: messages.plan })
     .from(messages)
     .where(and(eq(messages.projectId, project.id), eq(messages.handled, false), eq(messages.archived, false)))
     .orderBy(messages.createdAt)
