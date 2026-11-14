@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formats } from "@/i18n/formats";
 import ar from "@/messages/ar.json";
 import en from "@/messages/en.json";
+import { BUILT_IN_THEME_NAMES } from "@/lib/themes";
 
 function keyPaths(value: unknown, prefix = ""): string[] {
   if (typeof value === "object" && value !== null) {
@@ -100,5 +101,22 @@ describe("English plurals", () => {
   it("formats singular and grouped plural", () => {
     expect(t("common.credits", { count: 1 })).toBe("1 credit");
     expect(t("common.credits", { count: 1000 })).toBe("1,000 credits");
+  });
+});
+
+describe("built-in themes", () => {
+  const ids = Object.keys(BUILT_IN_THEME_NAMES).sort();
+
+  it("have a display name in every language", () => {
+    expect(Object.keys(en.themes).sort()).toEqual(ids);
+    expect(Object.keys(ar.themes).sort()).toEqual(ids);
+  });
+
+  it("are all named by the docs, which say how many there are", () => {
+    expect(ids).toHaveLength(5);
+    for (const id of ids) {
+      expect(en.docs.themes.p1).toContain(`{${id}}`);
+      expect(ar.docs.themes.p1).toContain(`{${id}}`);
+    }
   });
 });

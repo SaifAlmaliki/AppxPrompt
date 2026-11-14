@@ -82,11 +82,11 @@ export function WorkspaceHeader({
         >
           {name}
         </h1>
-        <span className="hidden items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground md:inline-flex">
+        <span className="shrink-0 whitespace-nowrap hidden items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground md:inline-flex">
           <span aria-hidden className={cn("size-1.5 rounded-full", statusStyle.dot)} />
           {tStatus(status)}
         </span>
-        <span className="hidden items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground lg:inline-flex">
+        <span className="shrink-0 whitespace-nowrap hidden items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground lg:inline-flex">
           <SmartphoneIcon className="size-3" />
           {tPlatforms(platform)}
         </span>

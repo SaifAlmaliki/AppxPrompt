@@ -297,23 +297,23 @@
       },
       "phone": {
         "question": "How do I try my app on a phone?",
-        "answer": "Click Scan QR Code in the workspace and scan it with Expo Go. The app opens on your phone, and every change you make shows up there right away while the tab stays open."
+        "answer": "Click {scanQr} in the workspace and scan it with Expo Go. The app opens on your phone, and every change you make shows up there right away while the tab stays open."
       },
       "backend": {
         "question": "Can my app have real accounts and data?",
-        "answer": "Yes. Connect Backend gives your app its own CloudHike database, sign-in, and file storage, with no changes to your screens. Until then, apps run on sample data stored in your browser."
+        "answer": "Yes. {connectBackend} gives your app its own CloudHike database, sign-in, and file storage, with no changes to your screens. Until then, apps run on sample data stored in your browser."
       },
       "stores": {
         "question": "Can I put my app in the App Store and Google Play?",
-        "answer": "On Pro, Publish builds the .aab, .apk, and .ipa files through your own Expo account, ready to upload with your Apple and Google developer accounts. Any plan can publish the app as a website with its own address."
+        "answer": "On {proName}, {publish} builds the .aab, .apk, and .ipa files through your own Expo account, ready to upload with your Apple and Google developer accounts. Any plan can publish the app as a website with its own address."
       },
       "screens": {
         "question": "How many screens can an app have?",
-        "answer": "Up to {free} on Free and {pro} on Pro. The agent keeps a first plan small so you can see results quickly, and adds more screens whenever you ask."
+        "answer": "Up to {free} on {freeName} and {pro} on {proName}. The agent keeps a first plan small so you can see results quickly, and adds more screens whenever you ask."
       },
       "cost": {
         "question": "What does it cost?",
-        "answer": "Starting is free, with {signup, plural, one {# credit} other {# credits}} that never expire. A new screen costs {screen, plural, one {# credit} other {# credits}} and a round of changes costs {edit}, while chatting, planning, and switching themes are free. See <pricing>Pricing</pricing> for Pro."
+        "answer": "Starting is free, with {signup, plural, one {# credit} other {# credits}} that never expire. A new screen costs {screen, plural, one {# credit} other {# credits}} and a round of changes costs {edit}, while chatting, planning, and switching themes are free. See <pricing>Pricing</pricing> for {proName}."
       },
       "privacy": {
         "question": "Who can see my projects?",
@@ -414,17 +414,6 @@
     "heading": "AppxPrompt docs",
     "subtitle": "Everything you need to go from an idea to an app on your phone, and from there to the app stores.",
     "nav": "On this page",
-    "buttons": {
-      "scanQr": "Scan QR Code",
-      "connectBackend": "Connect Backend",
-      "export": "Export",
-      "downloadZip": "Download as ZIP",
-      "pushGitHub": "Push to GitHub",
-      "publish": "Publish",
-      "publishWeb": "Publish as Web",
-      "shareProject": "Share project",
-      "showcase": "Show on the AppxPrompt home page"
-    },
     "getting-started": {
       "title": "Getting started",
       "p1": "AppxPrompt turns a description into a working Expo (React Native) app for iOS and Android. The whole journey takes a few minutes:",
@@ -497,7 +486,7 @@
       "h1": "As a website",
       "p2": "<strong>{web}</strong> puts your app online at its own <code>expo.app</code> address. The address stays the same when you publish updates, and if an update fails the previous version stays online. Available on every plan.",
       "h2": "For the app stores",
-      "p3": "On Pro, Expo builds the files for you:",
+      "p3": "On {pro}, Expo builds the files for you:",
       "item1": "<file>.aab</file> to upload to Google Play.",
       "item2": "<file>.apk</file> to install directly on Android phones.",
       "item3": "<file>.ipa</file> to upload to the App Store.",

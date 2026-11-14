@@ -18,6 +18,9 @@ const QUESTIONS = [
 
 export async function FaqSection() {
   const t = await getTranslations("faq")
+  const tPlans = await getTranslations("plans")
+  const tQr = await getTranslations("expoQr")
+  const tHeader = await getTranslations("workspace.header")
 
   return (
     <section id="faq" aria-labelledby="faq-title" className="mx-auto max-w-2xl scroll-mt-24">
@@ -41,6 +44,11 @@ export async function FaqSection() {
               {t.rich(`items.${id}.answer`, {
                 free: PLANS.free.maxScreens,
                 pro: PLANS.pro.maxScreens,
+                freeName: tPlans("free.name"),
+                proName: tPlans("pro.name"),
+                scanQr: tQr("trigger"),
+                connectBackend: tHeader("backend.connect"),
+                publish: tHeader("publish"),
                 signup: FREE_SIGNUP_CREDITS,
                 screen: SCREEN_CREDITS,
                 edit: EDIT_CREDITS,

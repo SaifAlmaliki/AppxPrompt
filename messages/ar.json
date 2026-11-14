@@ -10,11 +10,11 @@
   "meta": {
     "home": {
       "title": "AppxPrompt — أنشئ تطبيقات الجوال بالذكاء الاصطناعي",
-      "description": "صِف فكرتك، ويصمّم وكيل الذكاء الاصطناعي في AppxPrompt تطبيقك لنظامي iOS وAndroid ويبنيه."
+      "description": "صِف فكرتك، ويصمّم وكيل الذكاء الاصطناعي في AppxPrompt تطبيقك لنظامي iOS و Android ويبنيه."
     },
     "pricing": {
       "title": "الأسعار — AppxPrompt",
-      "description": "ابدأ مجانًا وأنشئ أول تطبيقاتك بالذكاء الاصطناعي. رقِّ إلى Pro للحصول على مشاريع غير محدودة وتصدير تطبيقات iOS وAndroid."
+      "description": "ابدأ مجانًا وأنشئ أول تطبيقاتك بالذكاء الاصطناعي. رقِّ إلى Pro للحصول على مشاريع غير محدودة وتصدير تطبيقات iOS و Android."
     },
     "docs": {
       "title": "الوثائق — AppxPrompt",
@@ -36,7 +36,7 @@
     "label": "الخطة {plan}"
   },
   "platforms": {
-    "ios-android": "iOS وAndroid",
+    "ios-android": "iOS و Android",
     "ios": "iOS فقط",
     "android": "Android فقط"
   },
@@ -65,7 +65,7 @@
     "badge": "جديد",
     "tagline": "وكيل ذكاء اصطناعي لتطبيقات الجوال",
     "heroTitle": "حوّل فكرتك إلى <highlight>تطبيق جوال</highlight>",
-    "heroSubtitle": "صِف ما تريد بناءه، ويصمّم AppxPrompt الشاشات ويكتب الشيفرة ويجهّز تطبيقك لنظامي iOS وAndroid.",
+    "heroSubtitle": "صِف ما تريد بناءه، ويصمّم AppxPrompt الشاشات ويكتب الشيفرة ويجهّز تطبيقك لنظامي iOS و Android.",
     "footer": "جميع الحقوق محفوظة \u2066© {year} AppxPrompt\u2069"
   },
   "composer": {
@@ -285,7 +285,7 @@
     "items": {
       "builds": {
         "question": "ماذا يبني AppxPrompt؟",
-        "answer": "تطبيق جوال حقيقي مكتوب بـ Expo وReact Native، يعمل على iOS وAndroid وعلى الويب. تصفه أنت، فيخطط الوكيل الشاشات معك، ثم يبنيها واحدة تلو الأخرى وأنت تتابع."
+        "answer": "تطبيق جوال حقيقي مكتوب بـ Expo وReact Native، يعمل على iOS و Android وعلى الويب. تصفه أنت، فيخطط الوكيل الشاشات معك، ثم يبنيها واحدة تلو الأخرى وأنت تتابع."
       },
       "coding": {
         "question": "هل أحتاج إلى معرفة البرمجة؟",
@@ -297,23 +297,23 @@
       },
       "phone": {
         "question": "كيف أجرّب تطبيقي على الهاتف؟",
-        "answer": "انقر على زر مسح رمز QR في مساحة العمل وامسحه بتطبيق Expo Go. يُفتح التطبيق على هاتفك، وتظهر فيه كل تعديلاتك فورًا ما دامت علامة التبويب مفتوحة."
+        "answer": "انقر على زر {scanQr} في مساحة العمل وامسحه بتطبيق Expo Go. يُفتح التطبيق على هاتفك، وتظهر فيه كل تعديلاتك فورًا ما دامت علامة التبويب مفتوحة."
       },
       "backend": {
         "question": "هل يمكن أن يحتوي تطبيقي على حسابات وبيانات حقيقية؟",
-        "answer": "نعم. يمنح خيار ربط الواجهة الخلفية تطبيقك قاعدة بيانات خاصة به على CloudHike مع تسجيل الدخول وتخزين الملفات، دون أي تغيير في شاشاتك. وإلى ذلك الحين تعمل التطبيقات ببيانات تجريبية مخزّنة في متصفحك."
+        "answer": "نعم. يمنح خيار {connectBackend} تطبيقك قاعدة بيانات خاصة به على CloudHike مع تسجيل الدخول وتخزين الملفات، دون أي تغيير في شاشاتك. وإلى ذلك الحين تعمل التطبيقات ببيانات تجريبية مخزّنة في متصفحك."
       },
       "stores": {
         "question": "هل يمكنني نشر تطبيقي على App Store وGoogle Play؟",
-        "answer": "في خطة Pro، يبني خيار النشر ملفات ‎.aab و‎.apk و‎.ipa عبر حسابك الخاص في Expo، جاهزة للرفع بحسابات المطوّرين لدى Apple وGoogle. ويمكن لأي خطة نشر التطبيق كموقع ويب بعنوانه الخاص."
+        "answer": "في خطة {proName}، يبني خيار {publish} ملفات ‎.aab و‎.apk و‎.ipa عبر حسابك الخاص في Expo، جاهزة للرفع بحسابات المطوّرين لدى Apple وGoogle. ويمكن لأي خطة نشر التطبيق كموقع ويب بعنوانه الخاص."
       },
       "screens": {
         "question": "كم شاشة يمكن أن يحتوي عليها التطبيق؟",
-        "answer": "حتى {free, plural, zero {{free, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{free, number, integer} شاشات} many {{free, number, integer} شاشة} other {{free, number, integer} شاشة}} في الخطة المجانية وحتى {pro, plural, zero {{pro, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{pro, number, integer} شاشات} many {{pro, number, integer} شاشة} other {{pro, number, integer} شاشة}} في خطة Pro. يُبقي الوكيل الخطة الأولى صغيرة لتشاهد النتائج سريعًا، ويضيف المزيد من الشاشات متى طلبت."
+        "answer": "حتى {free, plural, zero {{free, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{free, number, integer} شاشات} many {{free, number, integer} شاشة} other {{free, number, integer} شاشة}} في الخطة {freeName} وحتى {pro, plural, zero {{pro, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{pro, number, integer} شاشات} many {{pro, number, integer} شاشة} other {{pro, number, integer} شاشة}} في خطة {proName}. يُبقي الوكيل الخطة الأولى صغيرة لتشاهد النتائج سريعًا، ويضيف المزيد من الشاشات متى طلبت."
       },
       "cost": {
         "question": "كم التكلفة؟",
-        "answer": "البدء مجاني، مع {signup, plural, zero {{signup, number, integer} رصيد} one {رصيد واحد} two {رصيدين} few {{signup, number, integer} أرصدة} many {{signup, number, integer} رصيدًا} other {{signup, number, integer} رصيد}} لا تنتهي صلاحيتها. وتكلّف الشاشة الجديدة {screen, plural, zero {{screen, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{screen, number, integer} أرصدة} many {{screen, number, integer} رصيدًا} other {{screen, number, integer} رصيد}}، وتكلّف جولة التعديلات {edit, plural, zero {{edit, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{edit, number, integer} أرصدة} many {{edit, number, integer} رصيدًا} other {{edit, number, integer} رصيد}}، بينما الدردشة والتخطيط وتبديل السمات مجانية. اطّلع على <pricing>الأسعار</pricing> لخطة Pro."
+        "answer": "البدء مجاني، مع {signup, plural, zero {{signup, number, integer} رصيد} one {رصيد واحد} two {رصيدين} few {{signup, number, integer} أرصدة} many {{signup, number, integer} رصيدًا} other {{signup, number, integer} رصيد}} لا تنتهي صلاحيتها. وتكلّف الشاشة الجديدة {screen, plural, zero {{screen, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{screen, number, integer} أرصدة} many {{screen, number, integer} رصيدًا} other {{screen, number, integer} رصيد}}، وتكلّف جولة التعديلات {edit, plural, zero {{edit, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{edit, number, integer} أرصدة} many {{edit, number, integer} رصيدًا} other {{edit, number, integer} رصيد}}، بينما الدردشة والتخطيط وتبديل السمات مجانية. اطّلع على <pricing>الأسعار</pricing> لخطة {proName}."
       },
       "privacy": {
         "question": "من يستطيع رؤية مشاريعي؟",
@@ -414,20 +414,9 @@
     "heading": "وثائق AppxPrompt",
     "subtitle": "كل ما تحتاج إليه للانتقال من فكرة إلى تطبيق على هاتفك، ومنه إلى متاجر التطبيقات.",
     "nav": "في هذه الصفحة",
-    "buttons": {
-      "scanQr": "مسح رمز QR",
-      "connectBackend": "ربط الواجهة الخلفية",
-      "export": "تصدير",
-      "downloadZip": "تنزيل بصيغة ZIP",
-      "pushGitHub": "الدفع إلى GitHub",
-      "publish": "نشر",
-      "publishWeb": "النشر على الويب",
-      "shareProject": "مشاركة المشروع",
-      "showcase": "العرض في الصفحة الرئيسية على AppxPrompt"
-    },
     "getting-started": {
       "title": "البدء",
-      "p1": "يحوّل AppxPrompt وصفًا نصيًا إلى تطبيق Expo (React Native) يعمل على نظامي iOS وAndroid. تستغرق الرحلة كلها بضع دقائق:",
+      "p1": "يحوّل AppxPrompt وصفًا نصيًا إلى تطبيق Expo (React Native) يعمل على نظامي iOS و Android. تستغرق الرحلة كلها بضع دقائق:",
       "step1": "صِف تطبيقك في المربع الموجود بالصفحة الرئيسية، أو ابدأ من <templates>قالب</templates>.",
       "step2": "أجب عن بضعة أسئلة من الوكيل، ثم أكّد خطة الشاشات التي يقترحها.",
       "step3": "شاهد الشاشات وهي تُبنى، وتنقّل داخل التطبيق العامل في المعاينة.",
@@ -497,7 +486,7 @@
       "h1": "كموقع ويب",
       "p2": "يضع <strong>{web}</strong> تطبيقك على الإنترنت بعنوانه الخاص على <code>expo.app</code>. يبقى العنوان نفسه عند نشر التحديثات، وإذا فشل تحديث تظل النسخة السابقة منشورة. متاح في كل الخطط.",
       "h2": "لمتاجر التطبيقات",
-      "p3": "في خطة Pro، يبني Expo الملفات لك:",
+      "p3": "في خطة {pro}، يبني Expo الملفات لك:",
       "item1": "<file>.aab</file> لرفعه إلى Google Play.",
       "item2": "<file>.apk</file> لتثبيته مباشرة على هواتف Android.",
       "item3": "<file>.ipa</file> لرفعه إلى App Store.",
@@ -556,7 +545,7 @@
       "screens": "حتى {count, plural, zero {{count, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{count, number, integer} شاشات} many {{count, number, integer} شاشة} other {{count, number, integer} شاشة}} لكل مشروع",
       "web": "النشر كموقع إلكتروني",
       "stores": {
-        "pro": "التصدير إلى iOS وAndroid",
+        "pro": "التصدير إلى iOS و Android",
         "free": "لا يوجد تصدير إلى iOS أو Android"
       }
     },
@@ -657,7 +646,7 @@
     },
     "native-publish": {
       "title": "انشر في متاجر التطبيقات مع Pro",
-      "description": "التصدير إلى iOS وAndroid جزء من خطة Pro. أما في الخطة المجانية فيمكنك نشر تطبيقك كموقع إلكتروني."
+      "description": "التصدير إلى iOS و Android جزء من خطة Pro. أما في الخطة المجانية فيمكنك نشر تطبيقك كموقع إلكتروني."
     },
     "highlightCredits": "{credits} كل شهر",
     "alreadyPro": {
@@ -1153,7 +1142,7 @@
       "retry": "إعادة المحاولة"
     },
     "locked": {
-      "title": "صدّر لنظامَي iOS وAndroid مع Pro",
+      "title": "صدّر لنظامَي iOS و Android مع Pro",
       "description": "ابنِ ملفات <file>.aab</file> و<file>.apk</file> و<file>.ipa</file> لمتجري Google Play وApp Store. في الخطة المجانية، يمكنك نشر تطبيقك من تبويب الويب.",
       "upgrade": "الترقية إلى Pro"
     },
@@ -1458,7 +1447,7 @@
     "platformOnly": "أُنشئ هذا المشروع لنظام {platform, select, ios {iOS} other {Android}} فقط.",
     "buildRunning": "هناك عملية بناء لهذا التطبيق قيد التشغيل بالفعل. انتظر حتى تنتهي أولًا.",
     "publishRunning": "يجري نشر هذا التطبيق بالفعل. انتظر حتى ينتهي أولًا.",
-    "nativePublishLocked": "التصدير إلى iOS وAndroid جزء من خطة Pro. في الخطة المجانية، يمكنك النشر كموقع إلكتروني.",
+    "nativePublishLocked": "التصدير إلى iOS و Android جزء من خطة Pro. في الخطة المجانية، يمكنك النشر كموقع إلكتروني.",
     "chooseFileType": "اختر نوع الملف الذي تريد تصديره.",
     "versionFormat": "أدخل الإصدار على هيئة ثلاثة أرقام، مثل 1.0.0.",
     "buildsCheckFailed": "تعذّر التحقق من عمليات البناء. حاول مرة أخرى.",

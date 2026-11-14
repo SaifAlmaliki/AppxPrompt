@@ -68,6 +68,10 @@ export default async function DocsPage() {
   const tComposer = await getTranslations("composer")
   const tShared = await getTranslations("projects.shared")
   const tThemes = await getTranslations("themes")
+  const tHeader = await getTranslations("workspace.header")
+  const tQr = await getTranslations("expoQr")
+  const tPublish = await getTranslations("publish.web")
+  const tShare = await getTranslations("share")
   const format = await getFormatter()
 
   const r = (key: Parameters<typeof t.rich>[0], values: Record<string, React.ReactNode | number> = {}) =>
@@ -144,7 +148,7 @@ export default async function DocsPage() {
       <>
         <Steps>
           <li>{r("phone.step1")}</li>
-          <li>{r("phone.step2", { button: t("buttons.scanQr") })}</li>
+          <li>{r("phone.step2", { button: tQr("trigger") })}</li>
           <li>{t("phone.step3")}</li>
         </Steps>
         <p>{t("phone.p1")}</p>
@@ -153,26 +157,26 @@ export default async function DocsPage() {
     ),
     backend: (
       <>
-        <p>{r("backend.p1", { button: t("buttons.connectBackend") })}</p>
+        <p>{r("backend.p1", { button: tHeader("backend.connect") })}</p>
         <p>{t("backend.p2")}</p>
       </>
     ),
     export: (
       <>
-        <p>{r("export.p1", { button: t("buttons.export") })}</p>
+        <p>{r("export.p1", { button: tHeader("export") })}</p>
         <ul>
-          <li>{r("export.item1", { download: t("buttons.downloadZip") })}</li>
-          <li>{r("export.item2", { push: t("buttons.pushGitHub") })}</li>
+          <li>{r("export.item1", { download: tHeader("downloadZip") })}</li>
+          <li>{r("export.item2", { push: tHeader("pushGitHub") })}</li>
         </ul>
       </>
     ),
     publish: (
       <>
-        <p>{r("publish.p1", { button: t("buttons.publish") })}</p>
+        <p>{r("publish.p1", { button: tHeader("publish") })}</p>
         <h3>{t("publish.h1")}</h3>
-        <p>{r("publish.p2", { web: t("buttons.publishWeb") })}</p>
+        <p>{r("publish.p2", { web: tPublish("publishWeb") })}</p>
         <h3>{t("publish.h2")}</h3>
-        <p>{t("publish.p3")}</p>
+        <p>{t("publish.p3", { pro: tPlans("pro.name") })}</p>
         <ul>
           <li>{r("publish.item1")}</li>
           <li>{r("publish.item2")}</li>
@@ -185,12 +189,12 @@ export default async function DocsPage() {
       <>
         <p>
           {r("sharing.p1", {
-            share: t("buttons.shareProject"),
-            export: t("buttons.export"),
+            share: tHeader("shareProject"),
+            export: tHeader("export"),
             shared: tShared("title"),
           })}
         </p>
-        <p>{r("sharing.p2", { showcase: t("buttons.showcase") })}</p>
+        <p>{r("sharing.p2", { showcase: tShare("public.label") })}</p>
         <p>{t("sharing.p3")}</p>
       </>
     ),
