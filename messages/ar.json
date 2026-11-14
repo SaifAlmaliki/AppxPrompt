@@ -1,0 +1,5 @@
+{
+  "common": {
+    "credits": "{count, plural, zero {# رصيد} one {رصيد واحد} two {رصيدان} few {# أرصدة} many {# رصيدًا} other {# رصيد}}"
+  }
+}

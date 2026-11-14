@@ -1,0 +1,5 @@
+{
+  "common": {
+    "credits": "{count, plural, one {# credit} other {# credits}}"
+  }
+}
