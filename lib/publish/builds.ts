@@ -19,6 +19,7 @@ import {
   type WorkflowRunState,
 } from "@/lib/publish/expo"
 import { LocalizedError, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
+import { applicationFailure, failureText, storeFailure, type PublishFailure } from "@/lib/publish/errors"
 import { projectTarball } from "@/lib/publish/tarball"
 import {
   FORMAT_PLATFORM,
@@ -52,7 +53,7 @@ export function isPublishAvailable() {
   return Boolean(process.env.CLOUDHIKE_ENCRYPTION_KEY)
 }
 
-function toSummary(build: AppBuild): AppBuildSummary {
+function toSummary(build: AppBuild, t: Translator<"errors">): AppBuildSummary {
   return {
     id: build.id,
     platform: build.platform,
@@ -61,7 +62,7 @@ function toSummary(build: AppBuild): AppBuildSummary {
     status: build.status,
     easBuildId: build.easBuildId,
     artifactUrl: build.artifactUrl,
-    error: build.error,
+    error: failureText(build.error, t),
     createdAt: build.createdAt.toISOString(),
   }
 }
@@ -90,7 +91,7 @@ async function latestBuilds(projectId: string) {
 type BuildReport =
   | { status: "queued" | "building"; easBuildId?: string }
   | { status: "ready"; easBuildId?: string; artifactUrl: string }
-  | { status: "failed"; easBuildId?: string; error: string }
+  | { status: "failed"; easBuildId?: string; error: PublishFailure }
 
 /** Only ever moves a build forward. A finished build stays as it finished. */
 async function recordBuild(buildId: string, report: BuildReport) {
@@ -100,31 +101,32 @@ async function recordBuild(buildId: string, report: BuildReport) {
       status: report.status,
       ...(report.easBuildId ? { easBuildId: report.easBuildId } : {}),
       ...(report.status === "ready" ? { artifactUrl: report.artifactUrl, error: null } : {}),
-      ...(report.status === "failed" ? { error: report.error } : {}),
+      ...(report.status === "failed" ? { error: storeFailure(report.error) } : {}),
     })
     .where(and(eq(appBuilds.id, buildId), inArray(appBuilds.status, ["queued", "building"])))
 }
 
 /** What a workflow run means for the build. The EAS build's own answer wins, since it's the most specific. */
-function reportFromRun(run: WorkflowRunState, t: Translator<"errors">): BuildReport {
+function reportFromRun(run: WorkflowRunState): BuildReport {
   const job = run.jobs.find((candidate) => candidate.turtleBuild) ?? run.jobs[0]
   const build = job?.turtleBuild ?? null
   const easBuildId = build?.id
   if (build?.status === "FINISHED") {
     const artifactUrl = build.artifacts?.applicationArchiveUrl ?? build.artifacts?.buildUrl
     if (artifactUrl) return { status: "ready", easBuildId, artifactUrl }
-    return { status: "failed", easBuildId, error: t("buildNoFile") }
+    return { status: "failed", easBuildId, error: applicationFailure("buildNoFile") }
   }
-  if (build?.status === "CANCELED" || run.status === "CANCELED") return { status: "failed", easBuildId, error: t("buildCancelled") }
+  if (build?.status === "CANCELED" || run.status === "CANCELED") return { status: "failed", easBuildId, error: applicationFailure("buildCancelled") }
   if (build?.status === "ERRORED" || run.status === "FAILURE") {
     const detail = [...(job?.errors ?? []), ...run.errors].find((error) => error.message)
-    return { status: "failed", easBuildId, error: build?.error?.message ?? detail?.message ?? t("buildErrored") }
+    const message = build?.error?.message ?? detail?.message
+    return { status: "failed", easBuildId, error: message != null ? { source: "provider", detail: message } : applicationFailure("buildErrored") }
   }
   return { status: build || run.status === "IN_PROGRESS" ? "building" : "queued", easBuildId }
 }
 
 /** The server holds a build's status, and it's brought up to date here, so nothing depends on a tab staying open. */
-async function refreshBuilds(projectId: string, userId: number, t: Translator<"errors">) {
+async function refreshBuilds(projectId: string, userId: number) {
   const due = await db
     .select()
     .from(appBuilds)
@@ -141,19 +143,19 @@ async function refreshBuilds(projectId: string, userId: number, t: Translator<"e
   for (const build of due) {
     if (!build.easRunId) {
       if (Date.now() - build.createdAt.getTime() > NEVER_STARTED_AFTER_MS) {
-        await recordBuild(build.id, { status: "failed", error: t("buildNeverReached") })
+        await recordBuild(build.id, { status: "failed", error: applicationFailure("buildNeverReached") })
       }
       continue
     }
     if (!expo) {
-      await recordBuild(build.id, { status: "failed", error: t("buildExpoDisconnected") })
+      await recordBuild(build.id, { status: "failed", error: applicationFailure("buildExpoDisconnected") })
       continue
     }
     try {
-      await recordBuild(build.id, reportFromRun(await readWorkflowRun(unseal(expo.accessToken), build.easRunId), t))
+      await recordBuild(build.id, reportFromRun(await readWorkflowRun(unseal(expo.accessToken), build.easRunId)))
     } catch (cause) {
       if (cause instanceof ExpoError && cause.unauthorized) {
-        await recordBuild(build.id, { status: "failed", error: t("buildTokenRejected") })
+        await recordBuild(build.id, { status: "failed", error: applicationFailure("buildTokenRejected") })
       } else {
         // Only the network, most likely. The next look tries again.
         console.error(`Checking on app build ${build.id} failed`, cause)
@@ -163,8 +165,8 @@ async function refreshBuilds(projectId: string, userId: number, t: Translator<"e
 }
 
 export async function listBuilds(projectId: string, userId: number, t: Translator<"errors">) {
-  await refreshBuilds(projectId, userId, t)
-  return (await latestBuilds(projectId)).map(toSummary)
+  await refreshBuilds(projectId, userId)
+  return (await latestBuilds(projectId)).map((build) => toSummary(build, t))
 }
 
 export async function getPublishStatus(project: Project, userId: number, t: Translator<"errors">): Promise<PublishStatus> {
@@ -197,9 +199,12 @@ export async function ensureIdentity(project: Project, easOwner: string, version
   return identity
 }
 
-export function friendlyStartError(cause: unknown, t: Translator<"errors">, fallback: "buildStartFailed" | "publishStartFailed") {
-  if (cause instanceof ExpoError || cause instanceof ExportUnavailableError) return cause.translate(t)
-  return t(fallback)
+export function friendlyStartError(cause: unknown, fallback: "buildStartFailed" | "publishStartFailed") {
+  if (cause instanceof ExpoError && cause.key === "passthrough" && typeof cause.values?.message === "string") {
+    return { source: "provider" as const, detail: cause.values.message }
+  }
+  if (cause instanceof ExpoError || cause instanceof ExportUnavailableError) return applicationFailure(cause.key, cause.values)
+  return applicationFailure(fallback)
 }
 
 /** EAS reads the project id from the app's config. It's only needed for the build, so exports don't carry it. */
@@ -262,11 +267,11 @@ export async function startBuild(project: Project, userId: number, format: AppBu
   try {
     const easRunId = await sendToExpo(project, build, expoToken, expo.accountName, format)
     const [started] = await db.update(appBuilds).set({ easRunId }).where(eq(appBuilds.id, build.id)).returning()
-    return { build: toSummary(started) }
+    return { build: toSummary(started, t) }
   } catch (cause) {
     console.error(`Starting app build ${build.id} failed`, cause)
-    await recordBuild(build.id, { status: "failed", error: friendlyStartError(cause, t, "buildStartFailed") })
+    await recordBuild(build.id, { status: "failed", error: friendlyStartError(cause, "buildStartFailed") })
     const [failed] = await db.select().from(appBuilds).where(eq(appBuilds.id, build.id))
-    return { build: toSummary(failed) }
+    return { build: toSummary(failed, t) }
   }
 }

@@ -20,6 +20,9 @@ describe("detectChatLanguage", () => {
   it("ignores the letters of a link", () => {
     expect(detectChatLanguage("https://example.com/menu", "ar")).toBe("ar")
     expect(detectChatLanguage("see https://example.com/menu", "ar")).toBe("en")
+    expect(detectChatLanguage("https://example.com/مرحبا", "en")).toBe("en")
+    expect(detectChatLanguage("www.مثال.com/مرحبا", "en")).toBe("en")
+    expect(detectChatLanguage("see https://example.com/مرحبا", "ar")).toBe("en")
   })
 
   it("is Arabic when a message mixes scripts", () => {

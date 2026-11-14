@@ -86,13 +86,16 @@ describe("errors messages", () => {
       plan: "pro",
       platform: "ios",
       message: "m",
+      service: "api",
+      services: "api",
+      state: "paused",
     };
     for (const locale of ["en", "ar"] as const) {
       const t = translatorFor(locale, "errors");
       for (const key of keys) {
-        expect(() =>
-          errorText(t, key as keyof typeof en.errors, values),
-        ).not.toThrow();
+        const text = errorText(t, key as keyof typeof en.errors, values);
+        expect(text, `${locale}:${key}`).not.toBe(`errors.${key}`);
+        expect(text, `${locale}:${key}`).toBeTruthy();
       }
     }
   });

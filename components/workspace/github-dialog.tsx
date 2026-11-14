@@ -125,6 +125,11 @@ export function GitHubDialog({
     }
   }, [beforeExport, projectId, t, tw])
 
+  const tRef = React.useRef(t)
+  React.useEffect(() => {
+    tRef.current = t
+  }, [t])
+
   const pushRef = React.useRef(push)
   React.useEffect(() => {
     pushRef.current = push
@@ -137,14 +142,14 @@ export function GitHubDialog({
       const response = await fetch(`/api/projects/${projectId}/github`).catch(() => null)
       const body = await response?.json().catch(() => null)
       if (!response?.ok) {
-        return setView({ name: "failed", message: body?.error ?? t("errors.loadFailed") })
+        return setView({ name: "failed", message: body?.error ?? tRef.current("errors.loadFailed") })
       }
       const next = body as GitHubStatus
       setStatus(next)
       if (next.account && next.repository?.lastPushedAt && allowAutoPush) return void pushRef.current()
       setView(next.repository ? { name: "confirm" } : { name: "picker" })
     },
-    [projectId, t]
+    [projectId]
   )
 
   React.useEffect(() => {

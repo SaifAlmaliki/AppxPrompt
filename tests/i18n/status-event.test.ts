@@ -61,6 +61,7 @@ describe("status messages", () => {
     const t = translatorFor(locale, "status") as unknown as (key: string, values: object) => string
     for (const key of keys) {
       const text = t(key, values)
+      expect(text, key).not.toBe(`status.${key}`)
       expect(text, key).toBeTruthy()
       expect(text, key).not.toMatch(/[{}]/)
     }
@@ -129,6 +130,7 @@ describe("agent messages", () => {
     const values = { count: 3, name: "Home", appName: "Zest", names: "A, B", backendNote: "", message: "x", credits: 5, refundNote: "", built: 1, total: 3, rest: "A", last: "B", parts: "x", what: "x", missed: "" }
     for (const key of keys) {
       const text = t(key, values)
+      expect(text, key).not.toBe(`agentMessages.${key}`)
       expect(text, key).toBeTruthy()
       expect(text, key).not.toMatch(/\{[a-zA-Z]/)
     }
