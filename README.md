@@ -134,6 +134,7 @@ The interface is available in English and Arabic (right to left), with [next-int
 - **Adding a key.** Add it to **both** files, with identical key paths. Write counts in Arabic as `{count, number, integer}` instead of a bare `#`, and use all six plural forms for words that take a count. Put links and bold text in the message as tags and fill them with `t.rich`.
 - **Layout.** Use logical classes (`ms-*`, `ps-*`, `text-start`, `start-*`) instead of left and right ones, and give user-written text `dir="auto"`.
 - **Guards.** `npm test` checks that both files have the same keys, that Arabic counts and plurals work, that nothing is double-escaped, that no component hard-codes visible text, and that no physical left or right classes come back.
+- **Deploying this change.** Migration `drizzle/0012_*.sql` adds a nullable `projects.chat_language` column, and every project query now selects it. Apply it to the database (`npm run db:push`, or your own migration process) **before** deploying this code. Applying it first is safe for the version that is running now.
 
 ## Project structure
 

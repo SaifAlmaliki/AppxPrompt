@@ -17,12 +17,17 @@ export async function requestLocale(): Promise<Locale> {
   return acceptLanguage ? matchLocale(acceptLanguage) : DEFAULT_LOCALE;
 }
 
-export default getRequestConfig(async () => {
-  const locale = await requestLocale();
+/** The locale next-intl asks for, such as `getTranslations({ locale })`, or else the requester's. */
+export async function resolveLocale(requested?: string): Promise<Locale> {
+  return isLocale(requested) ? requested : await requestLocale();
+}
+
+export default getRequestConfig(async ({ locale }) => {
+  const resolved = await resolveLocale(locale);
 
   return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    locale: resolved,
+    messages: (await import(`../messages/${resolved}.json`)).default,
     formats,
   };
 });

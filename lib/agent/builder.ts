@@ -83,13 +83,13 @@ const isolateNames = (names: string[], locale: Locale) => (locale === "ar" ? nam
 const commaList = (items: string[], locale: Locale) => items.join(locale === "ar" ? "، " : ", ")
 
 /** "A, B and C", with "and" in the language. */
-function listNames(items: string[], locale: Locale) {
+export function listNames(items: string[], locale: Locale) {
   if (items.length < 2) return items.join("")
   return translatorFor(locale, "agentMessages")("listLast", { rest: commaList(items.slice(0, -1), locale), last: items.at(-1)! })
 }
 
 /** The message for a finished round of changes to a built app. */
-function changesSummary({ added, updated, removed, failed = [] }: PendingChanges, locale: Locale) {
+export function changesSummary({ added, updated, removed, failed = [] }: PendingChanges, locale: Locale) {
   const t = translatorFor(locale, "agentMessages")
   const names = (list: string[]) => listNames(isolateNames(list, locale), locale)
   const done = [

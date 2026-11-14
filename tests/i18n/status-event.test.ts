@@ -68,7 +68,7 @@ describe("status messages", () => {
 
   it("words a key in English as the code did", () => {
     const t = translatorFor("en", "status") as unknown as (key: StatusKey, values?: object) => string
-    const words = (key: StatusKey, v?: Record<string, string | number>) => activityText(t, v ? { key, values: v } : { key })
+    const words = (key: StatusKey, v?: Record<string, string | number>) => activityText(t, v ? { key, values: v } : { key }, "en")
     expect(words("thinking")).toBe("Thinking…")
     expect(words("draftingPlan")).toBe("Drafting the screen plan…")
     expect(words("preparingBuild", { count: 6 })).toBe("Preparing to build 6 screens…")
@@ -76,16 +76,23 @@ describe("status messages", () => {
     expect(words("creatingBackendProject")).toBe("Creating your CloudHike project…")
   })
 
-  it("keeps a screen name in its own direction", () => {
+  it("adds no direction marks to English text", () => {
+    const t = translatorFor("en", "status") as unknown as (key: StatusKey, values?: object) => string
+    const text = activityText(t, { key: "designingScreen", values: { name: "Home", position: 1, total: 4 } }, "en")
+    expect(text).toContain("Home")
+    expect(text).not.toMatch(/[\u2068\u2069]/)
+  })
+
+  it("keeps a screen name in its own direction in Arabic", () => {
     const t = translatorFor("ar", "status") as unknown as (key: StatusKey, values?: object) => string
-    const text = activityText(t, { key: "designingScreen", values: { name: "Home", position: 1, total: 4 } })
+    const text = activityText(t, { key: "designingScreen", values: { name: "Home", position: 1, total: 4 } }, "ar")
     expect(text).toContain(isolate("Home"))
     expect(text).toMatch(/\p{Script=Arabic}/u)
   })
 
   it("shows an old saved label as it is", () => {
     const t = translatorFor("ar", "status") as unknown as (key: StatusKey) => string
-    expect(activityText(t, "Designing Home (1 of 4)…")).toBe("Designing Home (1 of 4)…")
+    expect(activityText(t, "Designing Home (1 of 4)…", "ar")).toBe("Designing Home (1 of 4)…")
   })
 })
 
