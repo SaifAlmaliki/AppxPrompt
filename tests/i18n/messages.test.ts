@@ -37,6 +37,36 @@ describe("message files", () => {
   });
 });
 
+describe("Arabic digits", () => {
+  it("never uses a bare # plural placeholder", () => {
+    const offenders = leaves(ar).filter(
+      (leaf) => typeof leaf === "string" && leaf.includes("#"),
+    );
+    expect(
+      offenders,
+      "Arabic messages must not use a bare `#`: it follows the browser's ICU default numbering system. Use `{count, number, integer}` so the shared `formats` force Western digits.",
+    ).toEqual([]);
+  });
+
+  it("controls digits through formats, not the ICU default", () => {
+    const latn = createTranslator({ locale: "ar", messages: ar, formats });
+    const arab = createTranslator({
+      locale: "ar",
+      messages: ar,
+      formats: {
+        ...formats,
+        number: {
+          ...formats.number,
+          integer: { maximumFractionDigits: 0, numberingSystem: "arab" },
+        },
+      },
+    });
+
+    expect(latn("common.credits", { count: 12 })).toContain("12");
+    expect(arab("common.credits", { count: 12 })).toContain("١٢");
+  });
+});
+
 describe("Arabic plurals", () => {
   const t = createTranslator({ locale: "ar", messages: ar, formats });
 
