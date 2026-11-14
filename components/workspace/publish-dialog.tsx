@@ -256,7 +256,7 @@ export function PublishDialog({
 function ErrorDetails({ summary, children }: { summary: string; children: React.ReactNode }) {
   return (
     <Collapsible role="alert">
-      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-left text-xs font-medium text-destructive">
+      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-start text-xs font-medium text-destructive">
         {summary}
         <ChevronDownIcon className="size-3.5 shrink-0 transition-transform group-data-panel-open:rotate-180" />
       </CollapsibleTrigger>

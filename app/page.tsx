@@ -17,7 +17,7 @@ export default function Home() {
 
         <main className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <section className="mx-auto flex max-w-3xl flex-col items-center pt-14 pb-20 text-center sm:pt-20">
-            <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1 pr-4 pl-1 text-xs font-medium text-violet-700 shadow-[0_4px_20px_-6px_rgba(124,58,237,0.35)] backdrop-blur-md">
+            <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1 pe-4 ps-1 text-xs font-medium text-violet-700 shadow-[0_4px_20px_-6px_rgba(124,58,237,0.35)] backdrop-blur-md">
               <span className="inline-flex items-center gap-1 rounded-full bg-linear-to-r from-indigo-500 to-fuchsia-500 px-2.5 py-1 text-[11px] font-semibold text-white">
                 <SparklesIcon className="size-3" />
                 New
@@ -34,7 +34,7 @@ export default function Home() {
                   aria-hidden
                   viewBox="0 0 300 20"
                   preserveAspectRatio="none"
-                  className="absolute -bottom-2 left-0 h-3 w-full text-fuchsia-400/70 sm:-bottom-3 sm:h-4"
+                  className="absolute -bottom-2 start-0 h-3 w-full text-fuchsia-400/70 sm:-bottom-3 sm:h-4"
                 >
                   <path
                     d="M4 14 C 60 4, 120 4, 160 10 S 260 18, 296 6"

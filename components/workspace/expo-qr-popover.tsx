@@ -40,7 +40,7 @@ export function ExpoQrPopover({ plan, screens }: { plan: AppPlan | null; screens
         <QrCodeIcon />
         <span className="hidden @[26rem]:inline">Scan QR Code</span>
         {connected && (
-          <span aria-hidden className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+          <span aria-hidden className="absolute -top-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
         )}
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-80 gap-3 rounded-2xl p-4 shadow-[0_16px_48px_-16px_rgba(76,29,149,0.35)]">

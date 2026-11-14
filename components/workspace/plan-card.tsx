@@ -77,7 +77,7 @@ export function PlanCard({
           type="button"
           onClick={() => setShowScreens((s) => !s)}
           aria-expanded={showScreens}
-          className="flex w-full items-center justify-between text-left text-xs font-semibold"
+          className="flex w-full items-center justify-between text-start text-xs font-semibold"
         >
           {plan.screens.length} screens
           <ChevronDownIcon className={cn("size-3.5 text-muted-foreground transition-transform", showScreens && "rotate-180")} />

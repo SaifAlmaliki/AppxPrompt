@@ -248,7 +248,7 @@ const SECTIONS: { id: string; title: string; content: React.ReactNode }[] = [
     content: (
       <>
         <div className="overflow-x-auto rounded-2xl border border-border/60">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-start text-sm">
             <thead className="bg-muted/50 text-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium" />
@@ -337,7 +337,7 @@ export default function DocsPage() {
                   <h2 id={`${section.id}-title`} className="text-2xl font-semibold tracking-tight">
                     {section.title}
                   </h2>
-                  <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-muted-foreground [&_a]:font-medium [&_a]:text-violet-700 [&_a]:hover:underline [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:text-foreground [&_h3]:pt-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul>li]:pl-1 [&_strong]:font-medium [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
+                  <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-muted-foreground [&_a]:font-medium [&_a]:text-violet-700 [&_a]:hover:underline [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:text-foreground [&_h3]:pt-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul>li]:ps-1 [&_strong]:font-medium [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:ps-5">
                     {section.content}
                   </div>
                 </section>
@@ -359,7 +359,7 @@ export default function DocsPage() {
 
 function Steps({ children }: { children: React.ReactNode }) {
   return (
-    <ol className="space-y-2.5 [counter-reset:step] [&>li]:relative [&>li]:pl-9 [&>li]:[counter-increment:step] [&>li]:before:absolute [&>li]:before:top-0 [&>li]:before:left-0 [&>li]:before:flex [&>li]:before:size-6 [&>li]:before:items-center [&>li]:before:justify-center [&>li]:before:rounded-full [&>li]:before:bg-violet-500/10 [&>li]:before:text-xs [&>li]:before:font-semibold [&>li]:before:text-violet-700 [&>li]:before:content-[counter(step)]">
+    <ol className="space-y-2.5 [counter-reset:step] [&>li]:relative [&>li]:ps-9 [&>li]:[counter-increment:step] [&>li]:before:absolute [&>li]:before:top-0 [&>li]:before:start-0 [&>li]:before:flex [&>li]:before:size-6 [&>li]:before:items-center [&>li]:before:justify-center [&>li]:before:rounded-full [&>li]:before:bg-violet-500/10 [&>li]:before:text-xs [&>li]:before:font-semibold [&>li]:before:text-violet-700 [&>li]:before:content-[counter(step)]">
       {children}
     </ol>
   )

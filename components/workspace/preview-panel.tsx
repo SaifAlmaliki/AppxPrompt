@@ -210,7 +210,7 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
   const step = starting || !web || !isWebPublishActive(web.status) ? "uploading" : web.status
 
   return (
-    <div className="relative z-10 flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-border/60 bg-white py-1 pr-1 pl-3 shadow-xs">
+    <div className="relative z-10 flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-border/60 bg-white py-1 pe-1 ps-3 shadow-xs">
       {active ? (
         <Loader2Icon aria-hidden className="size-3.5 shrink-0 animate-spin text-violet-600" />
       ) : failed ? (
@@ -291,7 +291,7 @@ function CodeView({ screens, appFiles }: { screens: ProjectScreen[]; appFiles: P
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(140px,38%)_1fr]">
-      <nav aria-label="Project files" className="min-h-0 overflow-y-auto border-r border-border/60 bg-neutral-50/70 py-2">
+      <nav aria-label="Project files" className="min-h-0 overflow-y-auto border-e border-border/60 bg-neutral-50/70 py-2">
         <p className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
           Files
         </p>
@@ -338,9 +338,9 @@ function FileTree({
             <button
               type="button"
               onClick={() => onSelect(node.path)}
-              style={{ paddingLeft: 12 + depth * 12 + 16 }}
+              style={{ paddingInlineStart: 12 + depth * 12 + 16 }}
               className={cn(
-                "flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs transition-colors",
+                "flex w-full items-center gap-1.5 py-1 pe-2 text-start text-xs transition-colors",
                 node.path === activePath
                   ? "bg-violet-500/10 font-medium text-violet-700"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -353,7 +353,7 @@ function FileTree({
               )}
               <span className="truncate">{node.name}</span>
               {node.path === writingPath && (
-                <span aria-label="Being written" className="ml-auto size-1.5 shrink-0 animate-pulse rounded-full bg-violet-500" />
+                <span aria-label="Being written" className="ms-auto size-1.5 shrink-0 animate-pulse rounded-full bg-violet-500" />
               )}
             </button>
           </li>
@@ -384,10 +384,10 @@ function FolderItem({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        style={{ paddingLeft: 12 + depth * 12 }}
-        className="flex w-full items-center gap-1 py-1 pr-2 text-left text-xs text-foreground/80 transition-colors hover:bg-muted"
+        style={{ paddingInlineStart: 12 + depth * 12 }}
+        className="flex w-full items-center gap-1 py-1 pe-2 text-start text-xs text-foreground/80 transition-colors hover:bg-muted"
       >
-        <ChevronRightIcon className={cn("size-3 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+        <ChevronRightIcon className={cn("size-3 shrink-0 text-muted-foreground transition-transform", open ? "rotate-90" : "rtl:-scale-x-100")} />
         <Icon className="size-3.5 shrink-0 text-violet-500" />
         <span className="truncate">{node.name}</span>
       </button>

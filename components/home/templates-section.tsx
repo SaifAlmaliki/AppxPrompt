@@ -25,7 +25,7 @@ export function TemplatesSection() {
             <button
               type="button"
               onClick={() => applyTemplate(template.prompt)}
-              className="group flex h-full w-full flex-col rounded-[2rem] border border-border/60 bg-white/70 p-5 text-left shadow-[0_4px_20px_-12px_rgba(76,29,149,0.25)] transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:shadow-[0_12px_32px_-12px_rgba(124,58,237,0.35)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="group flex h-full w-full flex-col rounded-[2rem] border border-border/60 bg-white/70 p-5 text-start shadow-[0_4px_20px_-12px_rgba(76,29,149,0.25)] transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:shadow-[0_12px_32px_-12px_rgba(124,58,237,0.35)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               <div className="flex items-start justify-between gap-3">
                 <span
@@ -52,7 +52,7 @@ export function TemplatesSection() {
 
               <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-medium text-violet-700">
                 Use this template
-                <ArrowUpRightIcon className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRightIcon className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
               </span>
             </button>
           </li>

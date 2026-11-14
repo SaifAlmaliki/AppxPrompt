@@ -189,7 +189,7 @@ export function ShareDialog({
           ) : (
             <ul className="max-h-48 divide-y divide-border/60 overflow-y-auto rounded-2xl border border-border/60">
               {people.map((person) => (
-                <li key={person.userId} className="flex items-center justify-between gap-3 py-2 pr-2 pl-3">
+                <li key={person.userId} className="flex items-center justify-between gap-3 py-2 pe-2 ps-3">
                   <span className="min-w-0">
                     {person.name && <span className="block truncate text-sm font-medium">{person.name}</span>}
                     <span className="block truncate text-xs text-muted-foreground">{person.email}</span>

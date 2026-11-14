@@ -407,7 +407,7 @@ function NumberField({
           if (Number.isFinite(parsed)) onChange(parsed)
         }}
         onBlur={() => setDraft(null)}
-        className={cn(inputClass, "w-16 text-right tabular-nums")}
+        className={cn(inputClass, "w-16 text-end tabular-nums")}
       />
     </div>
   )
@@ -822,7 +822,7 @@ function ElementField({
               onChange={(event) => updateSelected({ style: { opacity: Number(event.target.value) } })}
               className="h-1.5 w-28 cursor-pointer accent-violet-600"
             />
-            <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{Math.round(value * 100)}%</span>
+            <span className="w-8 text-end text-xs tabular-nums text-muted-foreground">{Math.round(value * 100)}%</span>
           </div>
         </FieldRow>
       )
@@ -964,7 +964,7 @@ function EditorHeader({ editor, screenName }: { editor: InlineEditor; screenName
   const Icon = ELEMENT_ICONS[label] ?? BoxIcon
   const sharedName = selection.file.startsWith("components/") ? selection.file.replace(/^components\/|\.tsx$/g, "") : null
   return (
-    <div className="flex items-center gap-2 border-b border-border/60 py-2 pr-1.5 pl-2.5">
+    <div className="flex items-center gap-2 border-b border-border/60 py-2 pe-1.5 ps-2.5">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-700">
         <Icon className="size-4" />
       </span>
@@ -1054,7 +1054,7 @@ function EditWithAi({ editor, label }: { editor: InlineEditor; label: string }) 
   }
   return (
     <form onSubmit={submit} className="rounded-full bg-linear-to-br from-indigo-300/80 via-white to-fuchsia-300/80 p-px focus-within:from-indigo-400 focus-within:to-fuchsia-400">
-      <div className="flex items-center gap-1 rounded-full bg-white py-0.5 pr-0.5 pl-2.5">
+      <div className="flex items-center gap-1 rounded-full bg-white py-0.5 pe-0.5 ps-2.5">
         <SparklesIcon className="size-3.5 shrink-0 text-violet-600" />
         <input
           ref={inputRef}
@@ -1167,7 +1167,7 @@ export function ElementAdvancedPanel({
   return (
     <aside
       aria-label={`Advanced edit: ${label}`}
-      className="absolute top-12 right-3 bottom-3 z-20 flex w-[20rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_64px_-20px_rgba(76,29,149,0.45)] ring-1 ring-black/[0.05]"
+      className="absolute top-12 end-3 bottom-3 z-20 flex w-[20rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_64px_-20px_rgba(76,29,149,0.45)] ring-1 ring-black/[0.05]"
     >
       <EditorHeader editor={editor} screenName={screenName} />
       <div className="min-h-0 flex-1 overflow-y-auto">

@@ -74,8 +74,8 @@ export function PublicAppDialog({
           </div>
         </div>
 
-        <aside className="flex shrink-0 flex-col gap-3 border-t border-border/60 p-5 md:w-72 md:border-t-0 md:border-l md:p-6 md:pt-12">
-          <div className="min-w-0 space-y-1 pr-8 md:pr-0">
+        <aside className="flex shrink-0 flex-col gap-3 border-t border-border/60 p-5 md:w-72 md:border-t-0 md:border-s md:p-6 md:pt-12">
+          <div className="min-w-0 space-y-1 pe-8 md:pe-0">
             <DialogTitle className="truncate text-lg font-semibold tracking-tight">{project.name}</DialogTitle>
             <DialogDescription className="line-clamp-2 md:line-clamp-none">{project.description}</DialogDescription>
             <p className="text-xs text-muted-foreground">Made by {project.owner}</p>

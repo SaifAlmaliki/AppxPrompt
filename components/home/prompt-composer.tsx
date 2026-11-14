@@ -457,7 +457,7 @@ export function PromptComposer() {
                       >
                         {PLATFORM_LABELS[option]}
                         {option === platform && (
-                          <CheckIcon className="ml-auto text-violet-600" />
+                          <CheckIcon className="ms-auto text-violet-600" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -502,7 +502,7 @@ export function PromptComposer() {
             key={item.label}
             type="button"
             onClick={() => applySuggestion(item.prompt)}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1.5 pr-4 pl-1.5 text-sm text-muted-foreground shadow-[0_4px_16px_-8px_rgba(76,29,149,0.3)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:text-violet-700 hover:shadow-[0_8px_24px_-8px_rgba(124,58,237,0.4)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1.5 pe-4 ps-1.5 text-sm text-muted-foreground shadow-[0_4px_16px_-8px_rgba(76,29,149,0.3)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:text-violet-700 hover:shadow-[0_8px_24px_-8px_rgba(124,58,237,0.4)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <span
               aria-hidden
@@ -520,7 +520,7 @@ export function PromptComposer() {
         onOpenChange={(open) => !open && setPreviewFile(null)}
       >
         <DialogContent className="gap-3 rounded-[1.75rem] p-3 sm:max-w-2xl">
-          <DialogTitle className="truncate px-1 pr-8 text-sm font-medium">
+          <DialogTitle className="truncate px-1 pe-8 text-sm font-medium">
             {previewFile?.file.name}
           </DialogTitle>
           {previewFile?.previewUrl && (

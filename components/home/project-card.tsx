@@ -67,14 +67,14 @@ export const ProjectCard = React.forwardRef<
       <div className="relative flex h-72 items-start justify-center overflow-hidden rounded-[1.6rem] bg-linear-to-br from-violet-100 to-indigo-50">
         <div
           aria-hidden
-          className="absolute -top-10 -right-10 size-36 rounded-full bg-violet-400 opacity-30 blur-2xl"
+          className="absolute -top-10 -end-10 size-36 rounded-full bg-violet-400 opacity-30 blur-2xl"
           style={project.accentColor ? { backgroundColor: project.accentColor } : undefined}
         />
-        <div aria-hidden className="absolute -bottom-12 -left-8 size-32 rounded-full bg-white/60 blur-xl" />
+        <div aria-hidden className="absolute -bottom-12 -start-8 size-32 rounded-full bg-white/60 blur-xl" />
         <div className="relative mt-7 aspect-[9/19] w-40 shrink-0 overflow-hidden rounded-[1.75rem] border-[5px] border-neutral-900 bg-white shadow-xl shadow-black/15 transition-transform duration-500 group-hover:-translate-y-2">
           <CardScreen project={project} state={state} running={running} />
         </div>
-        <div className="pointer-events-none absolute top-2.5 left-2.5 flex flex-col items-start gap-1">
+        <div className="pointer-events-none absolute top-2.5 start-2.5 flex flex-col items-start gap-1">
           {project.isPublic && project.role === "owner" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700 backdrop-blur-md">
               <GlobeIcon className="size-3" />
@@ -93,7 +93,7 @@ export const ProjectCard = React.forwardRef<
       <div className="flex flex-1 flex-col gap-1 px-3 pt-3.5 pb-2">
         <h3 className="truncate font-semibold tracking-tight" title={project.name}>
           {action(
-            "rounded-sm text-left outline-none after:absolute after:inset-0 after:rounded-[2rem] after:content-['']"
+            "rounded-sm text-start outline-none after:absolute after:inset-0 after:rounded-[2rem] after:content-['']"
           )}
         </h3>
         <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description}</p>
@@ -115,7 +115,7 @@ export const ProjectCard = React.forwardRef<
         </div>
       </div>
 
-      {menu && <div className="absolute top-4 right-4 z-10">{menu}</div>}
+      {menu && <div className="absolute top-4 end-4 z-10">{menu}</div>}
     </article>
   )
 })

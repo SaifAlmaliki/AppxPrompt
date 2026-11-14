@@ -128,7 +128,7 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
           <span className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
             <Icon className="size-5" />
           </span>
-          <DialogHeader className="gap-1 text-left">
+          <DialogHeader className="gap-1 text-start">
             <DialogTitle className="text-xl font-semibold tracking-tight text-white">{title}</DialogTitle>
             <DialogDescription className="text-white/85">{description}</DialogDescription>
           </DialogHeader>

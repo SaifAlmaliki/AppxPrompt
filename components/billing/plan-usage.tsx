@@ -63,7 +63,7 @@ export function PlanUsage({ user, projectCount }: { user: SessionUser; projectCo
       {isPro ? (
         <Button variant="outline" className="h-10 rounded-full px-4" render={<Link href="/pricing" />} nativeButton={false}>
           Manage plan
-          <ArrowRightIcon />
+          <ArrowRightIcon className="rtl:-scale-x-100" />
         </Button>
       ) : (
         <Button

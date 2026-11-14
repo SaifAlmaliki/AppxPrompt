@@ -462,7 +462,7 @@ function EditModeBar({ editor, screenName, besidePanel }: { editor: InlineEditor
     <div
       role="status"
       style={besidePanel ? { left: `calc((100% - ${ADVANCED_PANEL_SPACE}px) / 2)`, maxWidth: `calc(100% - ${ADVANCED_PANEL_SPACE + 12}px)` } : undefined}
-      className="absolute top-11 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/70 bg-white/95 py-1 pr-1 pl-3 text-xs shadow-lg shadow-violet-500/15 ring-1 ring-black/[0.04] backdrop-blur"
+      className="absolute top-11 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/70 bg-white/95 py-1 pe-1 ps-3 text-xs shadow-lg shadow-violet-500/15 ring-1 ring-black/[0.04] backdrop-blur"
     >
       <span className="flex items-center gap-1.5 truncate font-medium text-violet-700">
         <PencilIcon className="size-3.5 shrink-0" />

@@ -92,7 +92,7 @@ function PublicApps() {
             onClick={() => openSignIn("sign-in")}
           >
             Sign in to see your projects
-            <ArrowRightIcon />
+            <ArrowRightIcon className="rtl:-scale-x-100" />
           </Button>
         }
       />

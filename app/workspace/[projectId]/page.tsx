@@ -121,7 +121,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeftIcon className="size-4" />
+          <ArrowLeftIcon className="size-4 rtl:-scale-x-100" />
           Back to home
         </Link>
       </header>

@@ -413,7 +413,7 @@ function RepositoryPicker({
       ) : (
         <div className="space-y-2">
           <div className="relative">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <label htmlFor="github-repo-search" className="sr-only">
               Search repositories
             </label>
@@ -422,7 +422,7 @@ function RepositoryPicker({
               placeholder="Search repositories"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-10 rounded-full pr-4 pl-9"
+              className="h-10 rounded-full pe-4 ps-9"
             />
           </div>
           <ul className="max-h-56 divide-y divide-border/60 overflow-y-auto rounded-2xl border border-border/60">
@@ -433,7 +433,7 @@ function RepositoryPicker({
                   type="button"
                   disabled={pending !== null}
                   onClick={() => void choose({ repository: repo.fullName }, repo.fullName)}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-violet-500/10 disabled:opacity-60"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-start text-sm transition-colors hover:bg-violet-500/10 disabled:opacity-60"
                 >
                   <span className="min-w-0 flex-1 truncate">{repo.fullName}</span>
                   {repo.private && <LockIcon aria-label="Private" className="size-3.5 shrink-0 text-muted-foreground" />}
@@ -530,7 +530,7 @@ function DoneView({ result, onClose, onChange }: { result: GitHubPushResult; onC
       </dl>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" className="mr-auto rounded-full text-muted-foreground" onClick={onChange}>
+        <Button variant="ghost" className="me-auto rounded-full text-muted-foreground" onClick={onChange}>
           Change repository
         </Button>
         {result.compareUrl ? (

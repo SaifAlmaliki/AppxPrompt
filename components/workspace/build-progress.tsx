@@ -61,7 +61,7 @@ export function BuildProgress({ screens }: { screens: ProjectScreen[] }) {
         >
           <span className="block text-neutral-500">{current.filePath}</span>
           {current.code.split("\n").slice(-6).join("\n")}
-          <span aria-hidden className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-violet-400 align-middle" />
+          <span aria-hidden className="ms-0.5 inline-block h-3 w-1.5 animate-pulse bg-violet-400 align-middle" />
         </pre>
       )}
     </section>

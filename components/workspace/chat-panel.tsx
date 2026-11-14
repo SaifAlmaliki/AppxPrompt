@@ -122,7 +122,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
           <SparklesIcon className="size-3.5" />
         </span>
         <h2 className="text-sm font-semibold">AppxPrompt Agent</h2>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
           {busy && (
             <span className="inline-flex items-center gap-1.5 text-xs text-violet-700">
               <span className="size-1.5 animate-pulse rounded-full bg-violet-500" />
@@ -230,7 +230,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                         href={asset.url ?? undefined}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex max-w-44 items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 p-1 pr-2.5 text-xs text-muted-foreground transition-colors hover:border-violet-200 hover:text-violet-700"
+                        className="flex max-w-44 items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 p-1 pe-2.5 text-xs text-muted-foreground transition-colors hover:border-violet-200 hover:text-violet-700"
                       >
                         {asset.url && asset.contentType.startsWith("image/") ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -296,7 +296,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
           <div className="rounded-[calc(1.5rem-1px)] bg-white p-2">
             {attachment && (
               <div className="mb-1 flex max-w-full items-center gap-1.5 self-start">
-                <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 py-0.5 pr-0.5 pl-2 text-xs text-violet-800">
+                <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 py-0.5 pe-0.5 ps-2 text-xs text-violet-800">
                   <SquareDashedMousePointerIcon className="size-3.5 shrink-0" />
                   <span className="font-medium">{attachmentLabel}</span>
                   {attachment.label && <span className="max-w-32 truncate text-violet-700/70">{attachment.label}</span>}
@@ -381,7 +381,7 @@ function UserMessage({ content }: { content: string }) {
           </span>
         </span>
       )}
-      <p className="rounded-2xl rounded-br-md bg-linear-to-br from-indigo-500 to-violet-500 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-white shadow-sm shadow-violet-500/20">
+      <p className="rounded-2xl rounded-ee-md bg-linear-to-br from-indigo-500 to-violet-500 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-white shadow-sm shadow-violet-500/20">
         <span className="sr-only">You: </span>
         {text}
       </p>
@@ -425,10 +425,10 @@ function Reasoning({ text, active }: { text: string; active: boolean }) {
       >
         <BrainIcon className="size-3.5" />
         {active ? "Thinking…" : "Thought process"}
-        <ChevronRightIcon className={cn("size-3 transition-transform", open && "rotate-90")} />
+        <ChevronRightIcon className={cn("size-3 transition-transform", open ? "rotate-90" : "rtl:-scale-x-100")} />
       </button>
       {open && (
-        <p className="mt-1.5 max-h-40 overflow-y-auto border-l-2 border-violet-200 pl-2.5 leading-relaxed whitespace-pre-wrap">
+        <p className="mt-1.5 max-h-40 overflow-y-auto border-s-2 border-violet-200 ps-2.5 leading-relaxed whitespace-pre-wrap">
           {text}
         </p>
       )}
@@ -520,7 +520,7 @@ function ChoiceList({
           </>
         )
         const className = cn(
-          "flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-left text-sm leading-relaxed",
+          "flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-start text-sm leading-relaxed",
           on ? "border-violet-400 bg-violet-50" : "border-border/70 bg-white",
           onPick && "cursor-pointer hover:border-violet-300 hover:bg-violet-50/80"
         )
@@ -553,5 +553,5 @@ function InlineText({ text }: { text: string }) {
 }
 
 function StreamingCaret() {
-  return <span aria-hidden className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-violet-500 align-text-bottom" />
+  return <span aria-hidden className="ms-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-violet-500 align-text-bottom" />
 }
