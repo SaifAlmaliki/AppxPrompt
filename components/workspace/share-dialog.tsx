@@ -151,7 +151,7 @@ export function ShareDialog({
         </form>
 
         {error && (
-          <p role="alert" className="-mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p role="alert" dir="auto" className="-mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
           </p>
         )}

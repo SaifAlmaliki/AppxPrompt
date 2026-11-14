@@ -10,6 +10,8 @@ import { createHash, randomUUID } from "node:crypto"
 
 import ImageKit, { toFile } from "@imagekit/nodejs"
 
+import { LocalizedError, type ErrorKey } from "@/lib/i18n/server"
+
 /** Can take up to a minute, according to ImageKit. */
 const AI_TIMEOUT_MS = 90_000
 const POLL_INTERVAL_MS = 3_000
@@ -30,12 +32,12 @@ const EXTENSIONS: Record<string, string> = {
 export const UPLOADABLE_IMAGE_TYPES = Object.keys(EXTENSIONS)
 
 /** A problem with a message that's safe to show the person. */
-export class ImageKitError extends Error {
+export class ImageKitError extends LocalizedError {
   constructor(
-    message: string,
+    key: ErrorKey,
     readonly status = 502
   ) {
-    super(message)
+    super(key)
   }
 }
 
@@ -46,7 +48,7 @@ export function isImageKitEnabled() {
 }
 
 function assertEnabled() {
-  if (!isImageKitEnabled()) throw new ImageKitError("Image tools aren't turned on for this app.", 503)
+  if (!isImageKitEnabled()) throw new ImageKitError("imageToolsOff", 503)
 }
 
 let client: ImageKit | null = null
@@ -93,7 +95,7 @@ async function waitForImage(url: string, timeoutMs = AI_TIMEOUT_MS) {
     if (response.headers.get("is-intermediate-response") === "true") {
       await response.body?.cancel()
       if (Date.now() + POLL_INTERVAL_MS > deadline) {
-        throw new ImageKitError("The AI is taking longer than usual. Please try again in a minute.", 504)
+        throw new ImageKitError("imageSlow", 504)
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
       continue
@@ -102,7 +104,7 @@ async function waitForImage(url: string, timeoutMs = AI_TIMEOUT_MS) {
     if (!response.ok || !contentType.startsWith("image/")) {
       await response.body?.cancel()
       console.error(`ImageKit answered an AI request with ${response.status} (${contentType}): ${response.headers.get("ik-error") ?? "no details"}`)
-      throw new ImageKitError("The AI couldn't make this image. Try describing it differently, or try again in a few minutes.")
+      throw new ImageKitError("imageFailed")
     }
     return { bytes: new Uint8Array(await response.arrayBuffer()), contentType }
   }
@@ -125,7 +127,7 @@ function cleanPrompt(prompt: string) {
 /** The generation url for an image in the project's folder, once ImageKit has finished it. */
 async function prepareGeneratedImage(projectId: string, prompt: string, name: string, timeoutMs?: number) {
   const text = cleanPrompt(prompt)
-  if (!text) throw new ImageKitError("Describe the image in words.", 400)
+  if (!text) throw new ImageKitError("describeImage", 400)
   const src = `/${GENERATED_IMAGE_PATH}${encodeURIComponent(text)}${projectFolder(projectId)}/${name}.jpg`
   // Signed, so these keep working if unsigned AI urls are restricted on the ImageKit account.
   const url = getClient().helper.buildSrc({ urlEndpoint: getEndpoint(), src, signed: true })
@@ -152,17 +154,17 @@ export async function transformImage(projectId: string, sourceUrl: string, promp
   try {
     source = new URL(sourceUrl)
   } catch {
-    throw new ImageKitError("This image's url isn't valid, so it can't be changed.", 400)
+    throw new ImageKitError("imageUrlInvalid", 400)
   }
   if (source.protocol !== "https:" && source.protocol !== "http:") {
-    throw new ImageKitError("This image's url isn't valid, so it can't be changed.", 400)
+    throw new ImageKitError("imageUrlInvalid", 400)
   }
   // ImageKit does the fetching here, so a url someone typed never reaches into our own network.
   let src = pathInProject(projectId, source)
   if (!src) {
     const copy = await saveFile(projectId, source.href, "source.jpg").catch((cause) => {
       console.error("ImageKit couldn't fetch an image to change", cause)
-      throw new ImageKitError("Couldn't load this image. Check that its url opens in a browser, or replace it first.")
+      throw new ImageKitError("imageLoadFailed")
     })
     src = copy.slice(urlEndpoint.length)
   }

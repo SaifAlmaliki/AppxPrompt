@@ -314,6 +314,7 @@ function SignInForm({
         {error && (
           <p
             role="alert"
+            dir="auto"
             className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
             {error.errorKey ? t(`errors.${error.errorKey}`) : error.error}

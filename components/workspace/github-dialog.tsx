@@ -254,7 +254,7 @@ export function GitHubDialog({
           <DoneView result={view.result} onClose={() => onOpenChange(false)} onChange={() => setView({ name: "picker" })} />
         ) : view.name === "failed" ? (
           <>
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {view.message}
             </p>
             <Button className="h-10 rounded-full" onClick={() => void load(false)}>
@@ -278,7 +278,7 @@ function ConnectView({ projectId, notice }: { projectId: string; notice: string 
         {t("connect.privacy")}
       </p>
       {notice && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {notice}
         </p>
       )}
@@ -377,7 +377,7 @@ function RepositoryPicker({
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -501,7 +501,7 @@ function ConfirmView({
       </p>
 
       {notice && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {notice}
         </p>
       )}

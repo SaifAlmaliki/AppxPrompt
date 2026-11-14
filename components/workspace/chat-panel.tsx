@@ -270,7 +270,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
             <li role="alert" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800">
               <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
               <div className="min-w-0 flex-1 space-y-2">
-                <p>{error}</p>
+                <p dir="auto">{error}</p>
                 {canRetry && !busy && (
                   <Button
                     size="sm"

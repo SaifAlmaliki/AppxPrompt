@@ -7,6 +7,7 @@ import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { GitHubClient, GitHubError, isGitHubAvailable, revokeGitHubToken, type GitHubRepo } from "@/lib/github/client"
 import { pushFiles } from "@/lib/github/push"
 import type { GitHubPushResult, GitHubRepositoryOption, GitHubStatus } from "@/lib/github-protocol"
+import type { Translator } from "@/lib/i18n/server"
 import { loadProjectExport } from "@/lib/project-access"
 
 export const REPO_FULL_NAME = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/
@@ -29,7 +30,7 @@ async function loadConnection(userId: number) {
 /** This person's client, or an error asking them to connect. */
 async function requireClient(userId: number) {
   const connection = await loadConnection(userId)
-  if (!connection) throw new GitHubError("Connect your GitHub account first.", 401, "reauth")
+  if (!connection) throw new GitHubError("githubConnectFirst", 401, "reauth")
   return new GitHubClient(unseal(connection.accessToken))
 }
 
@@ -112,9 +113,9 @@ async function linkRepo(projectId: string, repo: GitHubRepo) {
 export async function linkExistingRepository(projectId: string, userId: number, fullName: string) {
   await withClient(userId, async (github) => {
     const repo = await github.getRepo(fullName)
-    if (!repo) throw new GitHubError("We couldn't find that repository on your GitHub account.", 404, "repository")
-    if (!repo.permissions?.push) throw new GitHubError("You don't have permission to push to that repository.", 403, "repository")
-    if (repo.archived) throw new GitHubError("That repository is archived, so it can't be pushed to.", 403, "repository")
+    if (!repo) throw new GitHubError("repoNotFound", 404, "repository")
+    if (!repo.permissions?.push) throw new GitHubError("repoNoPermission", 403, "repository")
+    if (repo.archived) throw new GitHubError("repoArchived", 403, "repository")
     await linkRepo(projectId, repo)
   })
 }
@@ -123,7 +124,7 @@ export async function createAndLinkRepository(projectId: string, userId: number,
   await withClient(userId, async (github) => {
     const repo = await github.createRepo(name, isPrivate, description).catch((cause) => {
       if (cause instanceof GitHubError && cause.status === 422) {
-        throw new GitHubError(`You already have a repository called ${name}, or GitHub doesn't accept that name. Try another.`, 422, "repository")
+        throw new GitHubError("repoNameTaken", 422, "repository", { name })
       }
       throw cause
     })
@@ -135,28 +136,30 @@ export async function createAndLinkRepository(projectId: string, userId: number,
 export async function pushProject(
   project: Project,
   userId: number,
-  onProgress: (label: string, percent: number) => void
+  onProgress: (label: string, percent: number) => void,
+  t: Translator<"errors">
 ): Promise<GitHubPushResult> {
   const [link] = await db.select().from(projectGithubRepos).where(eq(projectGithubRepos.projectId, project.id))
-  if (!link) throw new GitHubError("Choose a repository first.", 400, "repository")
+  if (!link) throw new GitHubError("repoChooseFirst", 400, "repository")
 
-  onProgress("Packaging your project…", 2)
+  onProgress(t("pushPackaging"), 2)
   const { name, files, screenNames } = await loadProjectExport(project)
 
   return withClient(userId, async (github) => {
     const repo = await github.getRepo(`${link.owner}/${link.name}`)
     if (!repo) {
       await db.delete(projectGithubRepos).where(eq(projectGithubRepos.projectId, project.id))
-      throw new GitHubError(`${link.owner}/${link.name} no longer exists, or you've lost access to it. Choose another repository.`, 404, "repository")
+      throw new GitHubError("repoGone", 404, "repository", { repo: `${link.owner}/${link.name}` })
     }
     if (!repo.permissions?.push || repo.archived) {
-      throw new GitHubError(`You can't push to ${repo.full_name} anymore. Choose another repository.`, 403, "repository")
+      throw new GitHubError("repoPushDenied", 403, "repository", { repo: repo.full_name })
     }
 
     const { commitSha, pushedFiles, ...result } = await pushFiles(
       github,
       { repo, appName: name, files, screenNames, previous: link.pushedFiles, lastBranch: link.lastBranch },
-      onProgress
+      onProgress,
+      t
     )
     // A rename on GitHub redirects the old name, so keep following the current one.
     await db

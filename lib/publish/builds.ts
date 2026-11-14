@@ -18,6 +18,7 @@ import {
   startWorkflowRun,
   type WorkflowRunState,
 } from "@/lib/publish/expo"
+import { LocalizedError, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import { projectTarball } from "@/lib/publish/tarball"
 import {
   FORMAT_PLATFORM,
@@ -36,13 +37,14 @@ export const NEVER_STARTED_AFTER_MS = 10 * 60 * 1000
 const BUILDS_SHOWN = 5
 
 /** Something stopping a build that the person can act on, as opposed to a build that failed. */
-export class PublishBlockedError extends Error {
+export class PublishBlockedError extends LocalizedError {
   constructor(
-    message: string,
+    key: ErrorKey,
     public code?: PublishErrorCode,
-    public status = 400
+    public status = 400,
+    values?: ErrorValues
   ) {
-    super(message)
+    super(key, values)
   }
 }
 
@@ -104,25 +106,25 @@ async function recordBuild(buildId: string, report: BuildReport) {
 }
 
 /** What a workflow run means for the build. The EAS build's own answer wins, since it's the most specific. */
-function reportFromRun(run: WorkflowRunState): BuildReport {
+function reportFromRun(run: WorkflowRunState, t: Translator<"errors">): BuildReport {
   const job = run.jobs.find((candidate) => candidate.turtleBuild) ?? run.jobs[0]
   const build = job?.turtleBuild ?? null
   const easBuildId = build?.id
   if (build?.status === "FINISHED") {
     const artifactUrl = build.artifacts?.applicationArchiveUrl ?? build.artifacts?.buildUrl
     if (artifactUrl) return { status: "ready", easBuildId, artifactUrl }
-    return { status: "failed", easBuildId, error: "EAS finished the build, but it has no file to download." }
+    return { status: "failed", easBuildId, error: t("buildNoFile") }
   }
-  if (build?.status === "CANCELED" || run.status === "CANCELED") return { status: "failed", easBuildId, error: "The build was cancelled on Expo." }
+  if (build?.status === "CANCELED" || run.status === "CANCELED") return { status: "failed", easBuildId, error: t("buildCancelled") }
   if (build?.status === "ERRORED" || run.status === "FAILURE") {
     const detail = [...(job?.errors ?? []), ...run.errors].find((error) => error.message)
-    return { status: "failed", easBuildId, error: build?.error?.message ?? detail?.message ?? "EAS couldn't finish the build." }
+    return { status: "failed", easBuildId, error: build?.error?.message ?? detail?.message ?? t("buildErrored") }
   }
   return { status: build || run.status === "IN_PROGRESS" ? "building" : "queued", easBuildId }
 }
 
 /** The server holds a build's status, and it's brought up to date here, so nothing depends on a tab staying open. */
-async function refreshBuilds(projectId: string, userId: number) {
+async function refreshBuilds(projectId: string, userId: number, t: Translator<"errors">) {
   const due = await db
     .select()
     .from(appBuilds)
@@ -139,19 +141,19 @@ async function refreshBuilds(projectId: string, userId: number) {
   for (const build of due) {
     if (!build.easRunId) {
       if (Date.now() - build.createdAt.getTime() > NEVER_STARTED_AFTER_MS) {
-        await recordBuild(build.id, { status: "failed", error: "This build never reached Expo. Please try again." })
+        await recordBuild(build.id, { status: "failed", error: t("buildNeverReached") })
       }
       continue
     }
     if (!expo) {
-      await recordBuild(build.id, { status: "failed", error: "Expo was disconnected, so AppxPrompt can't follow this build. It may still finish on expo.dev." })
+      await recordBuild(build.id, { status: "failed", error: t("buildExpoDisconnected") })
       continue
     }
     try {
-      await recordBuild(build.id, reportFromRun(await readWorkflowRun(unseal(expo.accessToken), build.easRunId)))
+      await recordBuild(build.id, reportFromRun(await readWorkflowRun(unseal(expo.accessToken), build.easRunId), t))
     } catch (cause) {
       if (cause instanceof ExpoError && cause.unauthorized) {
-        await recordBuild(build.id, { status: "failed", error: "Expo stopped accepting your token, so AppxPrompt can't follow this build. It may still finish on expo.dev." })
+        await recordBuild(build.id, { status: "failed", error: t("buildTokenRejected") })
       } else {
         // Only the network, most likely. The next look tries again.
         console.error(`Checking on app build ${build.id} failed`, cause)
@@ -160,16 +162,16 @@ async function refreshBuilds(projectId: string, userId: number) {
   }
 }
 
-export async function listBuilds(projectId: string, userId: number) {
-  await refreshBuilds(projectId, userId)
+export async function listBuilds(projectId: string, userId: number, t: Translator<"errors">) {
+  await refreshBuilds(projectId, userId, t)
   return (await latestBuilds(projectId)).map(toSummary)
 }
 
-export async function getPublishStatus(project: Project, userId: number): Promise<PublishStatus> {
+export async function getPublishStatus(project: Project, userId: number, t: Translator<"errors">): Promise<PublishStatus> {
   const [expo, [publishing], builds] = await Promise.all([
     loadExpoConnection(userId),
     db.select().from(projectPublishing).where(eq(projectPublishing.projectId, project.id)),
-    listBuilds(project.id, userId),
+    listBuilds(project.id, userId, t),
   ])
   return {
     available: isPublishAvailable(),
@@ -195,9 +197,9 @@ export async function ensureIdentity(project: Project, easOwner: string, version
   return identity
 }
 
-function friendlyStartError(cause: unknown) {
-  if (cause instanceof ExpoError || cause instanceof ExportUnavailableError) return cause.message
-  return "We couldn't start the build. Please try again."
+export function friendlyStartError(cause: unknown, t: Translator<"errors">, fallback: "buildStartFailed" | "publishStartFailed") {
+  if (cause instanceof ExpoError || cause instanceof ExportUnavailableError) return cause.translate(t)
+  return t(fallback)
 }
 
 /** EAS reads the project id from the app's config. It's only needed for the build, so exports don't carry it. */
@@ -223,15 +225,15 @@ async function sendToExpo(project: Project, build: AppBuild, expoToken: string, 
 }
 
 /** Saves the build and starts it on EAS. */
-export async function startBuild(project: Project, userId: number, format: AppBuildFormat, version: string): Promise<PublishResult> {
+export async function startBuild(project: Project, userId: number, format: AppBuildFormat, version: string, t: Translator<"errors">): Promise<PublishResult> {
   const platform = FORMAT_PLATFORM[format]
   if (project.platform !== "ios-android" && project.platform !== platform) {
-    throw new PublishBlockedError(`This project was made for ${project.platform === "ios" ? "iOS" : "Android"} only.`)
+    throw new PublishBlockedError("platformOnly", undefined, 400, { platform: project.platform })
   }
-  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppxPrompt server yet.")
+  if (!isPublishAvailable()) throw new PublishBlockedError("publishUnavailable")
 
   const expo = await loadExpoConnection(userId)
-  if (!expo) throw new PublishBlockedError("Connect your Expo account first.", "expo")
+  if (!expo) throw new PublishBlockedError("expoConnectFirst", "expo")
 
   // Finds problems the person can fix, such as the agent still working, before a build exists to fail.
   await loadProjectExport(project)
@@ -241,7 +243,7 @@ export async function startBuild(project: Project, userId: number, format: AppBu
     const [existing] = await db.select().from(projectPublishing).where(eq(projectPublishing.projectId, project.id))
     const identity = existing ?? (await ensureIdentity(project, expo.accountName, version))
     const ready = await hasIosCredentials(expoToken, identity.easOwner, identity.slug, identity.iosBundleIdentifier).catch((cause) => {
-      if (cause instanceof ExpoError && cause.unauthorized) throw new PublishBlockedError(cause.message, "expo")
+      if (cause instanceof ExpoError && cause.unauthorized) throw new PublishBlockedError(cause.key, "expo", 400, cause.values)
       throw cause
     })
     if (!ready) return { iosSetup: { account: identity.easOwner, slug: identity.slug, bundleIdentifier: identity.iosBundleIdentifier } }
@@ -252,7 +254,7 @@ export async function startBuild(project: Project, userId: number, format: AppBu
     .values({ projectId: project.id, userId, platform, format, version })
     .onConflictDoNothing()
     .returning()
-  if (!build) throw new PublishBlockedError("A build of this app is already running. Wait for it to finish first.", undefined, 409)
+  if (!build) throw new PublishBlockedError("buildRunning", undefined, 409)
 
   // This build replaces any failed attempts at the same file, so their errors don't linger.
   await db.delete(appBuilds).where(and(eq(appBuilds.projectId, project.id), eq(appBuilds.format, format), eq(appBuilds.status, "failed")))
@@ -263,7 +265,7 @@ export async function startBuild(project: Project, userId: number, format: AppBu
     return { build: toSummary(started) }
   } catch (cause) {
     console.error(`Starting app build ${build.id} failed`, cause)
-    await recordBuild(build.id, { status: "failed", error: friendlyStartError(cause) })
+    await recordBuild(build.id, { status: "failed", error: friendlyStartError(cause, t, "buildStartFailed") })
     const [failed] = await db.select().from(appBuilds).where(eq(appBuilds.id, build.id))
     return { build: toSummary(failed) }
   }

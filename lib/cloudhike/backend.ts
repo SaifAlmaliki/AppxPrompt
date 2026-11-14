@@ -17,6 +17,7 @@ import {
 } from "@/lib/cloudhike/client"
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { closeAppConnection, prepareAppDatabase } from "@/lib/cloudhike/gateway"
+import { translatorFor, type Translator } from "@/lib/i18n/server"
 
 const DEPLOY_WAIT_MS = 3 * 60_000
 const DEPLOY_POLL_MS = 3_000
@@ -49,7 +50,7 @@ export async function saveConnection(userId: number, grant: CloudHikeGrant) {
 
 // --- Status ------------------------------------------------------------------
 
-function toStatus(row: ProjectBackend | undefined, accountConnected: boolean): BackendStatus {
+function toStatus(row: ProjectBackend | undefined, accountConnected: boolean, t: Translator<"errors">): BackendStatus {
   // The execution setting it up stopped midway, so nothing is going to change this.
   const abandoned = row?.state === "provisioning" && row.updatedAt.getTime() < Date.now() - CLAIM_EXPIRES_MS
   return {
@@ -58,16 +59,17 @@ function toStatus(row: ProjectBackend | undefined, accountConnected: boolean): B
     state: abandoned ? "failed" : (row?.state ?? "disconnected"),
     services: row?.services ?? [],
     dashboardUrl: cloudhikeDashboardUrl(row?.cloudhikeProjectSlug ?? null),
-    error: abandoned ? "The last setup stopped before it finished. Please try again." : (row?.error ?? null),
+    error: abandoned ? t("backendSetupAbandoned") : (row?.error ?? null),
   }
 }
 
-export async function getBackendStatus(projectId: string, userId: number): Promise<BackendStatus> {
+/** `t` is the requester's. Without one, as in a build on CloudHike Jobs, the one status text that's made here is English. */
+export async function getBackendStatus(projectId: string, userId: number, t: Translator<"errors"> = translatorFor("en", "errors")): Promise<BackendStatus> {
   const [[row], [account]] = await Promise.all([
     db.select().from(projectBackends).where(eq(projectBackends.projectId, projectId)),
     db.select({ userId: cloudhikeConnections.userId }).from(cloudhikeConnections).where(eq(cloudhikeConnections.userId, userId)),
   ])
-  return toStatus(row, Boolean(account))
+  return toStatus(row, Boolean(account), t)
 }
 
 /** Makes this project use the person's connected CloudHike account. Services follow when they're needed. */

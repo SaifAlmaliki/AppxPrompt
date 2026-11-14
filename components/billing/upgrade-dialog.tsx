@@ -143,7 +143,7 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
           </ul>
 
           {error && (
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </p>
           )}

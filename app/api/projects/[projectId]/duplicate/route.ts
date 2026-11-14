@@ -5,13 +5,14 @@ import { db, messages, projectAssets, projects, screens } from "@/db"
 import { activeBuild } from "@/lib/agent/builds"
 import { assertProjectSlot, claimProjectSlot, hasProjectSlot, PlanLimitError, planLimitResponse } from "@/lib/billing/credits"
 import { getRun } from "@/lib/agent/runs"
+import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
 import { MAX_PROJECT_NAME_LENGTH } from "@/lib/projects"
 import { getCurrentUser } from "@/lib/session"
 import { copyObject, deleteObjects, safeFileName } from "@/lib/storage"
 
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status })
+function error(key: ErrorKey, status: number) {
+  return errorResponse(key, status)
 }
 
 /**
@@ -22,17 +23,18 @@ function error(message: string, status: number) {
 export async function POST(_request: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return error("Please sign in to continue.", 401)
+  if (!user) return error("signInRequired", 401)
   const access = await getProjectAccess(projectId, user.id)
-  if (access?.role !== "owner") return error("Project not found.", 404)
+  if (access?.role !== "owner") return error("projectNotFound", 404)
   const { project } = access
+  const t = await serverT("errors")
 
   if (project.status === "building" || getRun(project.id) || (await activeBuild(project.id))) {
-    return error("The agent is still working. You can duplicate this once it's done.", 409)
+    return error("agentBusyDuplicate", 409)
   }
 
   try {
-    assertProjectSlot(await hasProjectSlot(user.id, user.plan), user.plan)
+    assertProjectSlot(await hasProjectSlot(user.id, user.plan), user.plan, t)
   } catch (cause) {
     if (cause instanceof PlanLimitError) return planLimitResponse(cause)
     throw cause
@@ -60,12 +62,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pr
       copies.find((copy): copy is PromiseRejectedResult => copy.status === "rejected")?.reason
     )
     await deleteObjects(copiedKeys).catch(() => {})
-    return error("We couldn't copy this project's files. Please try again.", 502)
+    return error("copyFilesFailed", 502)
   }
 
   try {
     await db.transaction(async (tx) => {
-      await claimProjectSlot(tx, user.id)
+      await claimProjectSlot(tx, user.id, t)
       await tx.insert(projects).values({
         id: newId,
         userId: user.id,
@@ -120,6 +122,6 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pr
     await deleteObjects(copiedKeys).catch(() => {})
     if (cause instanceof PlanLimitError) return planLimitResponse(cause)
     console.error("Duplicating a project failed", cause)
-    return error("We couldn't duplicate this project. Please try again.", 500)
+    return error("duplicateFailed", 500)
   }
 }

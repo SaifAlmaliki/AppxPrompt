@@ -66,8 +66,9 @@ export function getRun(projectId: string) {
  * Starts `work` as the project's run. Callers subscribe to the returned run
  * before the work begins, so no event is missed. Always ends with a `done` event.
  * If another request started a run for the project in the meantime, that run is returned instead.
+ * `failureMessage`, in the requester's language, is what the person reads if the work throws.
  */
-export function startRun(projectId: string, work: (run: ProjectRun) => Promise<void>) {
+export function startRun(projectId: string, work: (run: ProjectRun) => Promise<void>, failureMessage: string) {
   const existing = runs.get(projectId)
   if (existing) return existing
   const run = new ProjectRun()
@@ -78,7 +79,7 @@ export function startRun(projectId: string, work: (run: ProjectRun) => Promise<v
     } catch (error) {
       console.error("Agent run failed", error)
       run.emit({ type: "status", label: null })
-      run.emit({ type: "error", message: "Something went wrong while the agent was working. Please try again." })
+      run.emit({ type: "error", message: failureMessage })
     } finally {
       runs.delete(projectId)
       run.emit({ type: "done" })

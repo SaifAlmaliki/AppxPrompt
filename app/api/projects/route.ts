@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm"
 
 import { db, messages, projectAssets, projects } from "@/db"
 import { assertCanUseAgent, assertProjectSlot, claimProjectSlot, hasProjectSlot, PlanLimitError, planLimitResponse } from "@/lib/billing/credits"
+import { errorResponse, serverT, type ErrorKey, type ErrorValues } from "@/lib/i18n/server"
 import { LAST_EDITED, SUMMARY_COLUMNS, toProjectSummary } from "@/lib/project-summaries"
 import {
   isAcceptedAsset,
@@ -15,14 +16,14 @@ import {
 import { getCurrentUser } from "@/lib/session"
 import { deleteObjects, safeFileName, uploadObject } from "@/lib/storage"
 
-function badRequest(error: string) {
-  return NextResponse.json({ error }, { status: 400 })
+function badRequest(key: ErrorKey, values?: ErrorValues) {
+  return errorResponse(key, 400, {}, values)
 }
 
 /** The signed-in person's own projects, most recently edited first. */
 export async function GET() {
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return NextResponse.json({ error: "Please sign in to continue." }, { status: 401 })
+  if (!user) return errorResponse("signInRequired", 401)
 
   const rows = await db
     .select({ ...SUMMARY_COLUMNS, prompt: projects.prompt })
@@ -44,37 +45,37 @@ export async function POST(request: Request) {
     console.error("Session lookup failed", error)
     return null
   })
-  if (!user) {
-    return NextResponse.json({ error: "Please sign in to create a project." }, { status: 401 })
-  }
+  if (!user) return errorResponse("signInToCreate", 401)
+
+  const t = await serverT("errors")
 
   // Before anything is uploaded.
   try {
-    assertProjectSlot(await hasProjectSlot(user.id, user.plan), user.plan)
-    assertCanUseAgent(user.credits)
+    assertProjectSlot(await hasProjectSlot(user.id, user.plan), user.plan, t)
+    assertCanUseAgent(user.credits, t)
   } catch (error) {
     if (error instanceof PlanLimitError) return planLimitResponse(error)
     throw error
   }
 
   const form = await request.formData().catch(() => null)
-  if (!form) return badRequest("Invalid request.")
+  if (!form) return badRequest("invalidRequest")
 
   const prompt = String(form.get("prompt") ?? "").trim()
-  if (!prompt) return badRequest("Describe the app you want to build.")
+  if (!prompt) return badRequest("describeApp")
   if (prompt.length > MAX_PROMPT_LENGTH) {
-    return badRequest(`Keep your prompt under ${MAX_PROMPT_LENGTH} characters.`)
+    return badRequest("promptTooLong", { max: MAX_PROMPT_LENGTH })
   }
 
   const platform = form.get("platform")
-  if (!isProjectPlatform(platform)) return badRequest("Choose a platform.")
+  if (!isProjectPlatform(platform)) return badRequest("choosePlatform")
 
   const files = form.getAll("files").filter((f): f is File => f instanceof File && f.size > 0)
-  if (files.length > MAX_ASSETS) return badRequest(`You can attach up to ${MAX_ASSETS} files.`)
+  if (files.length > MAX_ASSETS) return badRequest("attachLimit", { max: MAX_ASSETS })
   for (const file of files) {
-    if (file.size > MAX_ASSET_SIZE) return badRequest(`"${file.name}" is larger than 10 MB.`)
+    if (file.size > MAX_ASSET_SIZE) return badRequest("fileTooLarge", { name: file.name })
     if (!isAcceptedAsset(file.name, file.type)) {
-      return badRequest(`"${file.name}" isn't a supported file type.`)
+      return badRequest("fileUnsupported", { name: file.name })
     }
   }
 
@@ -100,15 +101,12 @@ export async function POST(request: Request) {
       uploads.find((u): u is PromiseRejectedResult => u.status === "rejected")?.reason
     )
     await deleteObjects(uploadedKeys).catch(() => {})
-    return NextResponse.json(
-      { error: "We couldn't upload your files. Please try again." },
-      { status: 502 }
-    )
+    return errorResponse("uploadFailed", 502)
   }
 
   try {
     const project = await db.transaction(async (tx) => {
-      await claimProjectSlot(tx, user.id)
+      await claimProjectSlot(tx, user.id, t)
       const [created] = await tx
         .insert(projects)
         .values({
@@ -142,9 +140,6 @@ export async function POST(request: Request) {
     await deleteObjects(uploadedKeys).catch(() => {})
     if (error instanceof PlanLimitError) return planLimitResponse(error)
     console.error("Project creation failed", error)
-    return NextResponse.json(
-      { error: "We couldn't create your project. Please try again." },
-      { status: 500 }
-    )
+    return errorResponse("createFailed", 500)
   }
 }

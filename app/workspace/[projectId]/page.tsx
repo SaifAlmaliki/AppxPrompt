@@ -9,6 +9,7 @@ import { toProjectScreen } from "@/lib/agent-protocol"
 import { BACKEND_CONNECT_RESULTS, type BackendConnectResult } from "@/lib/backend-protocol"
 import { getBackendStatus } from "@/lib/cloudhike/backend"
 import { GITHUB_CONNECT_RESULTS, type GitHubConnectResult } from "@/lib/github-protocol"
+import { serverT } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
 import { getCurrentUser } from "@/lib/session"
 import { getObjectUrl } from "@/lib/storage"
@@ -82,7 +83,7 @@ export default async function WorkspacePage({
     .orderBy(asc(screens.position))
 
   // It's the owner's account that the backend runs on, whoever is looking.
-  const backend = await getBackendStatus(project.id, project.userId)
+  const backend = await getBackendStatus(project.id, project.userId, await serverT("errors"))
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-background">

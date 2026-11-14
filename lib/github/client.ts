@@ -1,6 +1,7 @@
 // Server-only client for GitHub. Never import this from client components.
 
 import type { GitHubErrorCode } from "@/lib/github-protocol"
+import { LocalizedError, type ErrorKey, type ErrorValues } from "@/lib/i18n/server"
 
 const GITHUB_URL = "https://github.com"
 const API_URL = "https://api.github.com"
@@ -11,13 +12,14 @@ export const GITHUB_CALLBACK_PATH = "/api/github/callback"
 const OAUTH_SCOPE = "repo"
 
 /** Something GitHub said no to, in words the person can act on. */
-export class GitHubError extends Error {
+export class GitHubError extends LocalizedError {
   constructor(
-    message: string,
+    key: ErrorKey,
     public status?: number,
-    public code?: GitHubErrorCode
+    public code?: GitHubErrorCode,
+    values?: ErrorValues
   ) {
-    super(message)
+    super(key, values)
   }
 }
 
@@ -111,13 +113,13 @@ export class GitHubClient {
 
     const body = await response.json().catch(() => null)
     if (response.status === 401) {
-      throw new GitHubError("GitHub no longer accepts this connection. Connect your account again.", 401, "reauth")
+      throw new GitHubError("githubReauth", 401, "reauth")
     }
     if (response.status === 429 || (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0")) {
-      throw new GitHubError("GitHub's rate limit was reached. Please try again in a few minutes.", response.status)
+      throw new GitHubError("githubRateLimit", response.status)
     }
     const detail = body?.errors?.[0]?.message ?? body?.message
-    throw new GitHubError(detail ? `GitHub said: ${detail}` : `GitHub answered ${response.status}.`, response.status)
+    throw new GitHubError(detail ? "githubSaid" : "githubAnswered", response.status, undefined, detail ? { detail: String(detail) } : { status: response.status })
   }
 
   getUser() {

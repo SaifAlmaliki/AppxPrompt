@@ -10,6 +10,7 @@ import {
   pushProject,
 } from "@/lib/github/projects"
 import type { GitHubPushEvent } from "@/lib/github-protocol"
+import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { ExportUnavailableError, getProjectAccess } from "@/lib/project-access"
 import { getCurrentUser, type SessionUser } from "@/lib/session"
 
@@ -18,17 +19,17 @@ export const maxDuration = 300
 
 type Context = { params: Promise<{ projectId: string }> }
 
-function error(message: string, status: number, code?: string) {
-  return NextResponse.json({ error: message, code }, { status })
+function error(key: ErrorKey, status: number, code?: string) {
+  return errorResponse(key, status, { code })
 }
 
 /** Only the owner decides where a project's code goes. */
 async function ownedProject({ params }: Context) {
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return { failure: error("Please sign in to continue.", 401) }
+  if (!user) return { failure: await error("signInRequired", 401) }
   const access = await getProjectAccess(projectId, user.id)
-  if (access?.role !== "owner") return { failure: error("Project not found.", 404) }
+  if (access?.role !== "owner") return { failure: await error("projectNotFound", 404) }
   return { user: user as SessionUser, project: access.project }
 }
 
@@ -39,7 +40,7 @@ export async function GET(_request: Request, context: Context) {
     return NextResponse.json(await getGitHubStatus(owned.project.id, owned.user.id))
   } catch (cause) {
     console.error("Reading GitHub status failed", cause)
-    return error("We couldn't check your GitHub connection. Please try again.", 500)
+    return error("githubStatusFailed", 500)
   }
 }
 
@@ -56,23 +57,25 @@ export async function PUT(request: Request, context: Context) {
 
   try {
     if (typeof body?.repository === "string") {
-      if (!REPO_FULL_NAME.test(body.repository)) return error("Choose a repository from the list.", 400)
+      if (!REPO_FULL_NAME.test(body.repository)) return error("repoChooseFromList", 400)
       await linkExistingRepository(project.id, user.id, body.repository)
     } else if (body?.create) {
       const name = typeof body.create.name === "string" ? body.create.name.trim() : ""
       if (!REPO_NAME.test(name) || name === "." || name === "..") {
-        return error("Repository names can only use letters, numbers, hyphens, underscores, and periods.", 400)
+        return error("repoNameInvalid", 400)
       }
       const description = project.plan?.tagline ?? `${project.title}, built with AppxPrompt`
       await createAndLinkRepository(project.id, user.id, name, body.create.private !== false, description)
     } else {
-      return error("Invalid request.", 400)
+      return error("invalidRequest", 400)
     }
     return NextResponse.json(await getGitHubStatus(project.id, user.id))
   } catch (cause) {
-    if (cause instanceof GitHubError) return error(cause.message, cause.code === "reauth" ? 401 : 400, cause.code)
+    if (cause instanceof GitHubError) {
+      return NextResponse.json({ error: cause.translate(await serverT("errors")), code: cause.code }, { status: cause.code === "reauth" ? 401 : 400 })
+    }
     console.error("Choosing a GitHub repository failed", cause)
-    return error("We couldn't set up that repository. Please try again.", 500)
+    return error("repoSetupFailed", 500)
   }
 }
 
@@ -87,6 +90,7 @@ export async function POST(_request: Request, context: Context) {
   const owned = await ownedProject(context)
   if (owned.failure) return owned.failure
   const { user, project } = owned
+  const t = await serverT("errors")
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream<Uint8Array>({
@@ -98,16 +102,16 @@ export async function POST(_request: Request, context: Context) {
         } catch {}
       }
       try {
-        const result = await pushProject(project, user.id, (label, percent) => emit({ type: "progress", label, percent }))
+        const result = await pushProject(project, user.id, (label, percent) => emit({ type: "progress", label, percent }), t)
         emit({ type: "done", result })
       } catch (cause) {
         if (cause instanceof GitHubError) {
-          emit({ type: "error", message: cause.message, code: cause.code })
+          emit({ type: "error", message: cause.translate(t), code: cause.code })
         } else if (cause instanceof ExportUnavailableError) {
-          emit({ type: "error", message: cause.message })
+          emit({ type: "error", message: cause.translate(t) })
         } else {
           console.error("Pushing to GitHub failed", cause)
-          emit({ type: "error", message: "We couldn't push your project. Please try again." })
+          emit({ type: "error", message: t("pushFailed") })
         }
       }
       try {

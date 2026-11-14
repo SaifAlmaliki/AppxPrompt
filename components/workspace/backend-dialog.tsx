@@ -141,7 +141,7 @@ function ConnectView({
       </p>
 
       {shownError && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {shownError}
         </p>
       )}
@@ -222,7 +222,7 @@ function ConnectedView({
               : t("connected.linked")}
       </p>
 
-      {backend.error && <p role="alert" className="-mt-2 text-xs text-muted-foreground">{backend.error}</p>}
+      {backend.error && <p role="alert" dir="auto" className="-mt-2 text-xs text-muted-foreground">{backend.error}</p>}
 
       {!backend.accountConnected && (
         <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -248,7 +248,7 @@ function ConnectedView({
       )}
 
       {error && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}

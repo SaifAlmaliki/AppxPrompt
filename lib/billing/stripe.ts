@@ -3,15 +3,16 @@ import { eq } from "drizzle-orm"
 
 import { db, users, type User } from "@/db"
 import { endProPlan, grantMonthlyCredits } from "@/lib/billing/credits"
+import { LocalizedError, type ErrorKey } from "@/lib/i18n/server"
 
 // Everything that depends on the payment provider stays in this file.
 
-export class BillingError extends Error {
+export class BillingError extends LocalizedError {
   constructor(
-    message: string,
+    key: ErrorKey,
     readonly status = 400
   ) {
-    super(message)
+    super(key)
   }
 }
 
@@ -19,7 +20,7 @@ let client: Stripe | null = null
 
 function stripe() {
   const key = process.env.STRIPE_SECRET_KEY
-  if (!key || !process.env.STRIPE_PRO_PRICE_ID) throw new BillingError("Payments aren't set up on this AppxPrompt server yet.", 503)
+  if (!key || !process.env.STRIPE_PRO_PRICE_ID) throw new BillingError("billingUnavailable", 503)
   return (client ??= new Stripe(key))
 }
 
@@ -47,7 +48,7 @@ async function ensureCustomer(user: User) {
 export async function createCheckoutUrl(userId: number) {
   const user = await loadUser(userId)
   const api = stripe()
-  if (user.plan === "pro") throw new BillingError("You're already on Pro.", 409)
+  if (user.plan === "pro") throw new BillingError("alreadyPro", 409)
   const session = await api.checkout.sessions.create({
     mode: "subscription",
     customer: await ensureCustomer(user),
@@ -57,7 +58,7 @@ export async function createCheckoutUrl(userId: number) {
     cancel_url: appUrl("/pricing"),
     integration_identifier: "appxprompt_pro_bqwnxrtm",
   })
-  if (!session.url) throw new BillingError("We couldn't open the checkout. Please try again.", 502)
+  if (!session.url) throw new BillingError("checkoutFailed", 502)
   return session.url
 }
 
@@ -65,7 +66,7 @@ export async function createCheckoutUrl(userId: number) {
 export async function createPortalUrl(userId: number) {
   const user = await loadUser(userId)
   const api = stripe()
-  if (!user.stripeCustomerId) throw new BillingError("You don't have any billing details yet.", 409)
+  if (!user.stripeCustomerId) throw new BillingError("noBillingDetails", 409)
   const session = await api.billingPortal.sessions.create({ customer: user.stripeCustomerId, return_url: appUrl("/pricing") })
   return session.url
 }
@@ -74,7 +75,7 @@ export async function createPortalUrl(userId: number) {
 export async function setDowngrade(userId: number, cancelAtPeriodEnd: boolean) {
   const user = await loadUser(userId)
   const api = stripe()
-  if (!user.stripeSubscriptionId) throw new BillingError("You don't have a subscription to change.", 409)
+  if (!user.stripeSubscriptionId) throw new BillingError("noSubscription", 409)
   await syncSubscription(await api.subscriptions.update(user.stripeSubscriptionId, { cancel_at_period_end: cancelAtPeriodEnd }))
 }
 
@@ -121,7 +122,7 @@ async function syncSubscription(subscription: Stripe.Subscription) {
  */
 export async function handleStripeWebhook(raw: string, signature: string) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
-  if (!secret) throw new BillingError("STRIPE_WEBHOOK_SECRET isn't set.", 503)
+  if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET isn't set.")
   const api = stripe()
   const event = api.webhooks.constructEvent(raw, signature, secret)
 

@@ -11,14 +11,16 @@ import {
   NEVER_STARTED_AFTER_MS,
   PublishBlockedError,
   ensureIdentity,
+  friendlyStartError,
   isPublishAvailable,
   loadExpoConnection,
   withProjectId,
 } from "@/lib/publish/builds"
 import { ExpoError, ensureExpoApp, ensureWebDomain, hasReachedDeployStep, readWebRun, startWorkflowRun, type WebRunState } from "@/lib/publish/expo"
+import type { Translator } from "@/lib/i18n/server"
 import { projectTarball } from "@/lib/publish/tarball"
 import { WEB_PUBLISH_STATUSES, isWebPublishActive, type WebPublishStatus, type WebPublishSummary } from "@/lib/publish-protocol"
-import { ExportUnavailableError, loadProjectExport } from "@/lib/project-access"
+import { loadProjectExport } from "@/lib/project-access"
 
 const ACTIVE_STATUSES: WebPublishStatus[] = WEB_PUBLISH_STATUSES.filter(isWebPublishActive)
 
@@ -58,16 +60,16 @@ async function recordPublish(row: WebPublish, report: WebReport) {
     )
 }
 
-async function reportFromRun(run: WebRunState, current: WebPublishStatus): Promise<WebReport> {
+async function reportFromRun(run: WebRunState, current: WebPublishStatus, t: Translator<"errors">): Promise<WebReport> {
   const job = run.jobs.find((candidate) => candidate.type === "DEPLOY") ?? run.jobs[0]
   if (run.status === "SUCCESS") {
     const url = job?.outputs?.deploy_url
     return { status: "published", url: typeof url === "string" && EXPO_SITE.test(url) ? url : null }
   }
-  if (run.status === "CANCELED") return { status: "failed", error: "The publish was cancelled on Expo." }
+  if (run.status === "CANCELED") return { status: "failed", error: t("publishCancelled") }
   if (run.status === "FAILURE") {
     const detail = [...(job?.errors ?? []), ...run.errors].find((error) => error.message)
-    return { status: "failed", error: detail?.message ?? "EAS couldn't publish the website." }
+    return { status: "failed", error: detail?.message ?? t("publishFailed") }
   }
   if (job?.status !== "IN_PROGRESS") return { status: "queued" }
   const log = job.turtleJobRun?.logFileUrls[0]
@@ -77,24 +79,24 @@ async function reportFromRun(run: WebRunState, current: WebPublishStatus): Promi
 }
 
 /** The server holds the status, and it's brought up to date here, so nothing depends on a tab staying open. */
-async function refreshWebPublish(row: WebPublish, userId: number) {
+async function refreshWebPublish(row: WebPublish, userId: number, t: Translator<"errors">) {
   if (!isWebPublishActive(row.status) || Date.now() - row.updatedAt.getTime() < CHECK_EVERY_MS) return
   if (!row.easRunId) {
     if (Date.now() - row.startedAt.getTime() > NEVER_STARTED_AFTER_MS) {
-      await recordPublish(row, { status: "failed", error: "This publish never reached Expo. Please try again." })
+      await recordPublish(row, { status: "failed", error: t("publishNeverReached") })
     }
     return
   }
   const expo = await loadExpoConnection(userId)
   if (!expo) {
-    await recordPublish(row, { status: "failed", error: "Expo was disconnected, so AppxPrompt can't follow this publish. It may still finish on expo.dev." })
+    await recordPublish(row, { status: "failed", error: t("publishExpoDisconnected") })
     return
   }
   try {
-    await recordPublish(row, await reportFromRun(await readWebRun(unseal(expo.accessToken), row.easRunId), row.status))
+    await recordPublish(row, await reportFromRun(await readWebRun(unseal(expo.accessToken), row.easRunId), row.status, t))
   } catch (cause) {
     if (cause instanceof ExpoError && cause.unauthorized) {
-      await recordPublish(row, { status: "failed", error: "Expo stopped accepting your token, so AppxPrompt can't follow this publish. It may still finish on expo.dev." })
+      await recordPublish(row, { status: "failed", error: t("publishTokenRejected") })
     } else {
       // Only the network, most likely. The next look tries again.
       console.error(`Checking on the website of project ${row.projectId} failed`, cause)
@@ -108,16 +110,11 @@ async function loadWebPublish(projectId: string) {
 }
 
 /** Null until the project's first publish. */
-export async function getWebPublish(projectId: string, userId: number) {
+export async function getWebPublish(projectId: string, userId: number, t: Translator<"errors">) {
   const row = await loadWebPublish(projectId)
   if (!row) return null
-  await refreshWebPublish(row, userId)
+  await refreshWebPublish(row, userId, t)
   return toSummary((await loadWebPublish(projectId)) ?? row)
-}
-
-function friendlyStartError(cause: unknown) {
-  if (cause instanceof ExpoError || cause instanceof ExportUnavailableError) return cause.message
-  return "We couldn't start publishing. Please try again."
 }
 
 /** Sends the app to EAS and starts the deploy. It doesn't wait for the deploy. */
@@ -137,18 +134,18 @@ async function sendToExpo(project: Project, expoToken: string, easOwner: string)
 }
 
 /** Publishes the project's website, or updates it if it has one. Returns as soon as Expo has the app. */
-export async function startWebPublish(project: Project, userId: number): Promise<WebPublishSummary> {
-  if (!isPublishAvailable()) throw new PublishBlockedError("Publishing isn't set up on this AppxPrompt server yet.")
+export async function startWebPublish(project: Project, userId: number, t: Translator<"errors">): Promise<WebPublishSummary> {
+  if (!isPublishAvailable()) throw new PublishBlockedError("publishUnavailable")
 
   const expo = await loadExpoConnection(userId)
-  if (!expo) throw new PublishBlockedError("Connect your Expo account first.", "expo")
+  if (!expo) throw new PublishBlockedError("expoConnectFirst", "expo")
 
   // Finds problems the person can fix, such as the agent still working, before a publish exists to fail.
   await loadProjectExport(project)
 
   // A publish whose request died shouldn't hold up this one.
   const previous = await loadWebPublish(project.id)
-  if (previous) await refreshWebPublish(previous, userId)
+  if (previous) await refreshWebPublish(previous, userId, t)
 
   const startedAt = new Date()
   const values = { status: "uploading" as const, easRunId: null, error: null, startedAt, updatedAt: startedAt }
@@ -157,7 +154,7 @@ export async function startWebPublish(project: Project, userId: number): Promise
     .values({ projectId: project.id, ...values })
     .onConflictDoUpdate({ target: webPublishes.projectId, set: values, setWhere: notInArray(webPublishes.status, ACTIVE_STATUSES) })
     .returning()
-  if (!row) throw new PublishBlockedError("This app is already being published. Wait for it to finish first.", undefined, 409)
+  if (!row) throw new PublishBlockedError("publishRunning", undefined, 409)
 
   try {
     const { easRunId, targetUrl } = await sendToExpo(project, unseal(expo.accessToken), expo.accountName)
@@ -169,7 +166,7 @@ export async function startWebPublish(project: Project, userId: number): Promise
     return toSummary(started)
   } catch (cause) {
     console.error(`Publishing the website of project ${project.id} failed`, cause)
-    await recordPublish(row, { status: "failed", error: friendlyStartError(cause) })
+    await recordPublish(row, { status: "failed", error: friendlyStartError(cause, t, "publishStartFailed") })
     return toSummary((await loadWebPublish(project.id)) ?? row)
   }
 }

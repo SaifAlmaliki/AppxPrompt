@@ -84,7 +84,7 @@ export function DownloadDialog({
 
         {state.step === "failed" && (
           <>
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.message}
             </p>
             <Button className="h-10 rounded-full" onClick={() => void start()}>

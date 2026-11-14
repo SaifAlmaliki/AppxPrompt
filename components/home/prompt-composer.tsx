@@ -501,7 +501,7 @@ export function PromptComposer() {
       </div>
 
       {error && (
-        <p role="alert" className="mt-2 px-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="mt-2 px-2 text-sm text-destructive">
           {error}
         </p>
       )}

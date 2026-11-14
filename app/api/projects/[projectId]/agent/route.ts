@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server"
 import { and, desc, eq } from "drizzle-orm"
 
 import { db, messages, projectAssets, projects, type Project } from "@/db"
@@ -8,6 +7,7 @@ import { applyAppChanges } from "@/lib/agent/changes"
 import { runPlannerTurn } from "@/lib/agent/planner"
 import { getRun, startRun, type ProjectRun } from "@/lib/agent/runs"
 import { assertCanUseAgent, chargeForBuild, PlanLimitError, planLimitResponse, refundCharge, type BuildCharge } from "@/lib/billing/credits"
+import { errorResponse, serverT, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { getCurrentUser, type SessionUser } from "@/lib/session"
 
@@ -17,8 +17,8 @@ export const maxDuration = 300
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status })
+function error(key: ErrorKey, status: number, values?: ErrorValues) {
+  return errorResponse(key, status, {}, values)
 }
 
 /**
@@ -29,53 +29,54 @@ function error(message: string, status: number) {
 export async function POST(request: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return error("Please sign in to continue.", 401)
-  if (!UUID_PATTERN.test(projectId)) return error("Project not found.", 404)
+  if (!user) return error("signInRequired", 401)
+  if (!UUID_PATTERN.test(projectId)) return error("projectNotFound", 404)
 
+  const t = await serverT("errors")
   const [project] = await db
     .select()
     .from(projects)
     .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
-  if (!project) return error("Project not found.", 404)
+  if (!project) return error("projectNotFound", 404)
 
   const body = (await request.json().catch(() => null)) as AgentRequest | null
-  if (!body || !["start", "message", "confirm"].includes(body.action)) return error("Invalid request.", 400)
+  if (!body || !["start", "message", "confirm"].includes(body.action)) return error("invalidRequest", 400)
 
   const build = await activeBuild(project.id)
   if (build) {
-    if (body.action !== "start") return error("The agent is still working. Wait for it to finish first.", 409)
+    if (body.action !== "start") return error("agentBusy", 409)
     return streamBuild(build.id, request)
   }
 
   const active = getRun(project.id)
   if (active) {
-    if (body.action !== "start") return error("The agent is still working. Wait for it to finish first.", 409)
+    if (body.action !== "start") return error("agentBusy", 409)
     return streamRun(active, request)
   }
 
   if (body.action === "message") {
     const content = String(body.content ?? "").trim()
-    if (!content) return error("Write a message first.", 400)
-    if (content.length > MAX_PROMPT_LENGTH) return error(`Keep your message under ${MAX_PROMPT_LENGTH} characters.`, 400)
+    if (!content) return error("writeMessageFirst", 400)
+    if (content.length > MAX_PROMPT_LENGTH) return error("messageTooLong", 400, { max: MAX_PROMPT_LENGTH })
     try {
-      assertCanUseAgent(user.credits)
+      assertCanUseAgent(user.credits, t)
     } catch (cause) {
       if (cause instanceof PlanLimitError) return planLimitResponse(cause)
       throw cause
     }
     const element = readElementContext(body.element)
     await db.insert(messages).values({ projectId: project.id, role: "user", content: element ? messageWithElement(content, element) : content })
-    return streamRun(startRun(project.id, (run) => respond(run, project, user)), request)
+    return streamRun(startRun(project.id, (run) => respond(run, project, user, t), t("agentRunFailed")), request)
   }
 
   if (body.action === "confirm") {
     const plan = project.plan
     if (!plan || (project.status !== "planning" && project.status !== "failed")) {
-      return error("There's no plan waiting for confirmation.", 409)
+      return error("noPlanWaiting", 409)
     }
     let charge: BuildCharge
     try {
-      charge = await chargeForBuild(project, plan, user.plan)
+      charge = await chargeForBuild(project, plan, user.plan, t)
     } catch (cause) {
       if (cause instanceof PlanLimitError) return planLimitResponse(cause)
       throw cause
@@ -105,7 +106,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
     .orderBy(desc(messages.createdAt))
     .limit(1)
   if (last?.role === "user") {
-    return streamRun(startRun(project.id, (run) => respond(run, project, user)), request)
+    return streamRun(startRun(project.id, (run) => respond(run, project, user, t), t("agentRunFailed")), request)
   }
   return streamEvents([{ type: "done" }])
 }
@@ -120,7 +121,7 @@ function readElementContext(value: unknown): ElementContext | null {
 }
 
 /** One planner turn, then the build if the person confirmed the plan or asked to change the built app. */
-async function respond(run: ProjectRun, project: Project, user: SessionUser) {
+async function respond(run: ProjectRun, project: Project, user: SessionUser, t: Translator<"errors">) {
   const assets = await db
     .select({ fileName: projectAssets.fileName })
     .from(projectAssets)
@@ -134,7 +135,7 @@ async function respond(run: ProjectRun, project: Project, user: SessionUser) {
   // Paid for before anything changes, so a request that can't be paid for leaves the app as it was.
   let charge: BuildCharge
   try {
-    charge = await chargeForBuild(project, changes ? changes.plan : plan!, user.plan)
+    charge = await chargeForBuild(project, changes ? changes.plan : plan!, user.plan, t)
   } catch (cause) {
     if (!(cause instanceof PlanLimitError)) throw cause
     run.emit({ type: "upgrade", reason: cause.reason })

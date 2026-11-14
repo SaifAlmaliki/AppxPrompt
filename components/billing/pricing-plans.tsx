@@ -133,7 +133,7 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
         </p>
       )}
       {error && (
-        <p role="alert" className="mx-auto w-fit rounded-full bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="mx-auto w-fit rounded-full bg-destructive/10 px-4 py-2 text-sm text-destructive">
           {error}
         </p>
       )}

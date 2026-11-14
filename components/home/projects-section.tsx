@@ -238,7 +238,7 @@ function WorkspaceCards({
   return (
     <>
       {error && (
-        <p role="alert" className="mb-4 rounded-2xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+        <p role="alert" dir="auto" className="mb-4 rounded-2xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           {error}
         </p>
       )}
