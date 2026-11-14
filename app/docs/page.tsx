@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { getTranslations } from "next-intl/server"
 import type * as React from "react"
 import { LightbulbIcon } from "lucide-react"
 
@@ -16,10 +17,12 @@ import {
   SCREEN_CREDITS,
 } from "@/lib/plans"
 
-export const metadata: Metadata = {
-  title: "Docs — AppxPrompt",
-  description:
-    "Learn how to plan, build, edit, test, and publish a mobile app with AppxPrompt, from your first prompt to the app stores.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta.docs")
+  return {
+    title: t("title"),
+    description: t("description"),
+  }
 }
 
 const SECTIONS: { id: string; title: string; content: React.ReactNode }[] = [

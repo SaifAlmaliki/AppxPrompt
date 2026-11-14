@@ -1,5 +1,19 @@
 {
   "common": {
     "credits": "{count, plural, one {# credit} other {# credits}}"
+  },
+  "meta": {
+    "home": {
+      "title": "AppxPrompt — Build mobile apps with AI",
+      "description": "Describe your idea and AppxPrompt's AI agent designs and builds your iOS and Android app."
+    },
+    "pricing": {
+      "title": "Pricing — AppxPrompt",
+      "description": "Start free and build your first apps with AI. Upgrade to Pro for unlimited projects and iOS and Android exports."
+    },
+    "docs": {
+      "title": "Docs — AppxPrompt",
+      "description": "Learn how to plan, build, edit, test, and publish a mobile app with AppxPrompt, from your first prompt to the app stores."
+    }
   }
 }

@@ -1,9 +1,15 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Tajawal } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations } from "next-intl/server";
 
 import { UpgradeDialogProvider } from "@/components/billing/upgrade-dialog";
+import { DirectionProvider } from "@/components/ui/direction";
+import { localeDirection } from "@/i18n/config";
+import { formats } from "@/i18n/formats";
+import { requestLocale } from "@/i18n/request";
 import { AuthProvider } from "@/lib/auth-client";
 
 const geist = Geist({
@@ -11,23 +17,47 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
-export const metadata: Metadata = {
-  title: "AppxPrompt — Build mobile apps with AI",
-  description:
-    "Describe your idea and AppxPrompt's AI agent designs and builds your iOS and Android app.",
-};
+const tajawal = Tajawal({
+  subsets: ["arabic"],
+  weight: ["400", "500", "700"],
+  variable: "--font-tajawal",
+});
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta.home");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await requestLocale();
+  const dir = localeDirection(locale);
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className={geist.variable}>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${geist.variable} ${tajawal.variable}`}
+    >
       <body className="antialiased">
-        <AuthProvider>
-          <UpgradeDialogProvider>{children}</UpgradeDialogProvider>
-        </AuthProvider>
+        <NextIntlClientProvider
+          locale={locale}
+          messages={messages}
+          formats={formats}
+        >
+          <DirectionProvider direction={dir}>
+            <AuthProvider>
+              <UpgradeDialogProvider>{children}</UpgradeDialogProvider>
+            </AuthProvider>
+          </DirectionProvider>
+        </NextIntlClientProvider>
         <Analytics />
       </body>
     </html>

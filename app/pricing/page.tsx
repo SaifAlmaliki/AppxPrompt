@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { PricingPlans } from "@/components/billing/pricing-plans"
 import { Logo } from "@/components/home/logo"
@@ -7,9 +8,12 @@ import { SiteHeader } from "@/components/home/site-header"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { EDIT_CREDITS, IMAGE_CREDITS, PLANS, PRO_MONTHLY_CREDITS, SCREEN_CREDITS, SMALL_APP_CREDITS } from "@/lib/plans"
 
-export const metadata: Metadata = {
-  title: "Pricing — AppxPrompt",
-  description: "Start free and build your first apps with AI. Upgrade to Pro for unlimited projects and iOS and Android exports.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta.pricing")
+  return {
+    title: t("title"),
+    description: t("description"),
+  }
 }
 
 const CREDIT_COSTS = [

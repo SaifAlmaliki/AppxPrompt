@@ -1,5 +1,19 @@
 {
   "common": {
     "credits": "{count, plural, zero {{count, number, integer} رصيد} one {رصيد واحد} two {رصيدان} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}"
+  },
+  "meta": {
+    "home": {
+      "title": "AppxPrompt — أنشئ تطبيقات الجوال بالذكاء الاصطناعي",
+      "description": "صِف فكرتك، ويصمّم وكيل الذكاء الاصطناعي في AppxPrompt تطبيقك لنظامي iOS وAndroid ويبنيه."
+    },
+    "pricing": {
+      "title": "الأسعار — AppxPrompt",
+      "description": "ابدأ مجانًا وأنشئ أول تطبيقاتك بالذكاء الاصطناعي. رقِّ إلى Pro للحصول على مشاريع غير محدودة وتصدير تطبيقات iOS وAndroid."
+    },
+    "docs": {
+      "title": "الوثائق — AppxPrompt",
+      "description": "تعرّف على كيفية تخطيط تطبيق جوال وبنائه وتعديله واختباره ونشره باستخدام AppxPrompt، من أول طلب لك حتى متاجر التطبيقات."
+    }
   }
 }
