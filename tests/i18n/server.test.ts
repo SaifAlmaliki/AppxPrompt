@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import ar from "@/messages/ar.json";
 import en from "@/messages/en.json";
-import { LocalizedError, errorText, translatorFor } from "@/lib/i18n/server";
+import {
+  LocalizedError,
+  errorText,
+  storedError,
+  storedErrorText,
+  translatorFor,
+} from "@/lib/i18n/server";
+import { strictTranslator } from "./strict-translator";
 
 describe("translatorFor", () => {
   it("answers in Arabic with no Latin letters", () => {
@@ -63,6 +70,34 @@ describe("LocalizedError", () => {
   });
 });
 
+describe("stored errors", () => {
+  it("are saved without a language and worded in the reader's", () => {
+    const stored = storedError("repoNameTaken", { name: "my-app" });
+    expect(stored).not.toMatch(/\p{Script=Arabic}/u);
+    expect(storedErrorText(stored, translatorFor("en", "errors"))).toBe(
+      "You already have a repository called my-app, or GitHub doesn't accept that name. Try another.",
+    );
+    const arabic = storedErrorText(stored, translatorFor("ar", "errors"));
+    expect(arabic).toMatch(/\p{Script=Arabic}/u);
+    expect(arabic).toContain("my-app");
+  });
+
+  it("keep text from elsewhere, and older saved text, as it is", () => {
+    const t = translatorFor("ar", "errors");
+    expect(storedErrorText("Gradle build failed: exit code 1", t)).toBe(
+      "Gradle build failed: exit code 1",
+    );
+    expect(storedErrorText(null, t)).toBeNull();
+  });
+
+  it("keep a key this version doesn't know as the saved text", () => {
+    const t = translatorFor("en", "errors");
+    const unknown = storedError("repoNameTaken").replace("repoNameTaken", "goneKey");
+    expect(storedErrorText(unknown, t)).toBe(unknown);
+    expect(storedErrorText(`${unknown.slice(0, -2)}`, t)).toBe(unknown.slice(0, -2));
+  });
+});
+
 describe("errors messages", () => {
   const keys = Object.keys(en.errors);
 
@@ -86,14 +121,21 @@ describe("errors messages", () => {
       plan: "pro",
       platform: "ios",
       message: "m",
+      service: "s",
+      services: "s",
+      state: "paused",
     };
     for (const locale of ["en", "ar"] as const) {
-      const t = translatorFor(locale, "errors");
+      const t = strictTranslator(locale, "errors");
       for (const key of keys) {
-        expect(() =>
-          errorText(t, key as keyof typeof en.errors, values),
-        ).not.toThrow();
+        const text = t(key, values);
+        expect(text, `${locale} ${key}`).not.toBe(`errors.${key}`);
+        expect(text, `${locale} ${key}`).not.toMatch(/\{[a-zA-Z]/);
       }
     }
+  });
+
+  it("are caught by the catalog check when one is missing", () => {
+    expect(() => strictTranslator("en", "errors")("noSuchKey")).toThrow();
   });
 });

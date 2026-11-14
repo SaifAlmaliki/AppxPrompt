@@ -21,7 +21,7 @@ export function LanguageToggle({ className }: { className?: string }) {
   const active = isPending && target ? target : locale
 
   function select(next: Locale) {
-    if (next === locale) return
+    if (next === active) return
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`
     setTarget(next)
     startTransition(() => {

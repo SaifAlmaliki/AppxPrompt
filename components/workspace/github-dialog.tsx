@@ -126,8 +126,11 @@ export function GitHubDialog({
   }, [beforeExport, projectId, t, tw])
 
   const pushRef = React.useRef(push)
+  // Switching language mustn't reload the dialog, which would push again.
+  const tRef = React.useRef(t)
   React.useEffect(() => {
     pushRef.current = push
+    tRef.current = t
   })
 
   // Opening this is the request: a project that's been pushed before goes straight to a new branch.
@@ -137,14 +140,14 @@ export function GitHubDialog({
       const response = await fetch(`/api/projects/${projectId}/github`).catch(() => null)
       const body = await response?.json().catch(() => null)
       if (!response?.ok) {
-        return setView({ name: "failed", message: body?.error ?? t("errors.loadFailed") })
+        return setView({ name: "failed", message: body?.error ?? tRef.current("errors.loadFailed") })
       }
       const next = body as GitHubStatus
       setStatus(next)
       if (next.account && next.repository?.lastPushedAt && allowAutoPush) return void pushRef.current()
       setView(next.repository ? { name: "confirm" } : { name: "picker" })
     },
-    [projectId, t]
+    [projectId]
   )
 
   React.useEffect(() => {
