@@ -37,6 +37,17 @@ describe("message files", () => {
   });
 });
 
+describe("escapes", () => {
+  it("have no double-encoded \\uXXXX sequences in any value", () => {
+    for (const [name, file] of [["en", en], ["ar", ar]] as const) {
+      const bad = leaves(file).filter(
+        (leaf) => typeof leaf === "string" && /\\u[0-9a-fA-F]{4}/.test(leaf),
+      );
+      expect(bad, `${name}.json has literal backslash-u escapes`).toEqual([]);
+    }
+  });
+});
+
 describe("Arabic digits", () => {
   it("never uses a bare # plural placeholder", () => {
     const offenders = leaves(ar).filter(
