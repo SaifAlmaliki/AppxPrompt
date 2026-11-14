@@ -4,15 +4,6 @@
 export const BACKEND_SERVICES = ["postgres", "auth", "storage", "redis", "jobs", "email"] as const
 export type BackendService = (typeof BACKEND_SERVICES)[number]
 
-export const BACKEND_SERVICE_LABELS: Record<BackendService, string> = {
-  postgres: "Database",
-  auth: "Authentication",
-  storage: "File storage",
-  redis: "Redis",
-  jobs: "Background jobs",
-  email: "Email",
-}
-
 export const BACKEND_STATES = ["linked", "provisioning", "ready", "failed", "disconnected"] as const
 export type BackendState = (typeof BACKEND_STATES)[number]
 

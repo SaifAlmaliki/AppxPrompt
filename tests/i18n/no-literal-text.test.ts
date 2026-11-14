@@ -5,29 +5,12 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(__dirname, "../..");
 
-// Files that must take every visible string from the message files. Later
-// tasks append their own globs.
-export const CHECKED: string[] = [
-  "app/page.tsx",
-  "app/auth/**/*.tsx",
-  "components/home/**/*.tsx",
-  "app/docs/**/*.tsx",
-  "app/pricing/**/*.tsx",
-  "app/billing/**/*.tsx",
-  "components/billing/**/*.tsx",
-  "app/workspace/**/*.tsx",
-  "components/workspace/workspace-layout.tsx",
-  "components/workspace/workspace-header.tsx",
-  "components/workspace/chat-panel.tsx",
-  "components/workspace/plan-card.tsx",
-  "components/workspace/build-progress.tsx",
-  "components/workspace/theme-switcher.tsx",
-  "components/workspace/canvas-panel.tsx",
-  "components/workspace/preview-panel.tsx",
-  "components/workspace/app-frame.tsx",
-  "components/workspace/expo-qr-popover.tsx",
-  "components/workspace/element-editor.tsx",
-];
+// Every component and page takes its visible strings from the message files.
+// `components/ui` is the shared primitive set: it has almost no text of its own,
+// so only its screen-reader labels are checked, in the separate scan below.
+export const CHECKED: string[] = ["app/**/*.tsx", "components/**/*.tsx"];
+export const EXCLUDED: string[] = ["components/ui/**/*.tsx"];
+export const PRIMITIVES: string[] = ["components/ui/**/*.tsx"];
 
 // Words that stay in Latin script in both languages, so they may appear as
 // literal text. A string passes only when nothing but these words is left.
@@ -56,6 +39,8 @@ const TEXT_ATTRIBUTES = new Set([
   "placeholder",
   "title",
   "aria-label",
+  "aria-roledescription",
+  "aria-description",
   "alt",
   "label",
   "description",
@@ -87,13 +72,23 @@ function walk(dir: string): string[] {
   });
 }
 
-function checkedFiles() {
-  const patterns = CHECKED.map(globToRegExp);
+function filesMatching(include: string[], exclude: string[] = []) {
+  const included = include.map(globToRegExp);
+  const excluded = exclude.map(globToRegExp);
   return ["app", "components"]
     .flatMap((dir) => walk(path.join(ROOT, dir)))
     .map((file) => path.relative(ROOT, file).split(path.sep).join("/"))
-    .filter((rel) => patterns.some((pattern) => pattern.test(rel)))
+    .filter((rel) => included.some((pattern) => pattern.test(rel)))
+    .filter((rel) => !excluded.some((pattern) => pattern.test(rel)))
     .sort();
+}
+
+function checkedFiles() {
+  return filesMatching(CHECKED, EXCLUDED);
+}
+
+function primitiveFiles() {
+  return filesMatching(PRIMITIVES);
 }
 
 function isOnlyBrandWords(text: string) {
@@ -209,6 +204,62 @@ export function literalsInSource(source: string): string[] {
   return found;
 }
 
+// The shared primitives hold almost no text, but what they do hold is read out
+// by screen readers: `sr-only` text and `aria-label` literals.
+export function primitiveLiteralsInSource(source: string): string[] {
+  const ast = parse(source, {
+    sourceType: "module",
+    plugins: ["typescript", "jsx"],
+  });
+  const found: string[] = [];
+  const report = (node: Node, text: string) =>
+    found.push(`line ${node.loc?.start.line}: ${JSON.stringify(text.trim())}`);
+
+  visit(ast.program, (node) => {
+    if (node.type === "JSXAttribute") {
+      const name = (node.name as { name?: string }).name;
+      if (name !== "aria-label") return;
+      const value = node.value as Node | null;
+      if (!value) return;
+      const literals =
+        value.type === "StringLiteral"
+          ? [value]
+          : value.type === "JSXExpressionContainer"
+            ? literalsIn(value.expression as Node)
+            : [];
+      for (const literal of literals) {
+        const text = textOf(literal);
+        if (isUserText(text)) report(literal, `aria-label=${text}`);
+      }
+    } else if (node.type === "JSXElement") {
+      const opening = node.openingElement as { attributes: Node[] };
+      const className = opening.attributes.find(
+        (attribute) =>
+          attribute.type === "JSXAttribute" &&
+          (attribute.name as { name?: string }).name === "className",
+      )?.value as Node | null | undefined;
+      const classes =
+        className?.type === "StringLiteral"
+          ? (className.value as string).split(/\s+/)
+          : [];
+      if (!classes.includes("sr-only")) return;
+      // Everything nested inside is hidden from sight but read out loud.
+      visit(node.children, (child) => {
+        if (child.type === "JSXText") {
+          const text = child.value as string;
+          if (isUserText(text)) report(child, text);
+        } else if (child.type === "JSXExpressionContainer") {
+          for (const literal of literalsIn(child.expression as Node)) {
+            const text = textOf(literal);
+            if (isUserText(text)) report(literal, text);
+          }
+        }
+      });
+    }
+  });
+  return found;
+}
+
 // People type Arabic and English into the same boxes, so a free-text field must
 // pick its direction from what is typed: every `<textarea>` and `<input type="text">`
 // needs a `dir`.
@@ -255,6 +306,24 @@ describe("direction guard", () => {
 });
 
 describe("literal-text guard", () => {
+  it("finds sr-only text and aria-label literals in primitives", () => {
+    const found = primitiveLiteralsInSource(`
+      export const A = () => (
+        <div className="relative">
+          <span className="sr-only">Close</span>
+          <span className="sr-only">{"More"}</span>
+          <span className="flex">Visible</span>
+          <button aria-label="Next" title="Ignored" className="sr-only" />
+          <i aria-label={cn("x")} />
+          <header className="sr-only">
+            <h2>Sidebar</h2>
+          </header>
+        </div>
+      )
+    `);
+    expect(found).toHaveLength(4);
+  });
+
   it("finds literals in JSX text, attributes and branches", () => {
     const found = literalsInSource(`
       export const A = () => (
@@ -301,6 +370,18 @@ describe("no literal user-facing text", () => {
     expect(
       offenders,
       `Move these into messages/en.json and messages/ar.json (getTranslations on the server, useTranslations in client components):\n${offenders.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("keeps the screen-reader text of components/ui in the message files", () => {
+    const offenders = primitiveFiles().flatMap((file) =>
+      primitiveLiteralsInSource(readFileSync(path.join(ROOT, file), "utf8")).map(
+        (hit) => `${file} ${hit}`,
+      ),
+    );
+    expect(
+      offenders,
+      `Move these sr-only and aria-label strings into messages/en.json and messages/ar.json:\n${offenders.join("\n")}`,
     ).toEqual([]);
   });
 

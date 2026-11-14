@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "cn"
+import { useTranslations } from "next-intl"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -51,6 +52,7 @@ function Carousel({
   children,
   ...props
 }: React.ComponentProps<"div"> & CarouselProps) {
+  const t = useTranslations("ui")
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
@@ -122,7 +124,7 @@ function Carousel({
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={t("carousel")}
         data-slot="carousel"
         {...props}
       >
@@ -154,12 +156,13 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
+  const t = useTranslations("ui")
   const { orientation } = useCarousel()
 
   return (
     <div
       role="group"
-      aria-roledescription="slide"
+      aria-roledescription={t("slide")}
       data-slot="carousel-item"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",
@@ -177,6 +180,7 @@ function CarouselPrevious({
   size = "icon-sm",
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const t = useTranslations("ui")
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
   return (
@@ -196,7 +200,7 @@ function CarouselPrevious({
       {...props}
     >
       <ChevronLeftIcon className={orientation === "horizontal" ? "rtl:-scale-x-100" : undefined} />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">{t("previousSlide")}</span>
     </Button>
   )
 }
@@ -207,6 +211,7 @@ function CarouselNext({
   size = "icon-sm",
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const t = useTranslations("ui")
   const { orientation, scrollNext, canScrollNext } = useCarousel()
 
   return (
@@ -226,7 +231,7 @@ function CarouselNext({
       {...props}
     >
       <ChevronRightIcon className={orientation === "horizontal" ? "rtl:-scale-x-100" : undefined} />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">{t("nextSlide")}</span>
     </Button>
   )
 }

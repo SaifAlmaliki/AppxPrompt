@@ -423,7 +423,7 @@
       "publish": "نشر",
       "publishWeb": "النشر على الويب",
       "shareProject": "مشاركة المشروع",
-      "showcase": "العرض في الصفحة الرئيسية لـ AppxPrompt"
+      "showcase": "العرض في الصفحة الرئيسية على AppxPrompt"
     },
     "getting-started": {
       "title": "البدء",
@@ -1080,5 +1080,273 @@
     "dialog": "تعديل {element}",
     "categoriesLabel": "فئات الخصائص",
     "advancedPanel": "تعديل متقدم: {element}"
+  },
+  "ui": {
+    "close": "إغلاق",
+    "more": "المزيد",
+    "carousel": "عرض شرائح",
+    "slide": "شريحة",
+    "previousSlide": "الشريحة السابقة",
+    "nextSlide": "الشريحة التالية",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "scrollToEnd": "التمرير إلى النهاية",
+    "scrollToStart": "التمرير إلى البداية",
+    "breadcrumb": "مسار التنقل",
+    "pagination": "ترقيم الصفحات",
+    "previous": "السابق",
+    "next": "التالي",
+    "previousPage": "الانتقال إلى الصفحة السابقة",
+    "nextPage": "الانتقال إلى الصفحة التالية",
+    "morePages": "المزيد من الصفحات",
+    "toggleSidebar": "تبديل الشريط الجانبي",
+    "sidebar": "الشريط الجانبي",
+    "sidebarDescription": "يعرض الشريط الجانبي للجوّال.",
+    "loading": "جارٍ التحميل",
+    "closeToast": "إغلاق الإشعار",
+    "commandTitle": "لوحة الأوامر",
+    "commandDescription": "ابحث عن أمر لتشغيله..."
+  },
+  "publish": {
+    "title": "نشر",
+    "description": "انشر تطبيقك على الويب، أو ابنِه لمتاجر التطبيقات. يمكنك إغلاق هذه النافذة أثناء العمل.",
+    "tryAgain": "حاول مرة أخرى",
+    "checking": "جارٍ التحقق من اتصالاتك…",
+    "notAvailable": "النشر غير مُعدّ بعد على خادم AppxPrompt هذا.",
+    "loadErrorSummary": "تعذّر التحقق من عمليات البناء",
+    "tabs": {
+      "web": "الويب",
+      "stores": "متاجر التطبيقات"
+    },
+    "errors": {
+      "loadFailed": "تعذّر التحقق من عمليات البناء. حاول مرة أخرى.",
+      "notSaved": "تعذّر حفظ آخر تعديلاتك، لذا لم نبدأ البناء. حاول مرة أخرى.",
+      "disconnectFailed": "تعذّر فصل Expo. حاول مرة أخرى.",
+      "siteFailed": "تعذّر على EAS نشر الموقع.",
+      "buildFailed": "فشل البناء."
+    },
+    "formats": {
+      "aab": {
+        "title": "Android .aab",
+        "detail": "للرفع إلى Google Play."
+      },
+      "apk": {
+        "title": "Android .apk",
+        "detail": "يُثبَّت مباشرة على الهاتف، للاختبار."
+      },
+      "ipa": {
+        "title": "iOS .ipa",
+        "detail": "لمتجر App Store. يتطلب حساب Apple Developer."
+      }
+    },
+    "status": {
+      "queued": "في الانتظار",
+      "building": "قيد البناء",
+      "ready": "جاهز",
+      "failed": "فشل",
+      "retrying": "إعادة المحاولة"
+    },
+    "builds": {
+      "title": "عمليات البناء",
+      "viewError": "عرض الخطأ",
+      "download": "تنزيل <bdi>{format}</bdi>",
+      "retry": "إعادة المحاولة"
+    },
+    "locked": {
+      "title": "صدّر لنظامَي iOS وAndroid مع Pro",
+      "description": "ابنِ ملفات <file>.aab</file> و<file>.apk</file> و<file>.ipa</file> لمتجري Google Play وApp Store. في الخطة المجانية، يمكنك نشر تطبيقك من تبويب الويب.",
+      "upgrade": "الترقية إلى Pro"
+    },
+    "connect": {
+      "privacy": "تعمل المواقع وعمليات البناء على حسابك الخاص في Expo. يشفّر AppxPrompt رمز الوصول الخاص بك، ولا يستخدمه إلا لنشر تطبيقك ومتابعة تقدّمه.",
+      "tokenLabel": "رمز وصول Expo",
+      "create": "إنشاء رمز على Expo",
+      "errorSummary": "تعذّر ربط Expo",
+      "checking": "جارٍ التحقق من الرمز…",
+      "submit": "ربط Expo"
+    },
+    "account": {
+      "runsOn": "يعمل هذا على حساب Expo <value>{account}</value>",
+      "disconnect": "فصل Expo",
+      "errorSummary": "تعذّر فصل Expo"
+    },
+    "web": {
+      "live": "موقعك على الويب منشور",
+      "liveNow": "منشور الآن",
+      "updated": "· حُدّث {time}",
+      "intro": "انشر تطبيقك كموقع ويب على حسابك في Expo، بعنوان خاص به يمكن لأي شخص فتحه. وعند إجراء تغييرات، انشر مرة أخرى لتحديث الموقع نفسه.",
+      "errorSummary": "تعذّر النشر",
+      "updateFailed": "فشل التحديث. لا تزال آخر نسخة منشورة.",
+      "failed": "فشل النشر",
+      "publishing": "جارٍ النشر…",
+      "publishUpdate": "نشر التحديث",
+      "publishWeb": "النشر على الويب"
+    },
+    "export": {
+      "fileType": "نوع الملف",
+      "version": "الإصدار",
+      "versionHint": "الإصدار الذي يراه الناس في المتجر. يزداد رقم البناء تلقائيًا.",
+      "versionInvalid": "استخدم ثلاثة أرقام، مثل 1.0.0.",
+      "errorSummary": "تعذّر بدء البناء",
+      "starting": "جارٍ بدء البناء…",
+      "running": "هناك عملية بناء قيد التشغيل",
+      "submit": "تصدير"
+    },
+    "iosSetup": {
+      "notStarted": "لم تبدأ أي عملية بناء: لا تتوفر لدى EAS بيانات اعتماد Apple لهذا التطبيق بعد.",
+      "intro": "تحتاج إلى حساب Apple Developer مدفوع. اختر «{zip}» من قائمة «{menu}» وفُكّ ضغط الملف. ثم سجّل الدخول إلى Expo باسم <value>{account}</value> داخل ذلك المجلد وشغّل الأوامر التالية مرة واحدة:",
+      "profile": "عندما يُطلب منك ذلك، اختر ملف التعريف <profile>ipa</profile> ثم Build Credentials، واتركه يُعدّ كل شيء باستخدام حساب Apple الخاص بك. معرّف حزمة التطبيق هو <bundle>{bundleId}</bundle>.",
+      "back": "تم، العودة إلى التصدير"
+    }
+  },
+  "github": {
+    "title": "الدفع إلى GitHub",
+    "tagline": "احتفظ بشيفرة مشروعك في مستودعك الخاص.",
+    "connectedAs": "تم الربط باسم <account>{login}</account>",
+    "disconnect": "فصل",
+    "checking": "جارٍ التحقق من اتصالك مع GitHub…",
+    "notAvailable": "GitHub غير مُعدّ بعد على خادم AppxPrompt هذا.",
+    "tryAgain": "حاول مرة أخرى",
+    "connectResult": {
+      "denied": "ألغيت العملية على GitHub، لذا لم يتم ربط أي شيء.",
+      "error": "تعذّر ربط حسابك على GitHub. حاول مرة أخرى."
+    },
+    "errors": {
+      "notSaved": "تعذّر حفظ آخر تعديلاتك، لذا أوقفنا عملية الدفع. حاول مرة أخرى.",
+      "connectionLost": "انقطع الاتصال أثناء الدفع. تحقّق من مستودعك على GitHub قبل المحاولة مرة أخرى.",
+      "loadFailed": "تعذّر التحقق من اتصالك مع GitHub. حاول مرة أخرى.",
+      "disconnectFailed": "تعذّر فصل GitHub. حاول مرة أخرى.",
+      "reposFailed": "تعذّر تحميل مستودعاتك. حاول مرة أخرى."
+    },
+    "progress": {
+      "saving": "جارٍ حفظ آخر تعديلاتك…",
+      "label": "تقدّم الدفع",
+      "hint": "يستغرق هذا عادةً بضع ثوانٍ. أبقِ هذه النافذة مفتوحة."
+    },
+    "connect": {
+      "privacy": "تسجّل الدخول على GitHub، ولا يطّلع AppxPrompt على كلمة مرورك أبدًا. يطلب GitHub الوصول إلى مستودعاتك، ولا يستخدمه AppxPrompt إلا لعرضها والدفع إليها عندما تطلب ذلك.",
+      "button": "ربط GitHub"
+    },
+    "picker": {
+      "label": "المستودع",
+      "create": "مستودع جديد",
+      "existing": "مستودع موجود",
+      "name": "اسم المستودع",
+      "private": "خاص",
+      "privateHint": "لا يراه إلا أنت ومن تدعوهم على GitHub.",
+      "creating": "جارٍ إنشاء المستودع…",
+      "createButton": "إنشاء المستودع",
+      "loading": "جارٍ تحميل مستودعاتك…",
+      "none": "لا توجد مستودعات يمكنك الدفع إليها بعد. أنشئ مستودعًا جديدًا بدلًا من ذلك.",
+      "search": "ابحث في المستودعات",
+      "noMatch": "لا توجد مستودعات تطابق هذا البحث."
+    },
+    "confirm": {
+      "change": "تغيير",
+      "hasCode": "يحتوي هذا المستودع على شيفرة بالفعل، لذا يُدفع <bdi>{projectName}</bdi> إلى فرع جديد. يبقى الفرع <value>{branch}</value> كما هو.",
+      "empty": "يُودَع المشروع كاملًا في الفرع <value>{branch}</value>.",
+      "unknown": "يُودَع المشروع كاملًا. لا تُستبدل الشيفرة الموجودة أبدًا: المستودع الذي يحتوي على شيفرة بالفعل يحصل على فرع جديد.",
+      "push": "إيداع ودفع"
+    },
+    "done": {
+      "upToDate": "المستودع محدّث بالفعل. لا يوجد جديد للدفع.",
+      "pushed": "{count, plural, zero {لم يُدفع أي ملف إلى GitHub.} one {دُفع ملف واحد إلى GitHub.} two {دُفع ملفان إلى GitHub.} few {دُفعت {count, number, integer} ملفات إلى GitHub.} many {دُفع {count, number, integer} ملفًا إلى GitHub.} other {دُفع {count, number, integer} ملف إلى GitHub.}}",
+      "branch": "الفرع",
+      "commitMessage": "رسالة الإيداع",
+      "changeRepository": "تغيير المستودع",
+      "openPullRequest": "فتح طلب دمج",
+      "view": "عرض على GitHub",
+      "done": "تم"
+    }
+  },
+  "backend": {
+    "title": "ربط واجهة خلفية",
+    "titleConnected": "تم ربط واجهة CloudHike الخلفية",
+    "description": "خزّن بيانات تطبيقك في السحابة وزامنها مباشرةً.",
+    "descriptionConnected": "تعيش بيانات تطبيقك في حسابك الخاص على CloudHike.",
+    "connectResult": {
+      "denied": "ألغيت العملية على CloudHike، لذا لم يتم ربط أي شيء.",
+      "error": "تعذّر ربط حسابك على CloudHike. حاول مرة أخرى."
+    },
+    "services": {
+      "postgres": "قاعدة بيانات",
+      "auth": "المصادقة",
+      "storage": "تخزين الملفات",
+      "redis": "Redis",
+      "jobs": "المهام في الخلفية",
+      "email": "البريد الإلكتروني"
+    },
+    "serviceStatus": {
+      "ready": "جاهز",
+      "failed": "فشل",
+      "provisioning": "قيد الإعداد",
+      "pending": "قيد الانتظار",
+      "queued": "في الانتظار"
+    },
+    "connect": {
+      "provider": "المزوّد الافتراضي",
+      "intro": "بعد الربط، ينشر وكيل AppxPrompt ما يحتاجه تطبيقك ويربطه نيابةً عنك.",
+      "privacy": "تسجّل الدخول على CloudHike، ولا يطّلع AppxPrompt على كلمة مرورك أبدًا. تعمل الخدمات في حسابك، ويُحاسَب الاستخدام على مساحة عملك هناك.",
+      "notAvailable": "CloudHike غير مُعدّ بعد على خادم AppxPrompt هذا.",
+      "useAccount": "استخدام حسابي المرتبط على CloudHike",
+      "reconnect": "ربط CloudHike مرة أخرى",
+      "connect": "ربط CloudHike",
+      "linkFailed": "تعذّر ربط هذا التطبيق. حاول مرة أخرى."
+    },
+    "connected": {
+      "ready": "يحفظ تطبيقك بياناته في CloudHike.",
+      "provisioning": "الوكيل يُعدّ خدماتك…",
+      "failed": "لم يكتمل آخر إعداد. اطلب من الوكيل المحاولة مرة أخرى.",
+      "linked": "تم الربط. ينشر الوكيل الخدمات بعد بناء تطبيقك.",
+      "accountLost": "يستمر تطبيقك في العمل، لكن CloudHike لم يعد يقبل وصول AppxPrompt، لذا لا يمكن نشر أي جديد.",
+      "confirmTitle": "فصل هذا التطبيق عن CloudHike؟",
+      "confirmBody": "يعود التطبيق إلى الحفظ على الجهاز. تبقى بياناتك وخدماتك في CloudHike وتستمر محاسبتك عليها حتى تحذفها هناك.",
+      "keep": "إبقاء الربط",
+      "disconnect": "فصل",
+      "disconnectFailed": "تعذّر فصل هذا التطبيق. حاول مرة أخرى.",
+      "open": "الفتح في CloudHike"
+    }
+  },
+  "share": {
+    "title": "مشاركة المشروع",
+    "description": "يمكن للأشخاص الذين تضيفهم عرض هذا المشروع وتنزيله، لكن لا يمكنهم تعديله.",
+    "emailLabel": "عنوان البريد الإلكتروني",
+    "emailPlaceholder": "name@example.com",
+    "submit": "مشاركة",
+    "invalidEmail": "أدخل عنوان بريد إلكتروني صالحًا.",
+    "shared": "تمت المشاركة مع <bdi>{email}</bdi>. سيظهر الآن ضمن «{shared}» في صفحته الرئيسية.",
+    "public": {
+      "label": "العرض في الصفحة الرئيسية على AppxPrompt",
+      "description": "يمكن لأي شخص تجربة التطبيق ببيانات تجريبية وقراءة شيفرته، وسيرى اسمك. لا يمكنه رؤية محادثتك أو بياناتك الحقيقية، ولا تغيير أي شيء."
+    },
+    "people": {
+      "label": "الأشخاص الذين لديهم صلاحية الوصول",
+      "loading": "جارٍ التحميل…",
+      "empty": "أنت وحدك حاليًا.",
+      "stop": "إيقاف المشاركة مع \u2066{email}\u2069",
+      "remove": "إزالة صلاحية الوصول"
+    },
+    "copy": {
+      "link": "نسخ رابط المشروع",
+      "copied": "تم نسخ الرابط"
+    },
+    "errors": {
+      "copyFailed": "تعذّر نسخ الرابط. انسخه من شريط عنوان المتصفح بدلًا من ذلك.",
+      "changeFailed": "تعذّر تغيير هذا. حاول مرة أخرى."
+    }
+  },
+  "download": {
+    "title": "تنزيل بصيغة ZIP",
+    "description": "مشروع Expo كاملًا، جاهزًا للتشغيل على حاسوبك.",
+    "packaging": "جارٍ تجهيز مشروعك…",
+    "tryAgain": "حاول مرة أخرى",
+    "downloading": "جارٍ تنزيل <file>{fileName}</file>.",
+    "unzip": "فُكّ ضغطه، وافتح الطرفية في المجلد، ثم شغّل:",
+    "scan": "بعد ذلك امسح رمز QR باستخدام Expo Go. تجد التفاصيل في ملف README.",
+    "done": "تم",
+    "errors": {
+      "notSaved": "تعذّر حفظ آخر تعديلاتك، لذا أوقفنا التنزيل. حاول مرة أخرى.",
+      "packageFailed": "تعذّر تجهيز مشروعك. حاول مرة أخرى."
+    }
   }
 }

@@ -1080,5 +1080,273 @@
     "dialog": "Edit {element}",
     "categoriesLabel": "Property categories",
     "advancedPanel": "Advanced edit: {element}"
+  },
+  "ui": {
+    "close": "Close",
+    "more": "More",
+    "carousel": "carousel",
+    "slide": "slide",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "copy": "Copy",
+    "copied": "Copied",
+    "scrollToEnd": "Scroll to end",
+    "scrollToStart": "Scroll to start",
+    "breadcrumb": "breadcrumb",
+    "pagination": "pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page",
+    "morePages": "More pages",
+    "toggleSidebar": "Toggle Sidebar",
+    "sidebar": "Sidebar",
+    "sidebarDescription": "Displays the mobile sidebar.",
+    "loading": "Loading",
+    "closeToast": "Close toast",
+    "commandTitle": "Command Palette",
+    "commandDescription": "Search for a command to run..."
+  },
+  "publish": {
+    "title": "Publish",
+    "description": "Put your app on the web, or build it for the app stores. You can close this while it runs.",
+    "tryAgain": "Try again",
+    "checking": "Checking your connections…",
+    "notAvailable": "Publishing isn't set up on this AppxPrompt server yet.",
+    "loadErrorSummary": "Couldn't check your builds",
+    "tabs": {
+      "web": "Web",
+      "stores": "App stores"
+    },
+    "errors": {
+      "loadFailed": "We couldn't check on your builds. Please try again.",
+      "notSaved": "We couldn't save your latest edits, so we didn't start the build. Please try again.",
+      "disconnectFailed": "We couldn't disconnect Expo. Please try again.",
+      "siteFailed": "EAS couldn't publish the website.",
+      "buildFailed": "The build failed."
+    },
+    "formats": {
+      "aab": {
+        "title": "Android .aab",
+        "detail": "For uploading to Google Play."
+      },
+      "apk": {
+        "title": "Android .apk",
+        "detail": "Installs directly on a phone, for testing."
+      },
+      "ipa": {
+        "title": "iOS .ipa",
+        "detail": "For the App Store. Needs an Apple Developer account."
+      }
+    },
+    "status": {
+      "queued": "Queued",
+      "building": "Building",
+      "ready": "Ready",
+      "failed": "Failed",
+      "retrying": "Retrying"
+    },
+    "builds": {
+      "title": "Builds",
+      "viewError": "View error",
+      "download": "Download <bdi>{format}</bdi>",
+      "retry": "Retry"
+    },
+    "locked": {
+      "title": "Export for iOS and Android with Pro",
+      "description": "Build <file>.aab</file>, <file>.apk</file>, and <file>.ipa</file> files for Google Play and the App Store. On Free, you can publish your app from the Web tab.",
+      "upgrade": "Upgrade to Pro"
+    },
+    "connect": {
+      "privacy": "Websites and builds run on your own Expo account. AppxPrompt encrypts your token, and only uses it to publish your app and follow its progress.",
+      "tokenLabel": "Expo access token",
+      "create": "Create a token on Expo",
+      "errorSummary": "Couldn't connect Expo",
+      "checking": "Checking token…",
+      "submit": "Connect Expo"
+    },
+    "account": {
+      "runsOn": "This runs on the <value>{account}</value> Expo account",
+      "disconnect": "Disconnect Expo",
+      "errorSummary": "Couldn't disconnect Expo"
+    },
+    "web": {
+      "live": "Your website is live",
+      "liveNow": "Live now",
+      "updated": "· updated {time}",
+      "intro": "Publish your app as a website on your Expo account, with its own address anyone can open. When you make changes, publish again to update the same site.",
+      "errorSummary": "Couldn't publish",
+      "updateFailed": "The update failed. Your last version is still live.",
+      "failed": "Publishing failed",
+      "publishing": "Publishing…",
+      "publishUpdate": "Publish update",
+      "publishWeb": "Publish as Web"
+    },
+    "export": {
+      "fileType": "File type",
+      "version": "Version",
+      "versionHint": "The version people see in the store. The build number goes up by itself.",
+      "versionInvalid": "Use three numbers, like 1.0.0.",
+      "errorSummary": "Couldn't start the build",
+      "starting": "Starting build…",
+      "running": "A build is running",
+      "submit": "Export"
+    },
+    "iosSetup": {
+      "notStarted": "No build was started: EAS has no Apple credentials for this app yet.",
+      "intro": "You need a paid Apple Developer account. Choose {zip} from the {menu} menu and unzip it. Then, in that folder, log in to Expo as <value>{account}</value> and run these once:",
+      "profile": "When asked, choose the <profile>ipa</profile> profile, then Build Credentials, and let it set up everything using your Apple account. The app's bundle id is <bundle>{bundleId}</bundle>.",
+      "back": "Done, back to export"
+    }
+  },
+  "github": {
+    "title": "Push to GitHub",
+    "tagline": "Keep your project's code in your own repository.",
+    "connectedAs": "Connected as <account>{login}</account>",
+    "disconnect": "Disconnect",
+    "checking": "Checking your GitHub connection…",
+    "notAvailable": "GitHub isn't set up on this AppxPrompt server yet.",
+    "tryAgain": "Try again",
+    "connectResult": {
+      "denied": "You cancelled on GitHub, so nothing was connected.",
+      "error": "We couldn't connect your GitHub account. Please try again."
+    },
+    "errors": {
+      "notSaved": "We couldn't save your latest edits, so we stopped the push. Please try again.",
+      "connectionLost": "We lost the connection during the push. Check your repository on GitHub before trying again.",
+      "loadFailed": "We couldn't check your GitHub connection. Please try again.",
+      "disconnectFailed": "We couldn't disconnect GitHub. Please try again.",
+      "reposFailed": "We couldn't load your repositories. Please try again."
+    },
+    "progress": {
+      "saving": "Saving your latest edits…",
+      "label": "Push progress",
+      "hint": "This usually takes a few seconds. Keep this window open."
+    },
+    "connect": {
+      "privacy": "You sign in on GitHub, and AppxPrompt never sees your password. GitHub asks for access to your repositories, which AppxPrompt only uses to list them and to push when you ask.",
+      "button": "Connect GitHub"
+    },
+    "picker": {
+      "label": "Repository",
+      "create": "New repository",
+      "existing": "Existing repository",
+      "name": "Repository name",
+      "private": "Private",
+      "privateHint": "Only you and people you invite on GitHub can see it.",
+      "creating": "Creating repository…",
+      "createButton": "Create repository",
+      "loading": "Loading your repositories…",
+      "none": "No repositories you can push to yet. Create a new one instead.",
+      "search": "Search repositories",
+      "noMatch": "No repositories match that search."
+    },
+    "confirm": {
+      "change": "Change",
+      "hasCode": "This repository already has code, so <bdi>{projectName}</bdi> goes to a new branch. <value>{branch}</value> stays as it is.",
+      "empty": "This commits the complete project to <value>{branch}</value>.",
+      "unknown": "This commits the complete project. Existing code is never overwritten: a repository that already has code gets a new branch.",
+      "push": "Commit and push"
+    },
+    "done": {
+      "upToDate": "Already up to date. There's nothing new to push.",
+      "pushed": "Pushed {count, plural, one {# file} other {# files}} to GitHub.",
+      "branch": "Branch",
+      "commitMessage": "Commit message",
+      "changeRepository": "Change repository",
+      "openPullRequest": "Open pull request",
+      "view": "View on GitHub",
+      "done": "Done"
+    }
+  },
+  "backend": {
+    "title": "Connect a backend",
+    "titleConnected": "CloudHike Backend Connected",
+    "description": "Store your app's data in the cloud and sync it live.",
+    "descriptionConnected": "Your app's data lives in your own CloudHike account.",
+    "connectResult": {
+      "denied": "You cancelled on CloudHike, so nothing was connected.",
+      "error": "We couldn't connect your CloudHike account. Please try again."
+    },
+    "services": {
+      "postgres": "Database",
+      "auth": "Authentication",
+      "storage": "File storage",
+      "redis": "Redis",
+      "jobs": "Background jobs",
+      "email": "Email"
+    },
+    "serviceStatus": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "provisioning": "Provisioning",
+      "pending": "Pending",
+      "queued": "Queued"
+    },
+    "connect": {
+      "provider": "Default provider",
+      "intro": "Once you're connected, the AppxPrompt agent deploys what your app needs and connects it for you.",
+      "privacy": "You sign in on CloudHike, and AppxPrompt never sees your password. Services run in your account and usage is billed to your workspace there.",
+      "notAvailable": "CloudHike isn't set up on this AppxPrompt server yet.",
+      "useAccount": "Use my connected CloudHike account",
+      "reconnect": "Connect CloudHike again",
+      "connect": "Connect CloudHike",
+      "linkFailed": "We couldn't connect this app. Please try again."
+    },
+    "connected": {
+      "ready": "Your app is saving to CloudHike.",
+      "provisioning": "The agent is setting up your services…",
+      "failed": "The last setup didn't finish. Ask the agent to try again.",
+      "linked": "Connected. The agent deploys services once your app is built.",
+      "accountLost": "Your app keeps running, but CloudHike no longer accepts AppxPrompt's access, so nothing new can be deployed.",
+      "confirmTitle": "Disconnect this app from CloudHike?",
+      "confirmBody": "The app goes back to saving on the device. Your data and services stay in CloudHike, and keep being billed until you delete them there.",
+      "keep": "Keep connected",
+      "disconnect": "Disconnect",
+      "disconnectFailed": "We couldn't disconnect this app. Please try again.",
+      "open": "Open in CloudHike"
+    }
+  },
+  "share": {
+    "title": "Share project",
+    "description": "People you add can view this project and download it, but can't change it.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "name@example.com",
+    "submit": "Share",
+    "invalidEmail": "Enter a valid email address.",
+    "shared": "Shared with <bdi>{email}</bdi>. It's now under {shared} on their home page.",
+    "public": {
+      "label": "Show on the AppxPrompt home page",
+      "description": "Anyone can try the app on sample data and read its code, and they'll see your name. They can't see your chat or real data, or change anything."
+    },
+    "people": {
+      "label": "People with access",
+      "loading": "Loading…",
+      "empty": "Only you, for now.",
+      "stop": "Stop sharing with {email}",
+      "remove": "Remove access"
+    },
+    "copy": {
+      "link": "Copy project link",
+      "copied": "Link copied"
+    },
+    "errors": {
+      "copyFailed": "Couldn't copy the link. Copy it from your browser's address bar instead.",
+      "changeFailed": "We couldn't change this. Please try again."
+    }
+  },
+  "download": {
+    "title": "Download as ZIP",
+    "description": "The complete Expo project, ready to run on your computer.",
+    "packaging": "Packaging your project…",
+    "tryAgain": "Try again",
+    "downloading": "<file>{fileName}</file> is downloading.",
+    "unzip": "Unzip it, open a terminal in the folder, and run:",
+    "scan": "Then scan the QR code with Expo Go. The README has the details.",
+    "done": "Done",
+    "errors": {
+      "notSaved": "We couldn't save your latest edits, so we stopped the download. Please try again.",
+      "packageFailed": "We couldn't package your project. Please try again."
+    }
   }
 }

@@ -67,10 +67,3 @@ export type WebPublishSummary = {
 export type ActiveWebPublishStatus = Exclude<WebPublishStatus, "published" | "failed">
 
 export const isWebPublishActive = (status: WebPublishStatus): status is ActiveWebPublishStatus => status !== "published" && status !== "failed"
-
-export const WEB_PUBLISH_LABELS: Record<ActiveWebPublishStatus, string> = {
-  uploading: "Uploading files",
-  queued: "Waiting for an Expo build server",
-  building: "Building web app",
-  deploying: "Deploying",
-}
