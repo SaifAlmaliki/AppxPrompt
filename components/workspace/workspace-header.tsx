@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { LanguageToggle } from "@/components/language-toggle"
 import { Logo } from "@/components/home/logo"
 
 export function WorkspaceHeader({
@@ -87,6 +88,7 @@ export function WorkspaceHeader({
       </div>
 
       <div className="flex items-center gap-1.5 justify-self-end">
+        <LanguageToggle />
         <Link
           href="/pricing"
           title={`${credits} credits remaining`}

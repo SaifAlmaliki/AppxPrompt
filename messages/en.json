@@ -2,6 +2,11 @@
   "common": {
     "credits": "{count, plural, one {# credit} other {# credits}}"
   },
+  "languageToggle": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
   "meta": {
     "home": {
       "title": "AppxPrompt — Build mobile apps with AI",

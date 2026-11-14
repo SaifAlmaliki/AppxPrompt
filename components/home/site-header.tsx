@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import {
   CoinsIcon,
   FolderIcon,
@@ -27,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LanguageToggle } from "@/components/language-toggle"
 import { Logo } from "@/components/home/logo"
 import { useSignInDialog } from "@/components/home/sign-in-dialog"
 
@@ -40,6 +42,7 @@ const NAV_LINKS = [
 export function SiteHeader() {
   const { user, isPending } = useAuth()
   const { openSignIn } = useSignInDialog()
+  const t = useTranslations()
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
@@ -62,6 +65,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageToggle className="hidden md:inline-flex" />
           {isPending ? (
             <Skeleton className="size-10 rounded-full" />
           ) : user ? (
@@ -112,6 +116,13 @@ export function SiteHeader() {
                   {link.label}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                <span className="text-sm text-muted-foreground">
+                  {t("languageToggle.label")}
+                </span>
+                <LanguageToggle />
+              </div>
               {!user && !isPending && (
                 <>
                   <DropdownMenuSeparator />
