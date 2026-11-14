@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import * as React from "react"
 
 import { useAuth, type SessionUser } from "@/lib/auth-client"
@@ -14,6 +15,7 @@ const USAGE_SKELETON = <Skeleton aria-busy="true" className="h-40 rounded-[2rem]
 export function UsageBilling() {
   const { user, isPending, refresh } = useAuth()
   const { openSignIn } = useSignInDialog()
+  const t = useTranslations()
 
   // The session is only loaded once per visit, and builds spend credits after that.
   React.useEffect(() => {
@@ -24,9 +26,9 @@ export function UsageBilling() {
   if (user) return <SignedInUsage user={user} />
   return (
     <div className="flex flex-col items-center gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-14 text-center">
-      <p className="text-sm text-muted-foreground">Sign in to see your usage and billing.</p>
+      <p className="text-sm text-muted-foreground">{t("billing.signInPrompt")}</p>
       <Button className="h-10 rounded-full px-5" onClick={() => openSignIn("sign-in")}>
-        Sign in
+        {t("header.signIn")}
       </Button>
     </div>
   )

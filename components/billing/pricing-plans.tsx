@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { useFormatter, useTranslations } from "next-intl"
 import * as React from "react"
-import { format } from "date-fns"
 import { CheckIcon, Loader2Icon, MinusIcon, SparklesIcon } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-client"
@@ -31,28 +31,52 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useBillingRedirect } from "@/components/billing/upgrade-dialog"
 import { useSignInDialog } from "@/components/home/sign-in-dialog"
 
-const FEATURES: { label: string; free: string | boolean; pro: string | boolean }[] = [
-  {
-    label: "Credits",
-    free: `${FREE_SIGNUP_CREDITS} one-time credits that never expire`,
-    pro: `${PRO_MONTHLY_CREDITS.toLocaleString()} credits every month. Unused ones expire at renewal`,
-  },
-  {
-    label: "What they build",
-    free: `About ${Math.floor((FREE_SIGNUP_CREDITS - 4 * EDIT_CREDITS) / SMALL_APP_CREDITS)} small apps and 4 edits`,
-    pro: `About ${PRO_MONTHLY_CREDITS / SMALL_APP_CREDITS} small apps or ${PRO_MONTHLY_CREDITS / EDIT_CREDITS} edits`,
-  },
-  { label: "Projects", free: `${PLANS.free.maxProjects} projects`, pro: "Unlimited projects" },
-  { label: "Screens", free: `Up to ${PLANS.free.maxScreens} screens per project`, pro: `Up to ${PLANS.pro.maxScreens} screens per project` },
-  { label: "Web", free: "Publish as a website", pro: "Publish as a website" },
-  { label: "App stores", free: false, pro: "Export for iOS and Android" },
-]
+type Translator = ReturnType<typeof useTranslations<never>>
+
+const FEATURE_IDS = ["credits", "build", "projects", "screens", "web", "stores"] as const
+
+// Edits the Free plan's credits cover after one small app is built, as the pricing copy has always said.
+const FREE_EDITS = 4
+
+function featureValue(t: Translator, plan: PlanId, id: (typeof FEATURE_IDS)[number]): string | false {
+  switch (id) {
+    case "credits":
+      return plan === "free"
+        ? t("pricing.features.credits.free", {
+            count: FREE_SIGNUP_CREDITS,
+            credits: t("common.credits", { count: FREE_SIGNUP_CREDITS }),
+          })
+        : t("pricing.features.credits.pro", { credits: t("common.credits", { count: PRO_MONTHLY_CREDITS }) })
+    case "build":
+      return plan === "free"
+        ? t("pricing.features.build.free", {
+            apps: Math.floor((FREE_SIGNUP_CREDITS - FREE_EDITS * EDIT_CREDITS) / SMALL_APP_CREDITS),
+            edits: FREE_EDITS,
+          })
+        : t("pricing.features.build.pro", {
+            apps: PRO_MONTHLY_CREDITS / SMALL_APP_CREDITS,
+            edits: PRO_MONTHLY_CREDITS / EDIT_CREDITS,
+          })
+    case "projects":
+      return PLANS[plan].maxProjects === null
+        ? t("pricing.features.projects.unlimited")
+        : t("pricing.features.projects.free", { count: PLANS[plan].maxProjects })
+    case "screens":
+      return t("pricing.features.screens", { count: PLANS[plan].maxScreens })
+    case "web":
+      return t("pricing.features.web")
+    case "stores":
+      return PLANS[plan].nativePublish && t("pricing.features.stores.pro")
+  }
+}
 
 /** `checkout` is how the browser's trip to Stripe went, when it has just come back. */
 export function PricingPlans({ checkout }: { checkout: boolean }) {
   const { user, isPending, refresh } = useAuth()
   const { redirect, pending, error: redirectError } = useBillingRedirect()
   const { openSignIn } = useSignInDialog()
+  const t = useTranslations()
+  const format = useFormatter()
   const [waitingForPayment, setWaitingForPayment] = React.useState(checkout)
   const [changing, setChanging] = React.useState(false)
   const [changeError, setChangeError] = React.useState<string | null>(null)
@@ -84,13 +108,13 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
       await refresh()
     } else {
       const body = await response?.json().catch(() => null)
-      setChangeError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
+      setChangeError(body?.error ?? t("billing.errors.network"))
     }
     setChanging(false)
     setConfirmDowngrade(false)
   }
 
-  const endsOn = user?.currentPeriodEnd ? format(new Date(user.currentPeriodEnd), "MMMM d, yyyy") : null
+  const endsOn = user?.currentPeriodEnd ? format.dateTime(new Date(user.currentPeriodEnd), "monthDayYear") : null
   const error = redirectError ?? changeError
 
   return (
@@ -98,12 +122,12 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
       {checkout && (waitingForPayment || isPro) && (
         <p role="status" className="mx-auto flex w-fit items-center gap-2 rounded-full bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-800">
           {isPro ? <CheckIcon className="size-4" /> : <Loader2Icon className="size-4 animate-spin" />}
-          {isPro ? "Welcome to Pro! Your credits are ready." : "Confirming your payment…"}
+          {isPro ? t("pricing.status.welcome") : t("pricing.status.confirming")}
         </p>
       )}
       {checkout && !waitingForPayment && !isPro && !isPending && (
         <p role="status" className="mx-auto w-fit rounded-full bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800">
-          Your payment is still being confirmed. This page will show Pro once it's through, so check back in a minute.
+          {t("pricing.status.stillConfirming")}
         </p>
       )}
       {error && (
@@ -116,25 +140,25 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
         <PlanCard
           plan="free"
           current={!isPending && !!user && !isPro}
-          tagline="Try AppxPrompt and build your first apps."
-          price="$0"
-          period="forever"
+          tagline={t("pricing.plans.free.tagline")}
+          price={t("pricing.plans.free.price")}
+          period={t("pricing.plans.free.period")}
           action={
             isPending ? (
               <Skeleton className="h-11 rounded-full" />
             ) : !user ? (
               <Button variant="outline" className="h-11 w-full rounded-full" onClick={() => openSignIn("sign-up")}>
-                Get started free
+                {t("pricing.actions.getStarted")}
               </Button>
             ) : !isPro ? (
               <Button variant="outline" className="h-11 w-full rounded-full" render={<Link href="/" />} nativeButton={false}>
-                Build an app
+                {t("pricing.actions.buildApp")}
               </Button>
             ) : user.cancelAtPeriodEnd ? (
-              <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground">Your plan moves here on {endsOn}</p>
+              <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground">{t("pricing.actions.movesToFree", { date: endsOn ?? "" })}</p>
             ) : (
               <Button variant="outline" className="h-11 w-full rounded-full" disabled={changing} onClick={() => setConfirmDowngrade(true)}>
-                Downgrade to Free
+                {t("pricing.actions.downgrade")}
               </Button>
             )
           }
@@ -144,38 +168,38 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
           plan="pro"
           featured
           current={isPro}
-          tagline="For people shipping apps every month."
+          tagline={t("pricing.plans.pro.tagline")}
           price={PRO_PRICE_LABEL}
-          period="per month"
+          period={t("pricing.plans.pro.period")}
           action={
             isPending ? (
               <Skeleton className="h-11 rounded-full" />
             ) : !user ? (
               <Button className="h-11 w-full rounded-full bg-white text-violet-700 hover:bg-white/90" onClick={() => openSignIn("sign-up")}>
                 <SparklesIcon />
-                Sign up to join Pro
+                {t("pricing.actions.signUpPro")}
               </Button>
             ) : !isPro ? (
               <Button className="h-11 w-full rounded-full bg-white text-violet-700 hover:bg-white/90" disabled={pending} onClick={() => void redirect("upgrade")}>
                 {pending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-                Upgrade to Pro
+                {t("header.upgradePro")}
               </Button>
             ) : (
               <div className="space-y-2">
                 {user.cancelAtPeriodEnd ? (
                   <Button className="h-11 w-full rounded-full bg-white text-violet-700 hover:bg-white/90" disabled={changing} onClick={() => void change("keep-pro")}>
                     {changing && <Loader2Icon className="animate-spin" />}
-                    Keep Pro
+                    {t("pricing.actions.keepPro")}
                   </Button>
                 ) : (
                   <Button className="h-11 w-full rounded-full bg-white text-violet-700 hover:bg-white/90" disabled={pending} onClick={() => void redirect("manage")}>
                     {pending && <Loader2Icon className="animate-spin" />}
-                    Manage billing
+                    {t("pricing.actions.manageBilling")}
                   </Button>
                 )}
                 {endsOn && (
                   <p className="text-center text-xs text-white/80">
-                    {user.cancelAtPeriodEnd ? `Pro ends on ${endsOn}` : `Renews on ${endsOn}`}
+                    {user.cancelAtPeriodEnd ? t("pricing.actions.proEnds", { date: endsOn }) : t("pricing.actions.renews", { date: endsOn })}
                   </p>
                 )}
               </div>
@@ -187,13 +211,16 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
       <AlertDialog open={confirmDowngrade} onOpenChange={setConfirmDowngrade}>
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Downgrade to Free?</AlertDialogTitle>
+            <AlertDialogTitle>{t("pricing.downgrade.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              You'll keep Pro until {endsOn ?? "the end of this billing period"}, and won't be charged again. Then your monthly credits end, and you can't export for iOS or Android, or start new projects beyond {PLANS.free.maxProjects}. The projects you've already made stay yours.
+              {t("pricing.downgrade.description", {
+                date: endsOn ?? t("pricing.downgrade.periodEnd"),
+                max: PLANS.free.maxProjects ?? 0,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Keep Pro</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">{t("pricing.actions.keepPro")}</AlertDialogCancel>
             <AlertDialogAction
               className="rounded-full"
               disabled={changing}
@@ -203,7 +230,7 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
               }}
             >
               {changing && <Loader2Icon className="animate-spin" />}
-              Downgrade
+              {t("pricing.downgrade.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -229,9 +256,11 @@ function PlanCard({
   period: string
   action: React.ReactNode
 }) {
+  const t = useTranslations()
+
   return (
     <section
-      aria-label={`${PLANS[plan].name} plan`}
+      aria-label={t("plans.label", { plan: t(`plans.${plan}.name`) })}
       className={cn(
         "relative flex flex-col gap-6 rounded-[2rem] p-7",
         featured
@@ -241,14 +270,16 @@ function PlanCard({
     >
       <div>
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">{PLANS[plan].name}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{t(`plans.${plan}.name`)}</h2>
           {current && (
-            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", featured ? "bg-white/20" : "bg-violet-500/10 text-violet-700")}>Current plan</span>
+            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", featured ? "bg-white/20" : "bg-violet-500/10 text-violet-700")}>{t("plans.current")}</span>
           )}
         </div>
         <p className={cn("mt-1 text-sm", featured ? "text-white/85" : "text-muted-foreground")}>{tagline}</p>
         <p className="mt-5 flex items-baseline gap-1.5">
-          <span className="text-5xl font-semibold tracking-tight">{price}</span>
+          <span dir="ltr" className="text-5xl font-semibold tracking-tight">
+            {price}
+          </span>
           <span className={cn("text-sm", featured ? "text-white/80" : "text-muted-foreground")}>{period}</span>
         </p>
       </div>
@@ -256,10 +287,10 @@ function PlanCard({
       {action}
 
       <ul className="space-y-3">
-        {FEATURES.map((feature) => {
-          const value = feature[plan]
+        {FEATURE_IDS.map((id) => {
+          const value = featureValue(t, plan, id)
           return (
-            <li key={feature.label} className={cn("flex gap-2.5 text-sm", !value && "text-muted-foreground")}>
+            <li key={id} className={cn("flex gap-2.5 text-sm", !value && "text-muted-foreground")}>
               <span
                 className={cn(
                   "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full",
@@ -268,7 +299,7 @@ function PlanCard({
               >
                 {value ? <CheckIcon className="size-3" /> : <MinusIcon className="size-3" />}
               </span>
-              {value || "No iOS or Android export"}
+              {value || t("pricing.features.stores.free")}
             </li>
           )
         })}

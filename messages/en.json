@@ -19,6 +19,10 @@
     "docs": {
       "title": "Docs — AppxPrompt",
       "description": "Learn how to plan, build, edit, test, and publish a mobile app with AppxPrompt, from your first prompt to the app stores."
+    },
+    "billing": {
+      "title": "Usage & billing — AppxPrompt",
+      "description": "See your plan, the credits you have left, and how many projects you've used."
     }
   },
   "plans": {
@@ -27,7 +31,9 @@
     },
     "pro": {
       "name": "Pro"
-    }
+    },
+    "current": "Current plan",
+    "label": "{plan} plan"
   },
   "platforms": {
     "ios-android": "iOS & Android",
@@ -519,5 +525,148 @@
       },
       "p1": "A new screen costs {screenCredits}, a round of changes costs {edit, number, integer}, and an AI image costs {image, number, integer}. Chatting, planning, and switching themes are free, though the agent needs at least {editCredits} to reply. Your balance is always in the header. See <pricing>Pricing</pricing> for details."
     }
+  },
+  "pricing": {
+    "title": "Simple pricing for building apps",
+    "subtitle": "Start free, and upgrade when you're ready to ship to the app stores.",
+    "plans": {
+      "free": {
+        "tagline": "Try AppxPrompt and build your first apps.",
+        "price": "$0",
+        "period": "forever"
+      },
+      "pro": {
+        "tagline": "For people shipping apps every month.",
+        "period": "per month"
+      }
+    },
+    "features": {
+      "credits": {
+        "free": "{count, plural, one {# one-time credit that never expires} other {# one-time credits that never expire}}",
+        "pro": "{credits} every month. Unused ones expire at renewal"
+      },
+      "build": {
+        "free": "About {apps, plural, one {# small app} other {# small apps}} and {edits, plural, one {# edit} other {# edits}}",
+        "pro": "About {apps, plural, one {# small app} other {# small apps}} or {edits, plural, one {# edit} other {# edits}}"
+      },
+      "projects": {
+        "free": "{count, plural, one {# project} other {# projects}}",
+        "unlimited": "Unlimited projects"
+      },
+      "screens": "Up to {count, plural, one {# screen} other {# screens}} per project",
+      "web": "Publish as a website",
+      "stores": {
+        "pro": "Export for iOS and Android",
+        "free": "No iOS or Android export"
+      }
+    },
+    "status": {
+      "welcome": "Welcome to Pro! Your credits are ready.",
+      "confirming": "Confirming your payment…",
+      "stillConfirming": "Your payment is still being confirmed. This page will show Pro once it's through, so check back in a minute."
+    },
+    "actions": {
+      "getStarted": "Get started free",
+      "buildApp": "Build an app",
+      "movesToFree": "Your plan moves here on {date}",
+      "downgrade": "Downgrade to Free",
+      "signUpPro": "Sign up to join Pro",
+      "keepPro": "Keep Pro",
+      "manageBilling": "Manage billing",
+      "proEnds": "Pro ends on {date}",
+      "renews": "Renews on {date}"
+    },
+    "downgrade": {
+      "title": "Downgrade to Free?",
+      "description": "You'll keep Pro until {date}, and won't be charged again. Then your monthly credits end, and you can't export for iOS or Android, or start new projects beyond {max, number, integer}. The projects you've already made stay yours.",
+      "periodEnd": "the end of this billing period",
+      "confirm": "Downgrade"
+    },
+    "costs": {
+      "heading": "How credits work",
+      "free": "Free",
+      "smallApp": {
+        "label": "A small app",
+        "detail": "{screens, plural, one {# screen} other {# screens}}, at {credits} each"
+      },
+      "edit": {
+        "label": "An edit",
+        "detail": "One round of changes by chat"
+      },
+      "image": {
+        "label": "An AI image",
+        "detail": "Made or changed in edit mode"
+      },
+      "planning": {
+        "label": "Planning",
+        "detail": "Chatting, plans, and theme switches"
+      }
+    },
+    "questions": {
+      "heading": "Questions",
+      "used": {
+        "question": "When are credits used?",
+        "answer": "When a build starts. A new screen costs {screenCredits} and a round of changes costs {edit, number, integer}, and a new screen added in that round costs {screen, number, integer} on top. If a build fails, you get back the credits for what it didn't finish."
+      },
+      "rollover": {
+        "question": "Do my credits roll over?",
+        "answer": "Free credits never expire. Pro's monthly credits expire at each renewal and are replaced with a new {monthly, number, integer}. Free credits you still have when you join Pro stay yours, and are used after the monthly ones."
+      },
+      "downgrade": {
+        "question": "Can I downgrade at any time?",
+        "answer": "Yes. You keep Pro until the end of the period you've paid for, and then move to Free. Your projects stay yours, even if you have more than {max, number, integer}, but you can't start new ones beyond that."
+      },
+      "publish": {
+        "question": "Can I publish on the Free plan?",
+        "answer": "Yes, as a website with its own address. Building .aab, .apk, and .ipa files for the app stores is part of Pro."
+      }
+    }
+  },
+  "billing": {
+    "subtitle": "Your plan, the credits you have left, and how many projects you've used.",
+    "signInPrompt": "Sign in to see your usage and billing.",
+    "creditsLeft": "{credits} left",
+    "creditsLeftLabel": "Credits left",
+    "projectsUsedLabel": "Projects used",
+    "lowCredits": "Not enough left for another change.",
+    "oneTimeCredits": "One-time credits that never expire.",
+    "endsWithPro": "Monthly credits end with Pro on {date}.",
+    "expiresOn": "Unused monthly credits expire on {date}.",
+    "projectsCount": "{count, plural, one {# project} other {# projects}}",
+    "projectsOf": "{used, number, integer} of {max, plural, one {# project} other {# projects}}",
+    "unlimited": "Unlimited on Pro.",
+    "allProjectsUsed": "You've used all your projects.",
+    "screensEach": "Up to {count, plural, one {# screen} other {# screens}} each.",
+    "managePlan": "Manage plan",
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again."
+    }
+  },
+  "upgrade": {
+    "projects": {
+      "title": "You've used your free projects",
+      "description": "The Free plan includes {max, plural, one {# project} other {# projects}}. Join Pro to build as many as you like."
+    },
+    "screens": {
+      "title": "This app needs more screens",
+      "description": "The Free plan allows {free, plural, one {# screen} other {# screens}} per project. Join Pro to build up to {pro, number, integer}."
+    },
+    "credits": {
+      "title": "You're out of credits",
+      "description": "You don't have enough credits for this. Join Pro to get a fresh set every month."
+    },
+    "native-publish": {
+      "title": "Publish to the app stores with Pro",
+      "description": "Exporting for iOS and Android is part of Pro. On Free, you can still publish your app as a website."
+    },
+    "highlightCredits": "{credits} every month",
+    "alreadyPro": {
+      "title": "You've used this month's credits",
+      "renews": "You'll get {count, number, integer} more when Pro renews on {date}.",
+      "noneLeft": "You don't have enough credits left for this."
+    },
+    "gotIt": "Got it",
+    "join": "Join Pro for <amount>{price}</amount>/month",
+    "comparePlans": "Compare plans"
   }
 }

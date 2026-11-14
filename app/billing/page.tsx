@@ -1,16 +1,22 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { UsageBilling } from "@/components/billing/usage-billing"
 import { Logo } from "@/components/home/logo"
 import { SignInDialogProvider } from "@/components/home/sign-in-dialog"
 import { SiteHeader } from "@/components/home/site-header"
 
-export const metadata: Metadata = {
-  title: "Usage & billing — AppxPrompt",
-  description: "See your plan, the credits you have left, and how many projects you've used.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta.billing")
+  return {
+    title: t("title"),
+    description: t("description"),
+  }
 }
 
-export default function BillingPage() {
+export default async function BillingPage() {
+  const t = await getTranslations()
+
   return (
     <SignInDialogProvider>
       <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-background">
@@ -24,10 +30,8 @@ export default function BillingPage() {
 
         <main className="relative mx-auto w-full max-w-5xl flex-1 px-4 pb-24 sm:px-6">
           <section className="pt-14 pb-8 sm:pt-20">
-            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Usage &amp; billing</h1>
-            <p className="mt-4 text-base text-pretty text-muted-foreground">
-              Your plan, the credits you have left, and how many projects you've used.
-            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t("header.usageBilling")}</h1>
+            <p className="mt-4 text-base text-pretty text-muted-foreground">{t("billing.subtitle")}</p>
           </section>
 
           <UsageBilling />
@@ -36,7 +40,7 @@ export default function BillingPage() {
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
+            <p>{t("home.footer", { year: new Date().getFullYear() })}</p>
           </div>
         </footer>
       </div>

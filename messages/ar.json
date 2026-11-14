@@ -19,6 +19,10 @@
     "docs": {
       "title": "الوثائق — AppxPrompt",
       "description": "تعرّف على كيفية تخطيط تطبيق جوال وبنائه وتعديله واختباره ونشره باستخدام AppxPrompt، من أول طلب لك حتى متاجر التطبيقات."
+    },
+    "billing": {
+      "title": "الاستخدام والفوترة — AppxPrompt",
+      "description": "اطّلع على خطتك والأرصدة المتبقية لديك وعدد المشاريع التي استخدمتها."
     }
   },
   "plans": {
@@ -27,7 +31,9 @@
     },
     "pro": {
       "name": "Pro"
-    }
+    },
+    "current": "الخطة الحالية",
+    "label": "الخطة {plan}"
   },
   "platforms": {
     "ios-android": "iOS وAndroid",
@@ -519,5 +525,148 @@
       },
       "p1": "تكلفة الشاشة الجديدة {screenCredits}، وتكلفة جولة التعديلات {editCredits}، وتكلفة الصورة بالذكاء الاصطناعي {imageCredits}. المحادثة والتخطيط وتبديل السمات مجانية، لكن الحد الأدنى من الرصيد اللازم ليردّ الوكيل هو {editCredits}. رصيدك ظاهر دائمًا في الرأس. راجع صفحة <pricing>الأسعار</pricing> للتفاصيل."
     }
+  },
+  "pricing": {
+    "title": "أسعار بسيطة لبناء التطبيقات",
+    "subtitle": "ابدأ مجانًا، وارقَ بخطتك عندما تكون مستعدًا لنشر تطبيقك في متاجر التطبيقات.",
+    "plans": {
+      "free": {
+        "tagline": "جرّب AppxPrompt وابنِ أول تطبيقاتك.",
+        "price": "$0",
+        "period": "إلى الأبد"
+      },
+      "pro": {
+        "tagline": "لمن ينشرون التطبيقات كل شهر.",
+        "period": "في الشهر"
+      }
+    },
+    "features": {
+      "credits": {
+        "free": "{credits} تُمنح لمرة واحدة ولا تنتهي صلاحيتها",
+        "pro": "{credits} كل شهر. وتنتهي صلاحية ما لم يُستخدم منها عند التجديد"
+      },
+      "build": {
+        "free": "حوالي {apps, plural, zero {{apps, number, integer} تطبيق صغير} one {تطبيق صغير واحد} two {تطبيقين صغيرين} few {{apps, number, integer} تطبيقات صغيرة} many {{apps, number, integer} تطبيقًا صغيرًا} other {{apps, number, integer} تطبيق صغير}} و{edits, plural, zero {{edits, number, integer} تعديل} one {تعديل واحد} two {تعديلين} few {{edits, number, integer} تعديلات} many {{edits, number, integer} تعديلًا} other {{edits, number, integer} تعديل}}",
+        "pro": "حوالي {apps, plural, zero {{apps, number, integer} تطبيق صغير} one {تطبيق صغير واحد} two {تطبيقين صغيرين} few {{apps, number, integer} تطبيقات صغيرة} many {{apps, number, integer} تطبيقًا صغيرًا} other {{apps, number, integer} تطبيق صغير}} أو {edits, plural, zero {{edits, number, integer} تعديل} one {تعديل واحد} two {تعديلين} few {{edits, number, integer} تعديلات} many {{edits, number, integer} تعديلًا} other {{edits, number, integer} تعديل}}"
+      },
+      "projects": {
+        "free": "{count, plural, zero {{count, number, integer} مشروع} one {مشروع واحد} two {مشروعان} few {{count, number, integer} مشاريع} many {{count, number, integer} مشروعًا} other {{count, number, integer} مشروع}}",
+        "unlimited": "مشاريع غير محدودة"
+      },
+      "screens": "حتى {count, plural, zero {{count, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{count, number, integer} شاشات} many {{count, number, integer} شاشة} other {{count, number, integer} شاشة}} لكل مشروع",
+      "web": "النشر كموقع إلكتروني",
+      "stores": {
+        "pro": "التصدير إلى iOS وAndroid",
+        "free": "لا يوجد تصدير إلى iOS أو Android"
+      }
+    },
+    "status": {
+      "welcome": "مرحبًا بك في Pro! أرصدتك جاهزة.",
+      "confirming": "جارٍ تأكيد دفعتك…",
+      "stillConfirming": "ما زالت دفعتك قيد التأكيد. ستعرض هذه الصفحة خطة Pro فور اكتمال العملية، فتفقّدها مجددًا بعد دقيقة."
+    },
+    "actions": {
+      "getStarted": "ابدأ مجانًا",
+      "buildApp": "ابنِ تطبيقًا",
+      "movesToFree": "ستنتقل خطتك إلى هذه الخطة في {date}",
+      "downgrade": "التحويل إلى الخطة المجانية",
+      "signUpPro": "سجّل للانضمام إلى Pro",
+      "keepPro": "الاحتفاظ بـ Pro",
+      "manageBilling": "إدارة الفوترة",
+      "proEnds": "تنتهي خطة Pro في {date}",
+      "renews": "يتجدد الاشتراك في {date}"
+    },
+    "downgrade": {
+      "title": "التحويل إلى الخطة المجانية؟",
+      "description": "ستحتفظ بخطة Pro حتى {date}، ولن يُحتسب عليك أي مبلغ مجددًا. بعد ذلك تنتهي أرصدتك الشهرية، ولا يمكنك التصدير إلى iOS أو Android، ولا بدء مشاريع جديدة تتجاوز {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}. وتبقى المشاريع التي أنشأتها ملكًا لك.",
+      "periodEnd": "نهاية فترة الفوترة الحالية",
+      "confirm": "تحويل"
+    },
+    "costs": {
+      "heading": "كيف تعمل الأرصدة",
+      "free": "مجانًا",
+      "smallApp": {
+        "label": "تطبيق صغير",
+        "detail": "{screens, plural, zero {{screens, number, integer} شاشة} one {شاشة واحدة} two {شاشتان} few {{screens, number, integer} شاشات} many {{screens, number, integer} شاشة} other {{screens, number, integer} شاشة}}، بواقع {credits} لكل شاشة"
+      },
+      "edit": {
+        "label": "تعديل",
+        "detail": "جولة واحدة من التغييرات عبر المحادثة"
+      },
+      "image": {
+        "label": "صورة بالذكاء الاصطناعي",
+        "detail": "تُنشأ أو تُعدَّل في وضع التعديل"
+      },
+      "planning": {
+        "label": "التخطيط",
+        "detail": "المحادثة والخطط وتبديل السمات"
+      }
+    },
+    "questions": {
+      "heading": "الأسئلة",
+      "used": {
+        "question": "متى تُستهلك الأرصدة؟",
+        "answer": "عند بدء عملية البناء. تكلّف الشاشة الجديدة {screenCredits}، وتكلّف جولة التعديلات {editCredits}، وتكلّف الشاشة الجديدة المضافة في تلك الجولة {screenCredits} إضافية. وإذا فشل البناء تستعيد أرصدة ما لم يكتمل منه."
+      },
+      "rollover": {
+        "question": "هل تُرحَّل أرصدتي؟",
+        "answer": "لا تنتهي صلاحية الأرصدة المجانية أبدًا. أما الأرصدة الشهرية في خطة Pro فتنتهي صلاحيتها عند كل تجديد وتُستبدل بها أرصدة جديدة عددها {monthly, number, integer}. وتبقى لك الأرصدة المجانية التي تملكها عند انضمامك إلى Pro، وتُستخدم بعد الأرصدة الشهرية."
+      },
+      "downgrade": {
+        "question": "هل يمكنني خفض خطتي في أي وقت؟",
+        "answer": "نعم. تحتفظ بخطة Pro حتى نهاية الفترة التي دفعت ثمنها، ثم تنتقل إلى الخطة المجانية. تبقى مشاريعك ملكًا لك حتى لو زاد عددها على {max, number, integer}، لكن لا يمكنك بدء مشاريع جديدة بعد ذلك."
+      },
+      "publish": {
+        "question": "هل يمكنني النشر في الخطة المجانية؟",
+        "answer": "نعم، كموقع إلكتروني له عنوانه الخاص. أما بناء ملفات ‎.aab و‎.apk و‎.ipa لمتاجر التطبيقات فهو جزء من خطة Pro."
+      }
+    }
+  },
+  "billing": {
+    "subtitle": "خطتك، والأرصدة المتبقية لديك، وعدد المشاريع التي استخدمتها.",
+    "signInPrompt": "سجّل الدخول لعرض استخدامك وفواتيرك.",
+    "creditsLeft": "المتبقي: {credits}",
+    "creditsLeftLabel": "الأرصدة المتبقية",
+    "projectsUsedLabel": "المشاريع المستخدمة",
+    "lowCredits": "لا يكفي الرصيد المتبقي لتعديل آخر.",
+    "oneTimeCredits": "أرصدة تُمنح لمرة واحدة ولا تنتهي صلاحيتها.",
+    "endsWithPro": "تنتهي الأرصدة الشهرية بانتهاء خطة Pro في {date}.",
+    "expiresOn": "تنتهي صلاحية الأرصدة الشهرية غير المستخدمة في {date}.",
+    "projectsCount": "{count, plural, zero {{count, number, integer} مشروع} one {مشروع واحد} two {مشروعان} few {{count, number, integer} مشاريع} many {{count, number, integer} مشروعًا} other {{count, number, integer} مشروع}}",
+    "projectsOf": "{used, number, integer} من أصل {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}",
+    "unlimited": "غير محدودة في خطة Pro.",
+    "allProjectsUsed": "لقد استخدمت جميع مشاريعك.",
+    "screensEach": "حتى {count, plural, zero {{count, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{count, number, integer} شاشات} many {{count, number, integer} شاشة} other {{count, number, integer} شاشة}} لكل منها.",
+    "managePlan": "إدارة الخطة",
+    "errors": {
+      "network": "تعذّر الوصول إلى الخادم. تحقق من اتصالك وحاول مجددًا."
+    }
+  },
+  "upgrade": {
+    "projects": {
+      "title": "لقد استخدمت مشاريعك المجانية",
+      "description": "تتضمن الخطة المجانية {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}. انضم إلى Pro لتبني ما تشاء من المشاريع."
+    },
+    "screens": {
+      "title": "يحتاج هذا التطبيق إلى مزيد من الشاشات",
+      "description": "تسمح الخطة المجانية بما يصل إلى {free, plural, zero {{free, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{free, number, integer} شاشات} many {{free, number, integer} شاشة} other {{free, number, integer} شاشة}} لكل مشروع. انضم إلى Pro لتبني ما يصل إلى {pro, plural, zero {{pro, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{pro, number, integer} شاشات} many {{pro, number, integer} شاشة} other {{pro, number, integer} شاشة}}."
+    },
+    "credits": {
+      "title": "نفدت أرصدتك",
+      "description": "ليس لديك رصيد كافٍ لهذا الإجراء. انضم إلى Pro لتحصل على أرصدة جديدة كل شهر."
+    },
+    "native-publish": {
+      "title": "انشر في متاجر التطبيقات مع Pro",
+      "description": "التصدير إلى iOS وAndroid جزء من خطة Pro. أما في الخطة المجانية فيمكنك نشر تطبيقك كموقع إلكتروني."
+    },
+    "highlightCredits": "{credits} كل شهر",
+    "alreadyPro": {
+      "title": "لقد استخدمت أرصدة هذا الشهر",
+      "renews": "ستحصل على {count, number, integer} رصيد إضافي عند تجديد خطة Pro في {date}.",
+      "noneLeft": "ليس لديك رصيد كافٍ متبقٍّ لهذا الإجراء."
+    },
+    "gotIt": "حسنًا",
+    "join": "انضم إلى Pro مقابل <amount>{price}</amount> شهريًا",
+    "comparePlans": "قارن بين الخطط"
   }
 }
