@@ -121,9 +121,19 @@ Then set `JOBS_PUBLIC_URL` in `.env` to the tunnel's address. Planning works wit
 | `npm run dev` | Starts the dev server |
 | `npm run build` | Builds for production |
 | `npm start` | Runs the production build |
+| `npm test` | Runs the tests, including the language checks |
 | `npm run db:generate` | Creates a migration from `db/schema.ts` |
 | `npm run db:push` | Applies the schema to the database |
 | `npm run db:studio` | Opens Drizzle Studio |
+
+## Languages
+
+The interface is available in English and Arabic (right to left), with [next-intl](https://next-intl.dev). There are no locale URLs: the language is the `appxprompt-locale` cookie, set by the EN / ع toggle in the headers, and the first visit follows the browser's `Accept-Language`.
+
+- **Where the text lives.** `messages/en.json` and `messages/ar.json`. Components read it with `useTranslations`, server code with `getTranslations` or `serverT` from `lib/i18n/server.ts`. Setup is in `i18n/`.
+- **Adding a key.** Add it to **both** files, with identical key paths. Write counts in Arabic as `{count, number, integer}` instead of a bare `#`, and use all six plural forms for words that take a count. Put links and bold text in the message as tags and fill them with `t.rich`.
+- **Layout.** Use logical classes (`ms-*`, `ps-*`, `text-start`, `start-*`) instead of left and right ones, and give user-written text `dir="auto"`.
+- **Guards.** `npm test` checks that both files have the same keys, that Arabic counts and plurals work, that nothing is double-escaped, that no component hard-codes visible text, and that no physical left or right classes come back.
 
 ## Project structure
 
@@ -145,6 +155,8 @@ lib/
   github/            Push to GitHub
   billing/           Credits and Stripe
 preview-runtime/     Runs generated apps in the browser
+messages/            English and Arabic interface text
+i18n/                Locale detection, formats, and request config
 db/                  Database schema
 drizzle/             Migrations
 docs/                Project documentation
