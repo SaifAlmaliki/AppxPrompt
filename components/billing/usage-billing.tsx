@@ -35,7 +35,7 @@ export function UsageBilling() {
 function SignedInUsage({ user }: { user: SessionUser }) {
   const { projects, failed, reload } = useProjectList("/api/projects")
 
-  if (failed && !projects) return <LoadFailed what="your usage" onRetry={reload} />
+  if (failed && !projects) return <LoadFailed what="usage" onRetry={reload} />
   if (!projects) return USAGE_SKELETON
   return <PlanUsage user={user} projectCount={projects.length} />
 }

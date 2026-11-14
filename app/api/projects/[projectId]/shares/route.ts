@@ -44,7 +44,7 @@ export async function POST(request: Request, context: Context) {
   const body = (await request.json().catch(() => null)) as { email?: unknown } | null
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : ""
   const problem = validateAuthFields("sign-in", { name: "", email, password: "-" }).email
-  if (problem) return error(problem, 400)
+  if (problem) return error(problem.key === "enterEmail" ? "Enter your email address." : "Enter a valid email address.", 400)
   if (email === owned.user.email) return error("This is your own project, so you already have access.", 400)
 
   // Accounts don't confirm their email, so a share waiting for someone to sign up

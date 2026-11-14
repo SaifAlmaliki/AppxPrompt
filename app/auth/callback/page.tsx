@@ -2,18 +2,24 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { Loader2Icon } from "lucide-react"
 
+import type { AuthErrorKey } from "@/lib/auth-validation"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/home/logo"
 
-const PROVIDER_ERRORS: Record<string, string> = {
-  access_denied: "Sign-in was cancelled.",
-  unsupported_provider: "That sign-in option isn't available.",
+const PROVIDER_ERRORS: Record<string, AuthErrorKey> = {
+  access_denied: "cancelled",
+  unsupported_provider: "unsupportedProvider",
 }
 
+/** A message key, or text the server gave for a problem that has no key. */
+type CallbackError = { errorKey: AuthErrorKey; text?: undefined } | { text: string; errorKey?: undefined }
+
 export default function AuthCallbackPage() {
-  const [error, setError] = React.useState<string | null>(null)
+  const t = useTranslations("auth")
+  const [error, setError] = React.useState<CallbackError | null>(null)
   const started = React.useRef(false)
 
   React.useEffect(() => {
@@ -28,10 +34,7 @@ export default function AuthCallbackPage() {
     window.history.replaceState(null, "", window.location.pathname)
 
     if (!token) {
-      setError(
-        (providerError && PROVIDER_ERRORS[providerError]) ||
-          "Sign-in wasn't completed. Please try again."
-      )
+      setError({ errorKey: (providerError && PROVIDER_ERRORS[providerError]) || "incomplete" })
       return
     }
 
@@ -46,11 +49,15 @@ export default function AuthCallbackPage() {
           return
         }
         const data = await res.json().catch(() => null)
-        setError(data?.error ?? "Sign-in failed. Please try again.")
+        setError(
+          typeof data?.errorKey === "string"
+            ? { errorKey: data.errorKey as AuthErrorKey }
+            : typeof data?.error === "string"
+              ? { text: data.error }
+              : { errorKey: "failed" }
+        )
       })
-      .catch(() =>
-        setError("Can't reach the server. Check your connection and try again.")
-      )
+      .catch(() => setError({ errorKey: "network" }))
   }, [])
 
   return (
@@ -59,19 +66,19 @@ export default function AuthCallbackPage() {
       {error ? (
         <>
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold tracking-tight">Couldn&apos;t sign you in</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{t("callback.title")}</h1>
             <p role="alert" className="text-sm text-muted-foreground">
-              {error}
+              {error.errorKey ? t(`errors.${error.errorKey}`) : error.text}
             </p>
           </div>
           <Button size="lg" className="h-10" nativeButton={false} render={<Link href="/" />}>
-            Back to AppxPrompt
+            {t("callback.back")}
           </Button>
         </>
       ) : (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" />
-          Signing you in…
+          {t("callback.signingIn")}
         </p>
       )}
     </main>

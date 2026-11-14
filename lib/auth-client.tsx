@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import type { AuthFields, AuthMode, FieldErrors } from "@/lib/auth-validation"
+import type { AuthErrorKey, AuthFields, AuthMode, FieldErrors } from "@/lib/auth-validation"
 import type { PlanId } from "@/lib/plans"
 
 export type SessionUser = {
@@ -17,9 +17,12 @@ export type SessionUser = {
   cancelAtPeriodEnd: boolean
 }
 
+/** A failure is a message key to word in the page's language, or the auth service's own text. */
+export type AuthFailure = { errorKey: AuthErrorKey; error?: undefined } | { error: string; errorKey?: undefined }
+
 type AuthResult =
-  | { user: SessionUser; error?: undefined; fieldErrors?: undefined }
-  | { user?: undefined; error: string; fieldErrors?: FieldErrors }
+  | { user: SessionUser; error?: undefined; errorKey?: undefined; fieldErrors?: undefined }
+  | ({ user?: undefined; fieldErrors?: FieldErrors } & AuthFailure)
 
 type AuthContextValue = {
   user: SessionUser | null
@@ -67,15 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         const data = await res.json().catch(() => null)
         if (!res.ok || !data?.user) {
-          return {
-            error: data?.error ?? "Something went wrong. Please try again.",
-            fieldErrors: data?.fieldErrors,
-          }
+          const failure: AuthFailure =
+            typeof data?.errorKey === "string"
+              ? { errorKey: data.errorKey as AuthErrorKey }
+              : typeof data?.error === "string"
+                ? { error: data.error }
+                : { errorKey: "generic" }
+          return { ...failure, fieldErrors: data?.fieldErrors }
         }
         setUser(data.user)
         return { user: data.user }
       } catch {
-        return { error: "Can't reach the server. Check your connection and try again." }
+        return { errorKey: "network" }
       }
     },
     []

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import {
   CopyPlusIcon,
   DownloadIcon,
@@ -43,18 +44,28 @@ import { ShareDialog } from "@/components/workspace/share-dialog"
 
 export type ProjectDialogKind = "rename" | "delete" | "share" | "download"
 
-/** Sends a change to the project's API. Answers with what went wrong, if anything. */
-export async function sendChange(url: string, method: string, body?: unknown, onUpgrade?: (reason: UpgradeReason) => void) {
-  const response = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  }).catch(() => null)
-  if (!response) return "Couldn't reach the server. Check your connection and try again."
-  if (response.ok) return null
-  const answer = await response.json().catch(() => null)
-  if (isUpgradeReason(answer?.code)) onUpgrade?.(answer.code)
-  return (answer?.error as string | undefined) ?? "Something went wrong. Please try again."
+/**
+ * Sends a change to the project's API. Answers with what went wrong, if anything:
+ * the server's own text when it gave one, else a message in the page's language.
+ */
+export function useSendChange() {
+  const t = useTranslations("projects.errors")
+
+  return React.useCallback(
+    async (url: string, method: string, body?: unknown, onUpgrade?: (reason: UpgradeReason) => void) => {
+      const response = await fetch(url, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      }).catch(() => null)
+      if (!response) return t("network")
+      if (response.ok) return null
+      const answer = await response.json().catch(() => null)
+      if (isUpgradeReason(answer?.code)) onUpgrade?.(answer.code)
+      return (answer?.error as string | undefined) ?? t("generic")
+    },
+    [t]
+  )
 }
 
 export function ProjectMenu({
@@ -68,6 +79,7 @@ export function ProjectMenu({
   onDuplicate: () => void
   onSetPublic: (isPublic: boolean) => void
 }) {
+  const t = useTranslations("projects.menu")
   const href = `/workspace/${project.id}`
   const isOwner = project.role === "owner"
   const working = project.status === "building"
@@ -79,7 +91,7 @@ export function ProjectMenu({
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Actions for ${project.name}`}
+            aria-label={t("actions", { name: project.name })}
             className="rounded-full bg-white/85 text-foreground/70 shadow-sm backdrop-blur-md hover:bg-white hover:text-violet-700"
           />
         }
@@ -89,38 +101,38 @@ export function ProjectMenu({
       <DropdownMenuContent align="end" className="w-52 rounded-2xl">
         <DropdownMenuItem className="rounded-xl py-2" render={<Link href={href} />}>
           <FolderOpenIcon />
-          Open project
+          {t("open")}
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-xl py-2" render={<a href={href} target="_blank" rel="noreferrer" />}>
           <ExternalLinkIcon />
-          Open in new tab
+          {t("openNewTab")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {isOwner && (
           <>
             <DropdownMenuItem className="rounded-xl py-2" disabled={working} onClick={() => onDialog("rename")}>
               <PencilIcon />
-              Rename
+              {t("rename")}
             </DropdownMenuItem>
             <DropdownMenuItem className="rounded-xl py-2" disabled={working} onClick={onDuplicate}>
               <CopyPlusIcon />
-              Duplicate
+              {t("duplicate")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="rounded-xl py-2" onClick={() => onDialog("share")}>
               <Share2Icon />
-              Share
+              {t("share")}
             </DropdownMenuItem>
             {project.isPublic ? (
               <DropdownMenuItem className="rounded-xl py-2" onClick={() => onSetPublic(false)}>
                 <LockIcon />
-                Make private
+                {t("makePrivate")}
               </DropdownMenuItem>
             ) : (
               // The share dialog says what going public shows, so the choice is made there.
               <DropdownMenuItem className="rounded-xl py-2" disabled={!project.hasPreview} onClick={() => onDialog("share")}>
                 <GlobeIcon />
-                Make public…
+                {t("makePublic")}
               </DropdownMenuItem>
             )}
           </>
@@ -131,14 +143,14 @@ export function ProjectMenu({
           onClick={() => onDialog("download")}
         >
           <DownloadIcon />
-          Export as ZIP
+          {t("exportZip")}
         </DropdownMenuItem>
         {isOwner && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" className="rounded-xl py-2" disabled={working} onClick={() => onDialog("delete")}>
               <Trash2Icon />
-              Delete
+              {t("delete")}
             </DropdownMenuItem>
           </>
         )}
@@ -200,6 +212,8 @@ function RenameDialog({
   onOpenChange: (open: boolean) => void
   onRenamed: (name: string) => void
 }) {
+  const t = useTranslations("projects.rename")
+  const sendChange = useSendChange()
   const [name, setName] = React.useState(project.name)
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -226,12 +240,12 @@ function RenameDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-5 rounded-3xl p-6 sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold tracking-tight">Rename project</DialogTitle>
-          <DialogDescription>Your exported app gets this name too.</DialogDescription>
+          <DialogTitle className="text-base font-semibold tracking-tight">{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={save} noValidate className="grid gap-3">
           <label htmlFor="project-name" className="sr-only">
-            Project name
+            {t("label")}
           </label>
           <Input
             id="project-name"
@@ -252,11 +266,11 @@ function RenameDialog({
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" className="h-10 rounded-full px-4" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" className="h-10 rounded-full px-4" disabled={saving || !name.trim()}>
               {saving && <Loader2Icon className="animate-spin" />}
-              Save
+              {t("save")}
             </Button>
           </div>
         </form>
@@ -276,6 +290,8 @@ function DeleteDialog({
   onOpenChange: (open: boolean) => void
   onDeleted: () => void
 }) {
+  const t = useTranslations("projects.delete")
+  const sendChange = useSendChange()
   const [deleting, setDeleting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -296,11 +312,8 @@ function DeleteDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-3xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Its screens, chat, and files are gone for good, including for anyone it's shared with. Its website, GitHub repository, and
-            CloudHike backend stay where they are.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t("title", { name: project.name })}</AlertDialogTitle>
+          <AlertDialogDescription>{t("description")}</AlertDialogDescription>
         </AlertDialogHeader>
         {error && (
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -308,10 +321,10 @@ function DeleteDialog({
           </p>
         )}
         <AlertDialogFooter className="rounded-b-3xl">
-          <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-full">{t("cancel")}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" className="rounded-full" disabled={deleting} onClick={() => void confirm()}>
             {deleting && <Loader2Icon className="animate-spin" />}
-            Delete project
+            {t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

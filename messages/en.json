@@ -20,5 +20,388 @@
       "title": "Docs — AppxPrompt",
       "description": "Learn how to plan, build, edit, test, and publish a mobile app with AppxPrompt, from your first prompt to the app stores."
     }
+  },
+  "plans": {
+    "free": {
+      "name": "Free"
+    },
+    "pro": {
+      "name": "Pro"
+    }
+  },
+  "platforms": {
+    "ios-android": "iOS & Android",
+    "ios": "iOS only",
+    "android": "Android only"
+  },
+  "header": {
+    "nav": {
+      "explore": "Explore",
+      "templates": "Templates",
+      "pricing": "Pricing",
+      "docs": "Docs"
+    },
+    "homeLabel": "AppxPrompt home",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "openMenu": "Open menu",
+    "creditsTitle": "{credits} remaining on the {plan} plan",
+    "creditsUnit": "{count, plural, other {credits}}",
+    "accountMenu": "Open account menu",
+    "managePro": "Manage Pro plan",
+    "upgradePro": "Upgrade to Pro",
+    "usageBilling": "Usage & billing",
+    "myProjects": "My projects",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "home": {
+    "badge": "New",
+    "tagline": "AI agent for mobile apps",
+    "heroTitle": "Turn your idea into a <highlight>mobile app</highlight>",
+    "heroSubtitle": "Describe what you want to build. AppxPrompt designs the screens, writes the code, and gets it ready for iOS and Android.",
+    "footer": "© {year} AppxPrompt. All rights reserved."
+  },
+  "composer": {
+    "label": "Describe the app you want to build",
+    "placeholder": "Describe your app idea… e.g. A recipe app that suggests meals from what's in my fridge",
+    "attach": "Attach",
+    "dropFiles": "Drop files to attach",
+    "newLine": "<kbd>Shift + Enter</kbd> for new line",
+    "generate": "Generate app",
+    "creatingLabel": "Creating project",
+    "previewFile": "Preview {name}",
+    "removeFile": "Remove {name}",
+    "status": {
+      "uploading": "Uploading {count, plural, one {# asset} other {# assets}}… {percent}%",
+      "sending": "Sending your prompt…",
+      "creating": "Creating your project…",
+      "redirecting": "Opening your workspace…"
+    },
+    "fileSize": {
+      "bytes": "{value} B",
+      "kilobytes": "{value} KB",
+      "megabytes": "{value} MB"
+    },
+    "errors": {
+      "unsupported": "Attach images, PDFs, or text files (.txt, .md, .json, .csv).",
+      "tooLarge": "Files must be under {size}.",
+      "tooMany": "You can attach up to {count, plural, one {# file} other {# files}}.",
+      "sessionExpired": "Your session has expired. Sign in again to create your app.",
+      "createFailed": "We couldn't create your project. Please try again.",
+      "network": "Couldn't reach the server. Check your connection and try again."
+    },
+    "signUpReason": "Create a free account to generate your app — your prompt is saved."
+  },
+  "projects": {
+    "public": {
+      "title": "Built with AppxPrompt",
+      "description": "Real apps from the community. Open one and try it.",
+      "signInToSee": "Sign in to see your projects",
+      "emptyTitle": "No public apps yet",
+      "emptyBody": "Be the first: build an app and share it with everyone here.",
+      "getStarted": "Get started"
+    },
+    "yours": {
+      "title": "Your projects",
+      "description": "Pick up where you left off, or start something new."
+    },
+    "shared": {
+      "title": "Shared with you",
+      "description": "Projects other people have given you access to view."
+    },
+    "newProject": "New project",
+    "duplicating": "Duplicating your project…",
+    "loadFailed": {
+      "publicApps": "We couldn't load these apps.",
+      "projects": "We couldn't load your projects.",
+      "usage": "We couldn't load your usage.",
+      "retry": "Try again"
+    },
+    "status": {
+      "planning": "Planning",
+      "building": "Building",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "card": {
+      "public": "Public",
+      "edited": "Edited {time}",
+      "noPreview": "Your app appears here once it's built",
+      "previewUnavailable": "Preview unavailable",
+      "preview": "{name} preview"
+    },
+    "menu": {
+      "actions": "Actions for {name}",
+      "open": "Open project",
+      "openNewTab": "Open in new tab",
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "share": "Share",
+      "makePrivate": "Make private",
+      "makePublic": "Make public…",
+      "exportZip": "Export as ZIP",
+      "delete": "Delete"
+    },
+    "rename": {
+      "title": "Rename project",
+      "description": "Your exported app gets this name too.",
+      "label": "Project name",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "delete": {
+      "title": "Delete {name}?",
+      "description": "Its screens, chat, and files are gone for good, including for anyone it's shared with. Its website, GitHub repository, and CloudHike backend stay where they are.",
+      "cancel": "Cancel",
+      "confirm": "Delete project"
+    },
+    "publicDialog": {
+      "couldntLoad": "This app couldn't be loaded",
+      "loading": "Loading app…",
+      "madeBy": "Made by {owner}",
+      "notice": "This is the real app, running on sample data. Tap around: nothing you do here reaches anyone else.",
+      "buildOwn": "Build your own",
+      "startOverLabel": "Start over with the sample data",
+      "startOver": "Start over",
+      "running": "{name}, running"
+    },
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "templates": {
+    "heading": "Start from a template",
+    "subheading": "Each one is a detailed prompt. Pick one, change anything you like, and send it.",
+    "screensLabel": "Screens",
+    "use": "Use this template",
+    "recipe-planner": {
+      "name": "Recipe planner",
+      "category": "Food",
+      "description": "Find recipes by ingredient, plan the week's meals, and build a shopping list.",
+      "screens": [
+        "Discover",
+        "Recipe",
+        "Meal plan",
+        "Shopping list"
+      ],
+      "prompt": "A recipe and meal planning app. Screens: Discover, with a search bar, ingredient filters, and recipe cards with photo, cooking time, and calories; Recipe, with ingredients, step-by-step instructions, and a button to add it to the plan; Meal plan, a weekly calendar with breakfast, lunch, and dinner slots; and Shopping list, which collects the ingredients from the plan, grouped by aisle, with checkboxes. Fresh, warm design with rounded cards and a green accent."
+    },
+    "workout-tracker": {
+      "name": "Workout tracker",
+      "category": "Health",
+      "description": "Log workouts, time your sets, and watch your strength go up week by week.",
+      "screens": [
+        "Today",
+        "Workout",
+        "History",
+        "Progress"
+      ],
+      "prompt": "A workout tracking app. Screens: Today, showing the planned workout, a streak counter, and a start button; Workout, to log sets, reps, and weight for each exercise with a rest timer between sets; History, a list of past workouts by date with total volume; and Progress, with charts of personal records and weekly volume per muscle group. Bold, energetic design with a dark background and a bright orange accent."
+    },
+    "budget-tracker": {
+      "name": "Budget tracker",
+      "category": "Finance",
+      "description": "Track spending by category, set monthly budgets, and spot where money goes.",
+      "screens": [
+        "Overview",
+        "Add expense",
+        "Budgets",
+        "Insights"
+      ],
+      "prompt": "A personal budget app. Screens: Overview, with this month's balance, spending against budget, and recent transactions; Add expense, a quick form with amount, category icons, date, and a note; Budgets, a monthly limit for each category with a progress bar that turns red when it's close; and Insights, with a spending-by-category donut chart and a month-by-month comparison. Calm, trustworthy design with a navy and teal palette."
+    },
+    "salon-booking": {
+      "name": "Salon booking",
+      "category": "Business",
+      "description": "Let clients browse services, pick a stylist, and book a time slot.",
+      "screens": [
+        "Services",
+        "Stylists",
+        "Book",
+        "My bookings"
+      ],
+      "prompt": "A booking app for a hair salon. Screens: Services, a list of services with price and duration grouped by category; Stylists, with photos, specialties, and ratings; Book, where the client picks a service, a stylist, a date, and an open time slot, then confirms; and My bookings, with upcoming and past appointments and options to reschedule or cancel. Elegant, modern design with a soft rose and charcoal palette."
+    },
+    "local-events": {
+      "name": "Local events",
+      "category": "Social",
+      "description": "Discover events nearby, RSVP, and see who else is going.",
+      "screens": [
+        "Explore",
+        "Event",
+        "My events",
+        "Profile"
+      ],
+      "prompt": "A local events and meetups app. Screens: Explore, with event cards showing a cover image, date, place, and category chips to filter by; Event, with details, a map location, the host, attendees' avatars, and an RSVP button; My events, a list of events I'm going to and ones I've hosted; and Profile, with my interests, past events, and a short bio. Vibrant, playful design with a purple and yellow palette."
+    },
+    "team-tasks": {
+      "name": "Team tasks",
+      "category": "Productivity",
+      "description": "Organize projects into boards, assign tasks, and track what's due.",
+      "screens": [
+        "Projects",
+        "Board",
+        "Task",
+        "My tasks"
+      ],
+      "prompt": "A task manager for small teams. Screens: Projects, a list of projects with progress bars and member avatars; Board, a project's tasks in To do, In progress, and Done columns; Task, with title, description, assignee, due date, priority, and a checklist; and My tasks, everything assigned to me, sorted by due date with overdue tasks highlighted. Clean, minimal design with plenty of white space and a blue accent."
+    },
+    "language-flashcards": {
+      "name": "Language flashcards",
+      "category": "Education",
+      "description": "Learn new words with flashcards, daily goals, and quick quizzes.",
+      "screens": [
+        "Home",
+        "Study",
+        "Quiz",
+        "Word list"
+      ],
+      "prompt": "A language learning flashcards app. Screens: Home, with today's goal, a streak, and decks to pick from; Study, a flashcard that flips to show the translation and an example sentence, with buttons for 'Again' and 'Got it'; Quiz, multiple-choice questions with a score at the end; and Word list, every word in a deck with search and a mastered badge. Friendly, encouraging design with bright colors and large, readable type."
+    },
+    "pet-care": {
+      "name": "Pet care",
+      "category": "Lifestyle",
+      "description": "Keep every pet's meals, vet visits, and reminders in one place.",
+      "screens": [
+        "My pets",
+        "Pet profile",
+        "Reminders",
+        "Health log"
+      ],
+      "prompt": "A pet care app. Screens: My pets, cards for each pet with photo, name, and the next reminder; Pet profile, with breed, age, weight, and feeding notes; Reminders, for meals, walks, medication, and vet visits, with times and repeat options; and Health log, a timeline of vet visits, vaccinations, and weight. Warm, cheerful design with soft orange and cream colors."
+    }
+  },
+  "faq": {
+    "heading": "Frequently asked questions",
+    "subtitle": "Can't find your answer? The <docs>docs</docs> cover every feature step by step.",
+    "items": {
+      "builds": {
+        "question": "What does AppxPrompt build?",
+        "answer": "A real mobile app, written in Expo and React Native, that runs on iOS and Android and on the web. You describe it, the agent plans the screens with you, and then builds them one at a time while you watch."
+      },
+      "coding": {
+        "question": "Do I need to know how to code?",
+        "answer": "No. You talk to the agent in plain language, and you can click any element in a screen to change its text, color, or image. If you do code, every file is there to read, and you can download the project."
+      },
+      "ownership": {
+        "question": "Who owns the code?",
+        "answer": "You do. Download a complete Expo project as a ZIP, or push it to your own GitHub repository, and keep working on it anywhere. Nothing ties it to AppxPrompt."
+      },
+      "phone": {
+        "question": "How do I try my app on a phone?",
+        "answer": "Click Scan QR Code in the workspace and scan it with Expo Go. The app opens on your phone, and every change you make shows up there right away while the tab stays open."
+      },
+      "backend": {
+        "question": "Can my app have real accounts and data?",
+        "answer": "Yes. Connect Backend gives your app its own CloudHike database, sign-in, and file storage, with no changes to your screens. Until then, apps run on sample data stored in your browser."
+      },
+      "stores": {
+        "question": "Can I put my app in the App Store and Google Play?",
+        "answer": "On Pro, Publish builds the .aab, .apk, and .ipa files through your own Expo account, ready to upload with your Apple and Google developer accounts. Any plan can publish the app as a website with its own address."
+      },
+      "screens": {
+        "question": "How many screens can an app have?",
+        "answer": "Up to {free} on Free and {pro} on Pro. The agent keeps a first plan small so you can see results quickly, and adds more screens whenever you ask."
+      },
+      "cost": {
+        "question": "What does it cost?",
+        "answer": "Starting is free, with {signup, plural, one {# credit} other {# credits}} that never expire. A new screen costs {screen, plural, one {# credit} other {# credits}} and a round of changes costs {edit}, while chatting, planning, and switching themes are free. See <pricing>Pricing</pricing> for Pro."
+      },
+      "privacy": {
+        "question": "Who can see my projects?",
+        "answer": "Only you, unless you choose otherwise. You can share a project with someone by email so they can view it, or show it on the AppxPrompt home page for anyone to try with sample data."
+      }
+    }
+  },
+  "auth": {
+    "title": {
+      "signUp": "Create your account",
+      "signIn": "Welcome back"
+    },
+    "description": {
+      "signUp": "Start turning your ideas into mobile apps — with {credits, plural, one {# free credit} other {# free credits}}.",
+      "signIn": "Sign in to continue building with AppxPrompt."
+    },
+    "orEmail": "or continue with email",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Jane Doe",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordHint": "At least {min, plural, one {# character} other {# characters}}.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "submit": {
+      "signIn": "Sign in",
+      "signUp": "Create account",
+      "signingIn": "Signing in…",
+      "signingUp": "Creating account…"
+    },
+    "switch": {
+      "haveAccount": "Already have an account?",
+      "newHere": "New to AppxPrompt?",
+      "toSignIn": "Sign in",
+      "toSignUp": "Create an account"
+    },
+    "callback": {
+      "title": "Couldn't sign you in",
+      "back": "Back to AppxPrompt",
+      "signingIn": "Signing you in…"
+    },
+    "errors": {
+      "enterName": "Enter your name.",
+      "nameTooLong": "Name must be {max, plural, one {# character} other {# characters}} or fewer.",
+      "enterEmail": "Enter your email address.",
+      "invalidEmail": "Enter a valid email address.",
+      "enterPassword": "Enter your password.",
+      "passwordTooShort": "Password must be at least {min, plural, one {# character} other {# characters}}.",
+      "passwordTooLong": "Password must be {max, plural, one {# character} other {# characters}} or fewer.",
+      "fixFields": "Please fix the highlighted fields.",
+      "invalidRequest": "Invalid request.",
+      "incorrectCredentials": "Incorrect email or password.",
+      "accountExists": "An account with this email already exists. Try signing in.",
+      "passwordShort": "Password is too short.",
+      "passwordLong": "Password is too long.",
+      "tooManyAttempts": "Too many attempts. Please wait a moment and try again.",
+      "serverError": "Something went wrong on our side. Please try again.",
+      "generic": "Something went wrong. Please try again.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "linkExpired": "This sign-in link has expired. Please try again.",
+      "notVerified": "Sign-in could not be verified. Please try again.",
+      "cancelled": "Sign-in was cancelled.",
+      "unsupportedProvider": "That sign-in option isn't available.",
+      "incomplete": "Sign-in wasn't completed. Please try again.",
+      "failed": "Sign-in failed. Please try again."
+    }
+  },
+  "quickPrompts": {
+    "habit-tracker": {
+      "label": "Habit tracker",
+      "prompt": "A habit tracker app with daily streaks, reminders, and a weekly progress chart. Clean, calming design with soft greens."
+    },
+    "food-delivery": {
+      "label": "Food delivery",
+      "prompt": "A food delivery app with restaurant listings, search and filters, a cart, and live order tracking on a map."
+    },
+    "fitness-coach": {
+      "label": "Fitness coach",
+      "prompt": "A personal fitness coach app with workout plans, an exercise timer, and progress stats with charts."
+    },
+    "expense-manager": {
+      "label": "Expense manager",
+      "prompt": "An expense manager that lets users log spending by category, set monthly budgets, and see spending insights."
+    },
+    "travel-planner": {
+      "label": "Travel planner",
+      "prompt": "A travel planner app to build day-by-day itineraries, save places, and share trips with friends."
+    },
+    "social-feed": {
+      "label": "Social feed",
+      "prompt": "A minimal social app with a photo feed, likes, comments, user profiles, and direct messages."
+    }
   }
 }

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
+import type { AuthErrorKey } from "@/lib/auth-validation"
 import { getAuthSession } from "@/lib/cloudhike-auth"
 import {
   OAUTH_STATE_COOKIE,
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
   if (!token || !state || !expected || !sameState(state, expected)) {
     return NextResponse.json(
-      { error: "This sign-in link has expired. Please try again." },
+      { errorKey: "linkExpired" satisfies AuthErrorKey },
       { status: 400 }
     )
   }
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     const session = await getAuthSession(token)
     if (!session) {
       return NextResponse.json(
-        { error: "Sign-in could not be verified. Please try again." },
+        { errorKey: "notVerified" satisfies AuthErrorKey },
         { status: 401 }
       )
     }
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Social sign-in failed", error)
     return NextResponse.json(
-      { error: "Something went wrong on our side. Please try again." },
+      { errorKey: "serverError" satisfies AuthErrorKey },
       { status: 500 }
     )
   }
