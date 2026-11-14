@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from "next-intl"
 import * as React from "react"
 import { CheckIcon, Loader2Icon, MinusIcon, SparklesIcon } from "lucide-react"
 
+import { useBrowserTimeZone } from "@/hooks/use-browser-time-zone"
 import { useAuth } from "@/lib/auth-client"
 import {
   EDIT_CREDITS,
@@ -77,6 +78,7 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
   const { openSignIn } = useSignInDialog()
   const t = useTranslations()
   const format = useFormatter()
+  const timeZone = useBrowserTimeZone()
   const [waitingForPayment, setWaitingForPayment] = React.useState(checkout)
   const [changing, setChanging] = React.useState(false)
   const [changeError, setChangeError] = React.useState<string | null>(null)
@@ -114,7 +116,7 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
     setConfirmDowngrade(false)
   }
 
-  const endsOn = user?.currentPeriodEnd ? format.dateTime(new Date(user.currentPeriodEnd), "monthDayYear") : null
+  const endsOn = user?.currentPeriodEnd ? format.dateTime(new Date(user.currentPeriodEnd), "monthDayYear", { timeZone }) : null
   const error = redirectError ?? changeError
 
   return (

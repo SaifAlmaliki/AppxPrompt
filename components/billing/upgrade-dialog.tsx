@@ -5,6 +5,7 @@ import * as React from "react"
 import { CheckIcon, CoinsIcon, FolderPlusIcon, LayersIcon, Loader2Icon, SmartphoneIcon, SparklesIcon, type LucideIcon } from "lucide-react"
 import { useFormatter, useTranslations } from "next-intl"
 
+import { useBrowserTimeZone } from "@/hooks/use-browser-time-zone"
 import { useAuth } from "@/lib/auth-client"
 import { PLANS, PRO_MONTHLY_CREDITS, PRO_PRICE_LABEL, type UpgradeReason } from "@/lib/plans"
 import { Button } from "@/components/ui/button"
@@ -75,6 +76,7 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
   const { redirect, pending, error } = useBillingRedirect()
   const t = useTranslations()
   const format = useFormatter()
+  const timeZone = useBrowserTimeZone()
   const Icon = REASON_ICONS[reason]
   const reasonValues = {
     max: PLANS.free.maxProjects ?? 0,
@@ -102,7 +104,7 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
               {user.currentPeriodEnd && !user.cancelAtPeriodEnd
                 ? t("upgrade.alreadyPro.renews", {
                     count: PRO_MONTHLY_CREDITS,
-                    date: format.dateTime(new Date(user.currentPeriodEnd), "monthDay"),
+                    date: format.dateTime(new Date(user.currentPeriodEnd), "monthDay", { timeZone }),
                   })
                 : t("upgrade.alreadyPro.noneLeft")}
             </DialogDescription>

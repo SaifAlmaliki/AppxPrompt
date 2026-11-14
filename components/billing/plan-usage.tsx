@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowRightIcon, CoinsIcon, FolderIcon, SparklesIcon } from "lucide-react"
 import { useFormatter, useTranslations } from "next-intl"
 
+import { useBrowserTimeZone } from "@/hooks/use-browser-time-zone"
 import type { SessionUser } from "@/lib/auth-client"
 import { EDIT_CREDITS, FREE_SIGNUP_CREDITS, PLANS, PRO_MONTHLY_CREDITS } from "@/lib/plans"
 import { cn } from "@/lib/utils"
@@ -14,13 +15,14 @@ import { Progress } from "@/components/ui/progress"
 export function PlanUsage({ user, projectCount }: { user: SessionUser; projectCount: number }) {
   const t = useTranslations()
   const format = useFormatter()
+  const timeZone = useBrowserTimeZone()
   const isPro = user.plan === "pro"
   const { maxProjects } = PLANS[user.plan]
   // Credits refunded or kept from Free can put this above the allowance, which simply shows as full.
   const allowance = isPro ? PRO_MONTHLY_CREDITS : FREE_SIGNUP_CREDITS
   const low = user.credits < EDIT_CREDITS
   const projectsFull = maxProjects !== null && projectCount >= maxProjects
-  const periodEnd = user.currentPeriodEnd ? format.dateTime(new Date(user.currentPeriodEnd), "monthDayShort") : ""
+  const periodEnd = user.currentPeriodEnd ? format.dateTime(new Date(user.currentPeriodEnd), "monthDayShort", { timeZone }) : ""
 
   return (
     <div className="grid gap-4 rounded-[2rem] border border-border/60 bg-white/70 p-5 shadow-[0_8px_32px_-12px_rgba(76,29,149,0.15)] backdrop-blur-xl sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-6">
