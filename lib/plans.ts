@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, { name: string; maxProjects: number | null; m
 }
 
 /** Shown on the pricing page. Keep it the same as the Stripe price in `STRIPE_PRO_PRICE_ID`. */
-export const PRO_PRICE_LABEL = process.env.NEXT_PUBLIC_PRO_PRICE_LABEL || "$20"
+export const PRO_PRICE_LABEL = process.env.NEXT_PUBLIC_PRO_PRICE_LABEL || "$19"
 
 /** A limit the person ran into, which an upgrade prompt explains. API errors carry it as `code`. */
 export const UPGRADE_REASONS = ["projects", "screens", "credits", "native-publish"] as const

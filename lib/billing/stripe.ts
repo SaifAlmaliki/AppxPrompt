@@ -55,6 +55,7 @@ export async function createCheckoutUrl(userId: number) {
     line_items: [{ price: process.env.STRIPE_PRO_PRICE_ID, quantity: 1 }],
     success_url: appUrl("/pricing?checkout=success"),
     cancel_url: appUrl("/pricing"),
+    integration_identifier: "appxprompt_pro_bqwnxrtm",
   })
   if (!session.url) throw new BillingError("We couldn't open the checkout. Please try again.", 502)
   return session.url
