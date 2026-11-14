@@ -66,7 +66,7 @@
     "tagline": "وكيل ذكاء اصطناعي لتطبيقات الجوال",
     "heroTitle": "حوّل فكرتك إلى <highlight>تطبيق جوال</highlight>",
     "heroSubtitle": "صِف ما تريد بناءه، ويصمّم AppxPrompt الشاشات ويكتب الشيفرة ويجهّز تطبيقك لنظامي iOS وAndroid.",
-    "footer": "جميع الحقوق محفوظة \u2066© {year} AppxPrompt\u2069"
+    "footer": "جميع الحقوق محفوظة \\u2066© {year} AppxPrompt\\u2069"
   },
   "composer": {
     "label": "صِف التطبيق الذي تريد بناءه",
@@ -808,5 +808,277 @@
     "input": "حقل إدخال",
     "switch": "مفتاح تبديل",
     "icon": "أيقونة"
+  },
+  "canvas": {
+    "label": "اللوحة",
+    "roleDescription": "لوحة",
+    "viewport": "لوحة شاشات التطبيق. اسحب للتحريك، واضغط Ctrl أو Command مع التمرير للتكبير.",
+    "toolbar": "أدوات اللوحة",
+    "tools": {
+      "select": "تحديد (نقل الشاشات)",
+      "hand": "يد (تحريك اللوحة)",
+      "zoomOut": "تصغير",
+      "zoomIn": "تكبير",
+      "fit": "ملاءمة الشاشة"
+    },
+    "editing": "جارٍ تعديل <bdi>{name}</bdi>",
+    "notSaved": "لم يُحفظ",
+    "saving": "جارٍ الحفظ",
+    "autosave": "تُحفظ التغييرات تلقائيًا",
+    "clickToEdit": "انقر أي عنصر لتعديله",
+    "done": "تم",
+    "screenActions": "إجراءات الشاشة",
+    "actions": {
+      "edit": "تعديل الشاشة",
+      "duplicate": "تكرار",
+      "delete": "حذف"
+    },
+    "empty": {
+      "planningTitle": "الوكيل يخطّط لتطبيقك",
+      "title": "ستظهر شاشاتك هنا",
+      "body": "بعد أن يضع الوكيل خطة تطبيقك، تظهر كل شاشة على هذه اللوحة."
+    },
+    "status": {
+      "building": "جارٍ البناء",
+      "built": "تم البناء",
+      "failed": "فشل",
+      "planned": "مخطّطة",
+      "queued": "في الانتظار"
+    },
+    "editLabel": "تعديل {name}",
+    "stopEditingLabel": "إيقاف تعديل {name}",
+    "tooltip": {
+      "viewOnly": "لديك صلاحية العرض فقط",
+      "waitForAgent": "انتظر حتى ينتهي الوكيل",
+      "stopEditing": "إيقاف التعديل",
+      "edit": "تعديل هذه الشاشة"
+    }
+  },
+  "preview": {
+    "tabs": {
+      "preview": "معاينة التطبيق",
+      "code": "الشيفرة"
+    },
+    "resetData": "إعادة ضبط بيانات التطبيق",
+    "reload": "إعادة تحميل المعاينة",
+    "frameTitle": "معاينة {name}",
+    "defaultAppName": "التطبيق",
+    "emptyTitle": "ستظهر معاينة تطبيقك هنا",
+    "emptyBody": "بعد أن يبني الوكيل شاشاتك، يمكنك التنقل بينها مباشرةً.",
+    "website": {
+      "failed": "فشل النشر",
+      "updateFailed": "فشل التحديث",
+      "updating": "جارٍ التحديث…",
+      "view": "عرض",
+      "open": "فتح الموقع",
+      "step": "{step}…"
+    },
+    "publishStep": {
+      "uploading": "رفع الملفات",
+      "queued": "في انتظار خادم بناء Expo",
+      "building": "بناء تطبيق الويب",
+      "deploying": "جارٍ النشر"
+    },
+    "code": {
+      "emptyTitle": "لا توجد شيفرة بعد",
+      "designing": "الوكيل يصمّم <bdi>{name}</bdi>. تظهر شيفرتها هنا أثناء كتابتها.",
+      "awaitingPlan": "بعد أن تؤكد الخطة، تتدفق شيفرة كل شاشة هنا أثناء كتابة الوكيل لها.",
+      "filesLabel": "ملفات المشروع",
+      "files": "الملفات",
+      "beingWritten": "قيد الكتابة"
+    }
+  },
+  "expoQr": {
+    "triggerLabel": "امسح رمز QR لاختبار التطبيق على جهازك",
+    "trigger": "مسح رمز QR",
+    "title": "اختبر على جهازك",
+    "description": "امسح الرمز بكاميرا iPhone، أو من داخل Expo Go على Android. أبقِ هذا التبويب مفتوحًا أثناء الاختبار.",
+    "noProject": "يظهر رمز QR بعد أن يبني الوكيل شاشتك الأولى.",
+    "tryAgain": "حاول مرة أخرى",
+    "loading": "جارٍ تجهيز رمز QR",
+    "qrTitle": "رمز QR يفتح هذا التطبيق في Expo Go",
+    "sdkNote": "يتطلب Expo Go بإصدار SDK 54. إذا ظهرت رسالة بعدم توافق التطبيق، فإصدار Expo Go لديك أحدث.",
+    "getExpoGo": "احصل على Expo Go",
+    "waiting": "في انتظار اتصال جهاز",
+    "problem": "حدثت مشكلة",
+    "live": "متصل",
+    "copied": "تم النسخ",
+    "copyLink": "نسخ الرابط"
+  },
+  "elementEditor": {
+    "categories": {
+      "content": "المحتوى",
+      "colors": "الألوان",
+      "typography": "الخط",
+      "spacing": "التباعد",
+      "layout": "التخطيط",
+      "border": "الحدود",
+      "effects": "التأثيرات"
+    },
+    "fields": {
+      "text": "النص",
+      "placeholder": "النص الإرشادي",
+      "icon": "اسم الأيقونة",
+      "iconSize": "حجم الأيقونة",
+      "image": "الصورة",
+      "uri": "رابط الصورة",
+      "resizeMode": "ملاءمة الصورة",
+      "color": "لون النص",
+      "iconColor": "لون الأيقونة",
+      "background": "الخلفية",
+      "fontSize": "الحجم",
+      "fontWeight": "السماكة",
+      "textAlign": "المحاذاة",
+      "lineHeight": "ارتفاع السطر",
+      "letterSpacing": "تباعد الأحرف",
+      "fontStyle": "النمط",
+      "textTransform": "حالة الأحرف",
+      "textDecorationLine": "الزخرفة",
+      "paddingX": "التباعد الداخلي للجانبين",
+      "paddingY": "التباعد الداخلي للأعلى والأسفل",
+      "marginX": "الهامش للجانبين",
+      "marginY": "الهامش للأعلى والأسفل",
+      "gap": "الفجوة",
+      "paddingTop": "التباعد الداخلي من الأعلى",
+      "paddingRight": "التباعد الداخلي من اليمين",
+      "paddingBottom": "التباعد الداخلي من الأسفل",
+      "paddingLeft": "التباعد الداخلي من اليسار",
+      "marginTop": "الهامش من الأعلى",
+      "marginRight": "الهامش من اليمين",
+      "marginBottom": "الهامش من الأسفل",
+      "marginLeft": "الهامش من اليسار",
+      "flexDirection": "الاتجاه",
+      "justifyContent": "التوزيع",
+      "alignItems": "محاذاة العناصر",
+      "width": "العرض",
+      "height": "الارتفاع",
+      "minWidth": "أدنى عرض",
+      "minHeight": "أدنى ارتفاع",
+      "maxWidth": "أقصى عرض",
+      "maxHeight": "أقصى ارتفاع",
+      "flexGrow": "التمدد",
+      "alignSelf": "محاذاة العنصر نفسه",
+      "flexWrap": "الالتفاف",
+      "overflow": "الفائض",
+      "borderWidth": "السماكة",
+      "borderColor": "اللون",
+      "borderRadius": "استدارة الزوايا",
+      "opacity": "العتامة",
+      "shadow": "الظل"
+    },
+    "hints": {
+      "icon": "اسم من Ionicons، مثل heart-outline"
+    },
+    "options": {
+      "regular": "عادي",
+      "medium": "متوسط",
+      "semibold": "شبه عريض",
+      "bold": "عريض",
+      "heavy": "ثقيل",
+      "start": "البداية",
+      "center": "الوسط",
+      "end": "النهاية",
+      "between": "بين العناصر",
+      "stretch": "تمديد",
+      "left": "يسار",
+      "right": "يمين",
+      "justify": "ضبط",
+      "normal": "عادي",
+      "italic": "مائل",
+      "none": "بلا",
+      "upper": "AA",
+      "lower": "aa",
+      "capitalize": "Aa",
+      "underline": "تسطير",
+      "strike": "شطب",
+      "auto": "تلقائي",
+      "column": "عمود",
+      "row": "صف",
+      "noWrap": "بلا التفاف",
+      "wrap": "التفاف",
+      "visible": "ظاهر",
+      "hidden": "مخفي",
+      "cover": "تغطية",
+      "contain": "احتواء",
+      "soft": "ناعم",
+      "strong": "قوي"
+    },
+    "tokens": {
+      "background": "الخلفية",
+      "surface": "السطح",
+      "surfaceAlt": "السطح البديل",
+      "border": "الحدود",
+      "text": "النص",
+      "textMuted": "النص الخافت",
+      "primary": "الأساسي",
+      "accent": "التمييز",
+      "success": "النجاح",
+      "warning": "التحذير",
+      "danger": "الخطر",
+      "onPrimary": "فوق الأساسي",
+      "onAccent": "فوق التمييز",
+      "primarySoft": "الأساسي الفاتح",
+      "accentSoft": "التمييز الفاتح",
+      "successSoft": "النجاح الفاتح",
+      "warningSoft": "التحذير الفاتح",
+      "dangerSoft": "الخطر الفاتح",
+      "overlay": "الطبقة العلوية",
+      "shadow": "الظل"
+    },
+    "colorPicker": {
+      "themeColors": "ألوان السمة",
+      "custom": "{label} مخصص",
+      "hex": "لون بصيغة Hex",
+      "none": "بلا",
+      "note": "تبقى الألوان المخصصة كما هي عند تغيير السمة."
+    },
+    "image": {
+      "fromData": "يأتي هذا من بيانات تطبيقك. استخدم التعديل بالذكاء الاصطناعي لتغييره.",
+      "current": "الصورة الحالية",
+      "chooseFile": "اختر ملف صورة",
+      "upload": "رفع من جهازك",
+      "describeGenerate": "صف الصورة المطلوب إنشاؤها",
+      "generatePlaceholder": "مقهى دافئ في ضوء الصباح الذهبي…",
+      "describeTransform": "صف كيف تريد تحويل هذه الصورة",
+      "transformPlaceholder": "اجعلها بضوء الغروب الذهبي وأضف ظلالًا ناعمة…",
+      "generate": "إنشاء",
+      "apply": "تطبيق",
+      "tools": {
+        "replace": "استبدال الصورة",
+        "generate": "إنشاء صورة بالذكاء الاصطناعي",
+        "transform": "تطبيق تحويل بالذكاء الاصطناعي"
+      },
+      "progress": {
+        "upload": "جارٍ رفع صورتك…",
+        "generate": "جارٍ إنشاء صورتك. قد يستغرق ذلك حتى دقيقة…",
+        "transform": "جارٍ تحويل صورتك. قد يستغرق ذلك حتى دقيقة…"
+      }
+    },
+    "text": {
+      "fromDataNamed": "“<bdi>{label}</bdi>” يأتي من بيانات تطبيقك، لذا يتغير مع كل سجل. استخدم التعديل بالذكاء الاصطناعي لتغيير طريقة عرضه.",
+      "fromData": "يأتي هذا النص من بيانات تطبيقك، لذا يتغير مع كل سجل. استخدم التعديل بالذكاء الاصطناعي لتغيير طريقة عرضه."
+    },
+    "header": {
+      "selectParent": "تحديد العنصر الأب",
+      "undo": "التراجع عن التغييرات على هذا العنصر",
+      "quickEdit": "تعديل سريع",
+      "advancedEdit": "تعديل متقدم",
+      "close": "إغلاق"
+    },
+    "notes": {
+      "readOnly": "لا يمكن تغيير هذا العنصر يدويًا. استخدم التعديل بالذكاء الاصطناعي بدلًا من ذلك.",
+      "shared": "جزء من مكوّن مشترك، لذا يتغير في كل موضع يُستخدم فيه.",
+      "repeats": "{count, plural, two {يتكرر هذا هنا مرتين، فيتغير كلاهما.} few {يتكرر هذا هنا {count, number, integer} مرات، فتتغير جميعها.} many {يتكرر هذا هنا {count, number, integer} مرة، فتتغير جميعها.} other {يتكرر هذا هنا {count, number, integer} مرة، فتتغير جميعها.}}",
+      "tryAgain": "حاول مرة أخرى"
+    },
+    "ai": {
+      "button": "التعديل بالذكاء الاصطناعي",
+      "inputLabel": "أخبر الذكاء الاصطناعي كيف يغيّر هذا العنصر: {element}",
+      "placeholder": "غيّر هذا العنصر: {element}…",
+      "send": "إرسال إلى الذكاء الاصطناعي"
+    },
+    "dialog": "تعديل {element}",
+    "categoriesLabel": "فئات الخصائص",
+    "advancedPanel": "تعديل متقدم: {element}"
   }
 }

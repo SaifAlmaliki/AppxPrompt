@@ -22,6 +22,11 @@ export const CHECKED: string[] = [
   "components/workspace/plan-card.tsx",
   "components/workspace/build-progress.tsx",
   "components/workspace/theme-switcher.tsx",
+  "components/workspace/canvas-panel.tsx",
+  "components/workspace/preview-panel.tsx",
+  "components/workspace/app-frame.tsx",
+  "components/workspace/expo-qr-popover.tsx",
+  "components/workspace/element-editor.tsx",
 ];
 
 // Words that stay in Latin script in both languages, so they may appear as

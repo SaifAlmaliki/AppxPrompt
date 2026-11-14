@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import {
   AlertCircleIcon,
   ChevronRightIcon,
@@ -23,7 +24,7 @@ import type { WebPublishState } from "@/hooks/use-web-publish"
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
 import type { ElementEdits, PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import { resetPreviewStorage } from "@/lib/preview-storage"
-import { WEB_PUBLISH_LABELS, isWebPublishActive } from "@/lib/publish-protocol"
+import { isWebPublishActive } from "@/lib/publish-protocol"
 import { activeTheme } from "@/lib/themes"
 import { buildFileTree, languageForPath, type FileNode } from "@/lib/workspace-data"
 import { cn } from "@/lib/utils"
@@ -67,6 +68,7 @@ export function PreviewPanel({
   webPublish: WebPublishState
   onOpenPublish: () => void
 }) {
+  const t = useTranslations("preview")
   const [reloadSignal, setReloadSignal] = React.useState(0)
   const hasApp = screens.some((s) => s.status === "done")
 
@@ -76,20 +78,20 @@ export function PreviewPanel({
         <TabsList className="h-8 rounded-full bg-muted/70 p-0.5">
           <TabsTrigger value="preview" className="rounded-full px-3 data-active:text-violet-700">
             <SmartphoneIcon />
-            App Preview
+            {t("tabs.preview")}
           </TabsTrigger>
           <TabsTrigger value="code" className="rounded-full px-3 data-active:text-violet-700">
             <Code2Icon />
-            Code
+            {t("tabs.code")}
           </TabsTrigger>
         </TabsList>
         {hasApp && (
           <div className="flex items-center gap-1">
             <ExpoQrPopover plan={plan} screens={screens} />
-            <PreviewAction label="Reset app data" onClick={() => resetPreviewStorage(projectId)}>
+            <PreviewAction label={t("resetData")} onClick={() => resetPreviewStorage(projectId)}>
               <RotateCcwIcon />
             </PreviewAction>
-            <PreviewAction label="Reload preview" onClick={() => setReloadSignal((n) => n + 1)}>
+            <PreviewAction label={t("reload")} onClick={() => setReloadSignal((n) => n + 1)}>
               <RotateCwIcon />
             </PreviewAction>
           </div>
@@ -156,6 +158,7 @@ function AppPreview({
   webPublish: WebPublishState
   onOpenPublish: () => void
 }) {
+  const t = useTranslations("preview")
   return (
     <div className="flex h-full flex-col gap-3 bg-linear-to-b from-violet-50/60 to-white p-4">
       <WebsiteBar webPublish={webPublish} onOpenPublish={onOpenPublish} />
@@ -166,7 +169,7 @@ function AppPreview({
             aria-hidden
             className="absolute -inset-6 rounded-full bg-linear-to-br from-indigo-300/30 via-fuchsia-300/25 to-violet-300/30 blur-3xl"
           />
-          <div className="relative size-full overflow-hidden rounded-[2.75rem] border-[8px] border-neutral-900 bg-white shadow-[0_32px_64px_-24px_rgba(76,29,149,0.45)]">
+          <div dir={app ? "ltr" : undefined} className="relative size-full overflow-hidden rounded-[2.75rem] border-[8px] border-neutral-900 bg-white shadow-[0_32px_64px_-24px_rgba(76,29,149,0.45)]">
             {app ? (
               <AppFrame
                 projectId={projectId}
@@ -174,7 +177,7 @@ function AppPreview({
                 theme={activeTheme(plan?.themePackage)}
                 route="/"
                 interactive
-                title={`${plan?.appName ?? "App"} preview`}
+                title={t("frameTitle", { name: plan?.appName ?? t("defaultAppName") })}
                 syncing={syncing}
                 reloadSignal={reloadSignal}
                 edits={edits}
@@ -186,10 +189,8 @@ function AppPreview({
                   <span className="flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
                     <SparklesIcon className="size-5" />
                   </span>
-                  <p className="text-sm font-medium">Your app preview will appear here</p>
-                  <p className="text-xs text-muted-foreground">
-                    Once the agent builds your screens, you can tap through them live.
-                  </p>
+                  <p className="text-sm font-medium">{t("emptyTitle")}</p>
+                  <p className="text-xs text-muted-foreground">{t("emptyBody")}</p>
                 </div>
               </>
             )}
@@ -202,6 +203,8 @@ function AppPreview({
 
 /** The app's website: where it's live, and how an update is going. Empty until its first publish. */
 function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState; onOpenPublish: () => void }) {
+  const t = useTranslations("preview.website")
+  const tStep = useTranslations("preview.publishStep")
   const { web, starting, active } = webPublish
   if (!web && !starting) return null
 
@@ -224,13 +227,14 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
           target="_blank"
           rel="noreferrer"
           title={url}
+          dir="ltr"
           className="min-w-0 flex-1 truncate text-xs font-medium hover:text-violet-700 hover:underline"
         >
           {url.replace(/^https:\/\//, "").replace(/\/$/, "")}
         </a>
       ) : (
         <span role="status" className="min-w-0 flex-1 truncate text-xs font-medium">
-          {failed ? "Publishing failed" : `${WEB_PUBLISH_LABELS[step]}…`}
+          {failed ? t("failed") : t("step", { step: tStep(step) })}
         </span>
       )}
       {url && (active || failed) && (
@@ -239,18 +243,18 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
           onClick={onOpenPublish}
           className={cn("shrink-0 text-xs hover:underline", failed ? "text-destructive" : "text-muted-foreground")}
         >
-          {failed ? "Update failed" : "Updating…"}
+          {failed ? t("updateFailed") : t("updating")}
         </button>
       )}
       {!url && failed && (
         <Button variant="ghost" size="sm" className="rounded-full text-xs text-muted-foreground" onClick={onOpenPublish}>
-          View
+          {t("view")}
         </Button>
       )}
       {url && (
         <>
           <CopyLinkButton url={url} />
-          <PreviewAction label="Open website" render={<a href={url} target="_blank" rel="noreferrer" />} nativeButton={false}>
+          <PreviewAction label={t("open")} render={<a href={url} target="_blank" rel="noreferrer" />} nativeButton={false}>
             <ExternalLinkIcon />
           </PreviewAction>
         </>
@@ -260,6 +264,7 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
 }
 
 function CodeView({ screens, appFiles }: { screens: ProjectScreen[]; appFiles: PreviewFile[] }) {
+  const t = useTranslations("preview.code")
   const files = [
     ...screens.filter((s) => s.code !== null),
     ...appFiles.map((file) => ({ filePath: file.path, code: file.code })),
@@ -279,11 +284,11 @@ function CodeView({ screens, appFiles }: { screens: ProjectScreen[]; appFiles: P
         <span className="flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
           <Code2Icon className="size-5" />
         </span>
-        <p className="text-sm font-medium">No code yet</p>
+        <p className="text-sm font-medium">{t("emptyTitle")}</p>
         <p className="max-w-xs text-xs text-muted-foreground">
           {generating
-            ? `The agent is designing ${generating.name}. Its code appears here as it's written.`
-            : "Once you confirm the plan, each screen's code streams in here as the agent writes it."}
+            ? t.rich("designing", { name: generating.name, bdi: (chunks) => <bdi>{chunks}</bdi> })
+            : t("awaitingPlan")}
         </p>
       </div>
     )
@@ -291,9 +296,9 @@ function CodeView({ screens, appFiles }: { screens: ProjectScreen[]; appFiles: P
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(140px,38%)_1fr]">
-      <nav aria-label="Project files" className="min-h-0 overflow-y-auto border-e border-border/60 bg-neutral-50/70 py-2">
+      <nav aria-label={t("filesLabel")} className="min-h-0 overflow-y-auto border-e border-border/60 bg-neutral-50/70 py-2">
         <p className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-          Files
+          {t("files")}
         </p>
         <FileTree
           nodes={buildFileTree(files.map((f) => f.filePath))}
@@ -321,8 +326,9 @@ function FileTree({
   writingPath?: string
   onSelect: (path: string) => void
 }) {
+  const t = useTranslations("preview.code")
   return (
-    <ul role={depth === 0 ? "tree" : "group"}>
+    <ul role={depth === 0 ? "tree" : "group"} dir="ltr">
       {nodes.map((node) =>
         node.type === "folder" ? (
           <FolderItem
@@ -353,7 +359,7 @@ function FileTree({
               )}
               <span className="truncate">{node.name}</span>
               {node.path === writingPath && (
-                <span aria-label="Being written" className="ms-auto size-1.5 shrink-0 animate-pulse rounded-full bg-violet-500" />
+                <span aria-label={t("beingWritten")} className="ms-auto size-1.5 shrink-0 animate-pulse rounded-full bg-violet-500" />
               )}
             </button>
           </li>
@@ -408,7 +414,7 @@ function CodeFile({ path, code }: { path: string; code: string }) {
   const lines = useHighlightedCode(code, languageForPath(path))
 
   return (
-    <CodeBlock size="sm" className="h-full min-h-0 rounded-none border-0">
+    <CodeBlock size="sm" dir="ltr" className="h-full min-h-0 rounded-none border-0">
       <CodeBlockHeader className="border-b border-border/60 pb-2">
         <CodeBlockTitle className="font-mono">{path}</CodeBlockTitle>
         <CodeBlockActions>

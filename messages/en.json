@@ -808,5 +808,277 @@
     "input": "Input",
     "switch": "Switch",
     "icon": "Icon"
+  },
+  "canvas": {
+    "label": "Canvas",
+    "roleDescription": "canvas",
+    "viewport": "App screens canvas. Drag to pan, Ctrl or Command and scroll to zoom.",
+    "toolbar": "Canvas tools",
+    "tools": {
+      "select": "Select (move screens)",
+      "hand": "Hand (pan canvas)",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "fit": "Fit to screen"
+    },
+    "editing": "Editing <bdi>{name}</bdi>",
+    "notSaved": "Not saved",
+    "saving": "Saving",
+    "autosave": "Changes save as you go",
+    "clickToEdit": "Click any element to edit it",
+    "done": "Done",
+    "screenActions": "Screen actions",
+    "actions": {
+      "edit": "Edit screen",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "empty": {
+      "planningTitle": "The agent is planning your app",
+      "title": "Your screens will appear here",
+      "body": "Once the agent plans your app, each screen shows up on this canvas."
+    },
+    "status": {
+      "building": "Building",
+      "built": "Built",
+      "failed": "Failed",
+      "planned": "Planned",
+      "queued": "Queued"
+    },
+    "editLabel": "Edit {name}",
+    "stopEditingLabel": "Stop editing {name}",
+    "tooltip": {
+      "viewOnly": "You have view-only access",
+      "waitForAgent": "Wait for the agent to finish",
+      "stopEditing": "Stop editing",
+      "edit": "Edit this screen"
+    }
+  },
+  "preview": {
+    "tabs": {
+      "preview": "App Preview",
+      "code": "Code"
+    },
+    "resetData": "Reset app data",
+    "reload": "Reload preview",
+    "frameTitle": "{name} preview",
+    "defaultAppName": "App",
+    "emptyTitle": "Your app preview will appear here",
+    "emptyBody": "Once the agent builds your screens, you can tap through them live.",
+    "website": {
+      "failed": "Publishing failed",
+      "updateFailed": "Update failed",
+      "updating": "Updating…",
+      "view": "View",
+      "open": "Open website",
+      "step": "{step}…"
+    },
+    "publishStep": {
+      "uploading": "Uploading files",
+      "queued": "Waiting for an Expo build server",
+      "building": "Building web app",
+      "deploying": "Deploying"
+    },
+    "code": {
+      "emptyTitle": "No code yet",
+      "designing": "The agent is designing <bdi>{name}</bdi>. Its code appears here as it's written.",
+      "awaitingPlan": "Once you confirm the plan, each screen's code streams in here as the agent writes it.",
+      "filesLabel": "Project files",
+      "files": "Files",
+      "beingWritten": "Being written"
+    }
+  },
+  "expoQr": {
+    "triggerLabel": "Scan QR code to test on your device",
+    "trigger": "Scan QR Code",
+    "title": "Test on your device",
+    "description": "Scan with your iPhone's Camera, or from inside Expo Go on Android. Keep this tab open while you test.",
+    "noProject": "Your QR code appears once the agent has built your first screen.",
+    "tryAgain": "Try again",
+    "loading": "Getting your QR code",
+    "qrTitle": "QR code that opens this app in Expo Go",
+    "sdkNote": "Needs Expo Go for SDK 54. If it says the app is incompatible, your Expo Go is on a newer SDK.",
+    "getExpoGo": "Get Expo Go",
+    "waiting": "Waiting for a device to connect",
+    "problem": "Hit a problem",
+    "live": "Live",
+    "copied": "Copied",
+    "copyLink": "Copy link"
+  },
+  "elementEditor": {
+    "categories": {
+      "content": "Content",
+      "colors": "Colors",
+      "typography": "Type",
+      "spacing": "Spacing",
+      "layout": "Layout",
+      "border": "Border",
+      "effects": "Effects"
+    },
+    "fields": {
+      "text": "Text",
+      "placeholder": "Placeholder",
+      "icon": "Icon name",
+      "iconSize": "Icon size",
+      "image": "Image",
+      "uri": "Image URL",
+      "resizeMode": "Image fit",
+      "color": "Text color",
+      "iconColor": "Icon color",
+      "background": "Background",
+      "fontSize": "Size",
+      "fontWeight": "Weight",
+      "textAlign": "Align",
+      "lineHeight": "Line height",
+      "letterSpacing": "Letter spacing",
+      "fontStyle": "Style",
+      "textTransform": "Case",
+      "textDecorationLine": "Decoration",
+      "paddingX": "Padding sides",
+      "paddingY": "Padding top/bottom",
+      "marginX": "Margin sides",
+      "marginY": "Margin top/bottom",
+      "gap": "Gap",
+      "paddingTop": "Padding top",
+      "paddingRight": "Padding right",
+      "paddingBottom": "Padding bottom",
+      "paddingLeft": "Padding left",
+      "marginTop": "Margin top",
+      "marginRight": "Margin right",
+      "marginBottom": "Margin bottom",
+      "marginLeft": "Margin left",
+      "flexDirection": "Direction",
+      "justifyContent": "Distribute",
+      "alignItems": "Align items",
+      "width": "Width",
+      "height": "Height",
+      "minWidth": "Min width",
+      "minHeight": "Min height",
+      "maxWidth": "Max width",
+      "maxHeight": "Max height",
+      "flexGrow": "Grow",
+      "alignSelf": "Align self",
+      "flexWrap": "Wrap",
+      "overflow": "Overflow",
+      "borderWidth": "Width",
+      "borderColor": "Color",
+      "borderRadius": "Corner radius",
+      "opacity": "Opacity",
+      "shadow": "Shadow"
+    },
+    "hints": {
+      "icon": "An Ionicons name, like heart-outline"
+    },
+    "options": {
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "heavy": "Heavy",
+      "start": "Start",
+      "center": "Center",
+      "end": "End",
+      "between": "Between",
+      "stretch": "Stretch",
+      "left": "Left",
+      "right": "Right",
+      "justify": "Justify",
+      "normal": "Normal",
+      "italic": "Italic",
+      "none": "None",
+      "upper": "AA",
+      "lower": "aa",
+      "capitalize": "Aa",
+      "underline": "Underline",
+      "strike": "Strike",
+      "auto": "Auto",
+      "column": "Column",
+      "row": "Row",
+      "noWrap": "No wrap",
+      "wrap": "Wrap",
+      "visible": "Visible",
+      "hidden": "Hidden",
+      "cover": "Cover",
+      "contain": "Contain",
+      "soft": "Soft",
+      "strong": "Strong"
+    },
+    "tokens": {
+      "background": "Background",
+      "surface": "Surface",
+      "surfaceAlt": "Surface Alt",
+      "border": "Border",
+      "text": "Text",
+      "textMuted": "Text Muted",
+      "primary": "Primary",
+      "accent": "Accent",
+      "success": "Success",
+      "warning": "Warning",
+      "danger": "Danger",
+      "onPrimary": "On Primary",
+      "onAccent": "On Accent",
+      "primarySoft": "Primary Soft",
+      "accentSoft": "Accent Soft",
+      "successSoft": "Success Soft",
+      "warningSoft": "Warning Soft",
+      "dangerSoft": "Danger Soft",
+      "overlay": "Overlay",
+      "shadow": "Shadow"
+    },
+    "colorPicker": {
+      "themeColors": "Theme colors",
+      "custom": "Custom {label}",
+      "hex": "Hex color",
+      "none": "None",
+      "note": "Custom colors stay the same when the theme changes."
+    },
+    "image": {
+      "fromData": "This comes from your app's data. Use Edit with AI to change it.",
+      "current": "Current image",
+      "chooseFile": "Choose an image file",
+      "upload": "Upload from your computer",
+      "describeGenerate": "Describe the image to generate",
+      "generatePlaceholder": "A cozy coffee shop in warm morning light…",
+      "describeTransform": "Describe how to transform this image",
+      "transformPlaceholder": "Make it golden hour and add soft shadows…",
+      "generate": "Generate",
+      "apply": "Apply",
+      "tools": {
+        "replace": "Replace Image",
+        "generate": "Generate AI Image",
+        "transform": "Apply AI Transformation"
+      },
+      "progress": {
+        "upload": "Uploading your image…",
+        "generate": "Generating your image. This can take up to a minute…",
+        "transform": "Transforming your image. This can take up to a minute…"
+      }
+    },
+    "text": {
+      "fromDataNamed": "“<bdi>{label}</bdi>” comes from your app's data, so it changes with each record. Use Edit with AI to change how it's shown.",
+      "fromData": "This text comes from your app's data, so it changes with each record. Use Edit with AI to change how it's shown."
+    },
+    "header": {
+      "selectParent": "Select parent",
+      "undo": "Undo changes to this element",
+      "quickEdit": "Quick edit",
+      "advancedEdit": "Advanced edit",
+      "close": "Close"
+    },
+    "notes": {
+      "readOnly": "This element can't be changed by hand. Use Edit with AI instead.",
+      "shared": "Part of a shared component, so this changes everywhere it's used.",
+      "repeats": "{count, plural, other {This repeats {count, number, integer} times here, so all of them change.}}",
+      "tryAgain": "Try again"
+    },
+    "ai": {
+      "button": "Edit with AI",
+      "inputLabel": "Tell the AI how to change this {element}",
+      "placeholder": "Change this {element}…",
+      "send": "Send to AI"
+    },
+    "dialog": "Edit {element}",
+    "categoriesLabel": "Property categories",
+    "advancedPanel": "Advanced edit: {element}"
   }
 }
