@@ -664,7 +664,7 @@ function ImageField({
         </p>
       )}
       {imageError && (
-        <p role="alert" className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] leading-snug text-red-800">
+        <p role="alert" dir="auto" className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] leading-snug text-red-800">
           {imageError}
         </p>
       )}
@@ -1009,7 +1009,7 @@ function EditorNotes({ editor }: { editor: InlineEditor }) {
       ))}
       {saveError && (
         <div role="alert" className="flex items-start gap-2 rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] leading-snug text-red-800">
-          <p className="min-w-0 flex-1">{saveError}</p>
+          <p dir="auto" className="min-w-0 flex-1">{saveError}</p>
           <button type="button" onClick={() => void editor.retrySave()} className="shrink-0 font-semibold underline underline-offset-2">
             {t("tryAgain")}
           </button>
