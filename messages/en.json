@@ -403,5 +403,121 @@
       "label": "Social feed",
       "prompt": "A minimal social app with a photo feed, likes, comments, user profiles, and direct messages."
     }
+  },
+  "docs": {
+    "heading": "AppxPrompt docs",
+    "subtitle": "Everything you need to go from an idea to an app on your phone, and from there to the app stores.",
+    "nav": "On this page",
+    "buttons": {
+      "scanQr": "Scan QR Code",
+      "connectBackend": "Connect Backend",
+      "export": "Export",
+      "downloadZip": "Download as ZIP",
+      "pushGitHub": "Push to GitHub",
+      "publish": "Publish",
+      "publishWeb": "Publish as Web",
+      "shareProject": "Share project",
+      "showcase": "Show on the AppxPrompt home page"
+    },
+    "getting-started": {
+      "title": "Getting started",
+      "p1": "AppxPrompt turns a description into a working Expo (React Native) app for iOS and Android. The whole journey takes a few minutes:",
+      "step1": "Describe your app in the box on the home page, or start from a <templates>template</templates>.",
+      "step2": "Answer a few questions from the agent, then confirm the screen plan it proposes.",
+      "step3": "Watch the screens being built, and tap through the running app in the preview.",
+      "step4": "Change anything by chatting, or click an element to edit it directly.",
+      "step5": "Try it on your phone, download the code, or publish it.",
+      "p2": "You need a free account to create a project. If you write a prompt first, it's kept while you sign up, and your project starts as soon as you're in."
+    },
+    "writing-prompts": {
+      "title": "Write a good prompt",
+      "p1": "The agent asks about anything you leave out, but a clear prompt gets you to a good first version faster. Mention:",
+      "item1": "<strong>What the app is for</strong> and who uses it: \"A booking app for a hair salon's clients.\"",
+      "item2": "<strong>The main screens</strong> and what each one shows: \"a list of services with prices, and a calendar to pick a time.\"",
+      "item3": "<strong>The look</strong> you want: \"elegant, soft rose and charcoal, rounded cards.\"",
+      "p2": "You can attach up to {count, plural, one {# file} other {# files}} to a prompt: screenshots of apps you like, sketches, a logo, or a PDF or text file with your requirements. Pick the platform from the menu next to {attach}.",
+      "tip": "Start small. A focused app with three or four screens is quicker to get right, and you can add more screens any time."
+    },
+    "planning": {
+      "title": "Plan with the agent",
+      "p1": "When your workspace opens, the agent reads your prompt and asks a few short questions about what matters most. Questions often come with numbered choices, so you can answer with just a number, or type your own answer.",
+      "p2": "Then it proposes a plan: the screens it will build, what each does, and the tabs the app will have. Ask for changes in the chat (\"add a settings screen\", \"drop the map\") until it's right, then confirm with the button on the plan or by saying so. Nothing is built, and no credits are used, until you confirm.",
+      "tip": "Unless you ask for more, a first plan has a few main screens plus a sign-in screen, so you see results quickly."
+    },
+    "building": {
+      "title": "How a build works",
+      "p1": "Once you confirm, the agent builds your app in this order:",
+      "step1": "<strong>Themes and data.</strong> The colors, fonts, and sample content your screens share.",
+      "step2": "<strong>Shared components.</strong> Buttons, cards, and other pieces reused across screens, so one change updates the whole app.",
+      "step3": "<strong>Screens</strong>, one at a time, each appearing in the preview as soon as it's ready.",
+      "p2": "Builds run in the background, so you can leave the page and come back to follow along. Credits are taken when a build starts, and if it fails you get back the credits for whatever it didn't finish."
+    },
+    "editing": {
+      "title": "Edit your app",
+      "h1": "By chat",
+      "p1": "Ask for any change in the chat: new screens, a different layout, extra fields, renamed tabs. Only the screens and components affected are rebuilt, and each one keeps working until its new version is ready.",
+      "h2": "Inline editing",
+      "p2": "Click the Edit icon on a screen in the canvas, then click any element to change its text, colors, or image. Edits show up instantly, without reloading the app, and are saved straight into the code. A selected element is also sent with your next chat message, so you can say \"make this bigger\" and the agent knows what you mean.",
+      "h3": "AI images",
+      "p3": "In edit mode, select an image to replace it with a link, generate a new one from a description, or transform it (\"make it a watercolor\"). Each AI image costs {credits}.",
+      "tip": "Colors you pick by hand stay the same when you switch themes. To keep an element in step with the theme, ask the agent instead."
+    },
+    "themes": {
+      "title": "Themes",
+      "p1": "Every app comes with five themes: Default, Ocean, Forest, Sunset, and Midnight, which is dark. Switch between them from the theme switcher in the workspace. Nothing is rebuilt and it's free, so try them all. Want something else? Ask the agent for a new theme in your brand colors."
+    },
+    "phone": {
+      "title": "Test on your phone",
+      "step1": "Install <expoGo>Expo Go</expoGo> on your phone.",
+      "step2": "In the workspace, click <strong>{button}</strong>.",
+      "step3": "Scan it with your iPhone's Camera, or from inside Expo Go on Android.",
+      "p1": "The app runs on your phone and updates live as you make changes. Keep the browser tab open while you test, because closing it takes the app offline.",
+      "tip": "Your app needs Expo Go for SDK 54. If Expo Go says the app is incompatible, it's on a newer SDK."
+    },
+    "backend": {
+      "title": "Add a backend",
+      "p1": "New apps run on sample data stored in your browser, which is perfect for trying ideas. When you're ready for real users, click <strong>{button}</strong> in the workspace header and sign in to CloudHike.",
+      "p2": "Your app gets its own CloudHike project with a database, plus sign-in and file storage if its screens use them. Every collection in your app becomes a real table, and your screens don't need to change. Later builds keep the backend up to date on their own."
+    },
+    "export": {
+      "title": "Export your code",
+      "p1": "The code is yours. Open the <strong>{button}</strong> menu in the workspace header:",
+      "item1": "<strong>{download}</strong> gives you a complete Expo project. Run <code>npm install</code> and <code>npx expo start</code>, then scan the QR code with Expo Go. The included README has the details.",
+      "item2": "<strong>{push}</strong> connects your GitHub account and pushes to a repository you choose. The first push to an empty repository goes to its default branch. Every other push goes to a new <code>appxprompt/…</code> branch, so nothing already on GitHub is overwritten."
+    },
+    "publish": {
+      "title": "Publish your app",
+      "p1": "Click <strong>{button}</strong> in the workspace header. Publishing runs through your own Expo account, so the first time you'll paste an <expoToken>Expo access token</expoToken>. AppxPrompt stores it encrypted and only uses it to publish your app and follow its progress.",
+      "h1": "As a website",
+      "p2": "<strong>{web}</strong> puts your app online at its own <code>expo.app</code> address. The address stays the same when you publish updates, and if an update fails the previous version stays online. Available on every plan.",
+      "h2": "For the app stores",
+      "p3": "On Pro, Expo builds the files for you:",
+      "item1": "<file>.aab</file> to upload to Google Play.",
+      "item2": "<file>.apk</file> to install directly on Android phones.",
+      "item3": "<file>.ipa</file> to upload to the App Store.",
+      "p4": "Android signing is set up for you. iOS builds need your Apple developer credentials in Expo, and the dialog walks you through it if they're missing. Keep the dialog open to follow a build's progress."
+    },
+    "sharing": {
+      "title": "Share and showcase",
+      "p1": "Projects are private by default. Choose <strong>{share}</strong> from the {export} menu to give someone with an AppxPrompt account view-only access by email. It shows up under \"{shared}\" on their home page.",
+      "p2": "In the same dialog, turn on <strong>{showcase}</strong> to let anyone try your app. Visitors only ever see sample data, never your backend, and anything they do stays in their own browser.",
+      "p3": "To try a variation without touching the original, duplicate a project from its menu on the home page."
+    },
+    "credits": {
+      "title": "Plans and credits",
+      "table": {
+        "projects": "Projects",
+        "unlimited": "Unlimited",
+        "screens": "Screens per project",
+        "credits": "Credits",
+        "freeCredits": "{count, number, integer}, never expire",
+        "proCredits": "{count, number, integer} a month",
+        "publishing": "Web publishing, ZIP, and GitHub",
+        "native": "Android and iOS builds",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "p1": "A new screen costs {screenCredits}, a round of changes costs {edit, number, integer}, and an AI image costs {image, number, integer}. Chatting, planning, and switching themes are free, though the agent needs at least {editCredits} to reply. Your balance is always in the header. See <pricing>Pricing</pricing> for details."
+    }
   }
 }

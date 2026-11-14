@@ -11,6 +11,7 @@ export const CHECKED: string[] = [
   "app/page.tsx",
   "app/auth/**/*.tsx",
   "components/home/**/*.tsx",
+  "app/docs/**/*.tsx",
 ];
 
 // Words that stay in Latin script in both languages, so they may appear as
