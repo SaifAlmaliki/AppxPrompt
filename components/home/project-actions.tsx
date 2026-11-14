@@ -249,6 +249,7 @@ function RenameDialog({
           </label>
           <Input
             id="project-name"
+            dir="auto"
             autoFocus
             maxLength={MAX_PROJECT_NAME_LENGTH}
             value={name}

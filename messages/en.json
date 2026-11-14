@@ -470,7 +470,7 @@
     },
     "themes": {
       "title": "Themes",
-      "p1": "Every app comes with five themes: Default, Ocean, Forest, Sunset, and Midnight, which is dark. Switch between them from the theme switcher in the workspace. Nothing is rebuilt and it's free, so try them all. Want something else? Ask the agent for a new theme in your brand colors."
+      "p1": "Every app comes with five themes: {default}, {ocean}, {forest}, {sunset}, and {midnight}, which is dark. Switch between them from the theme switcher in the workspace. Nothing is rebuilt and it's free, so try them all. Want something else? Ask the agent for a new theme in your brand colors."
     },
     "phone": {
       "title": "Test on your phone",
@@ -668,5 +668,145 @@
     "gotIt": "Got it",
     "join": "Join Pro for <amount>{price}</amount>/month",
     "comparePlans": "Compare plans"
+  },
+  "workspace": {
+    "signedOut": {
+      "title": "Sign in to open this project",
+      "description": "Your session has ended. Sign in from the home page to continue.",
+      "goHome": "Go to home"
+    },
+    "backHome": "Back to home",
+    "sections": {
+      "label": "Workspace sections",
+      "chat": "Chat",
+      "canvas": "Canvas",
+      "preview": "Preview"
+    },
+    "setUpBackendMessage": "I connected my CloudHike account. Please set up the backend for this app.",
+    "header": {
+      "viewOnly": "View only",
+      "creditsTitle": "{credits} remaining",
+      "export": "Export",
+      "shareProject": "Share project",
+      "downloadZip": "Download as ZIP",
+      "pushGitHub": "Push to GitHub",
+      "openSnack": "Open in Expo Snack",
+      "publish": "Publish",
+      "backend": {
+        "settingUp": "Setting up backend…",
+        "needsAttention": "Backend needs attention",
+        "connected": "CloudHike Backend Connected",
+        "connectedShort": "Connected",
+        "connect": "Connect Backend"
+      }
+    },
+    "themeSwitcher": {
+      "trigger": "App theme: {name}. Change theme",
+      "label": "App theme",
+      "mode": {
+        "light": "light",
+        "dark": "dark"
+      }
+    },
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "writeEditFailed": "Couldn't write your edit into this file. Use Edit with AI instead.",
+      "saveEditFailed": "The server couldn't save your edit. Please try again.",
+      "saveEditOffline": "Couldn't reach the server to save your edit. Check your connection.",
+      "imageFailed": "Couldn't finish this image. Please try again.",
+      "screenChanged": "This screen changed while your image was being made. Please try again.",
+      "publishNotSaved": "We couldn't save your latest edits, so we didn't publish. Please try again.",
+      "previewFailed": "Couldn't start the preview.",
+      "dependencyFailed": "Couldn't load {name}: {message}"
+    }
+  },
+  "chat": {
+    "label": "Chat",
+    "agentName": "AppxPrompt Agent",
+    "working": "Working",
+    "newSession": "New session",
+    "newSessionTitle": "Start a new session?",
+    "newSessionDescription": "This clears the chat, and the agent forgets the conversation. Your app, screens, and plan stay as they are.",
+    "cancel": "Cancel",
+    "startNewSession": "Start new session",
+    "empty": "New session. Tell the agent what to do next.",
+    "agentSaid": "Agent:",
+    "youSaid": "You:",
+    "attachedFiles": "Attached files",
+    "activity": "Working…",
+    "tryAgain": "Try again",
+    "readOnly": "This project was shared with you to view, so only its owner can ask the agent for changes.",
+    "removeElement": "Remove {element} from this message",
+    "inputLabel": "Message the AppxPrompt agent",
+    "placeholder": {
+      "building": "Building your screens…",
+      "element": "Ask for a change to this {element}…",
+      "choices": "Reply with a number, like 1",
+      "plan": "Ask for changes… e.g. Add a settings screen",
+      "default": "Message the agent…"
+    },
+    "attach": "Attach file",
+    "agentWorking": "The agent is working",
+    "send": "Send message",
+    "elementIn": "{label} in {screen}",
+    "thinking": "Thinking…",
+    "thoughtProcess": "Thought process",
+    "tapNumber": "Tap a number, or type it below.",
+    "choices": "Choices",
+    "confirmMessage": "Looks good, build it!",
+    "errors": {
+      "agentStart": "The agent couldn't start. Please try again.",
+      "connectionLost": "Lost the connection to the agent. Reload the page to see its latest progress.",
+      "themeSave": "Couldn't save the theme. Please try again.",
+      "newSession": "Couldn't start a new session. Please try again."
+    }
+  },
+  "planCard": {
+    "label": "App plan: {name}",
+    "title": "App plan",
+    "earlier": "Earlier version",
+    "confirmed": "Confirmed",
+    "mode": {
+      "light": "light mode",
+      "dark": "dark mode"
+    },
+    "navigation": {
+      "tabs": "Tab navigation",
+      "stack": "Stack navigation"
+    },
+    "screens": "{count, plural, one {# screen} other {# screens}}",
+    "hideDetails": "Hide screen details",
+    "showDetails": "Show screen details",
+    "confirm": "{count, plural, one {Confirm & build # screen} other {Confirm & build # screens}}",
+    "cost": "Uses {count, plural, one {# credit} other {# credits}}. Want changes? Tell me in the chat below."
+  },
+  "buildProgress": {
+    "label": "Build progress",
+    "title": "Building your app",
+    "count": "{finished, number, integer} of {total, number, integer}",
+    "lines": "{count, plural, one {# line} other {# lines}}",
+    "designing": "designing",
+    "failed": "Failed",
+    "done": "Done",
+    "waiting": "Waiting",
+    "code": "Code being written for {name}"
+  },
+  "themes": {
+    "default": "Default",
+    "ocean": "Ocean",
+    "forest": "Forest",
+    "sunset": "Sunset",
+    "midnight": "Midnight"
+  },
+  "elements": {
+    "container": "Container",
+    "screen": "Screen",
+    "gradient": "Gradient",
+    "text": "Text",
+    "image": "Image",
+    "button": "Button",
+    "input": "Input",
+    "switch": "Switch",
+    "icon": "Icon"
   }
 }

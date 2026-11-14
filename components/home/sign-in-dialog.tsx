@@ -249,6 +249,7 @@ function SignInForm({
               <Input
                 id="name"
                 name="name"
+                dir="auto"
                 placeholder={t("fields.namePlaceholder")}
                 autoComplete="name"
                 maxLength={100}
@@ -264,6 +265,7 @@ function SignInForm({
               id="email"
               name="email"
               type="email"
+              dir="ltr"
               placeholder={t("fields.emailPlaceholder")}
               autoComplete="email"
               aria-invalid={!!fieldErrors.email}

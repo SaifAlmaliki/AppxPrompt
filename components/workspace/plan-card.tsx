@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { CheckIcon, ChevronDownIcon, HammerIcon, LayoutListIcon } from "lucide-react"
 
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
@@ -30,6 +31,7 @@ export function PlanCard({
   disabled?: boolean
   onConfirm?: () => void
 }) {
+  const t = useTranslations("planCard")
   // Earlier versions start collapsed so the thread stays short.
   const [showScreens, setShowScreens] = React.useState(state !== "superseded")
   const [showDetails, setShowDetails] = React.useState(false)
@@ -37,7 +39,7 @@ export function PlanCard({
 
   return (
     <section
-      aria-label={`App plan: ${plan.appName}`}
+      aria-label={t("label", { name: plan.appName })}
       className={cn(
         "w-full overflow-hidden rounded-2xl border bg-white shadow-[0_12px_32px_-20px_rgba(76,29,149,0.4)]",
         state === "superseded" ? "border-border/60 opacity-70" : "border-violet-200/80"
@@ -47,28 +49,32 @@ export function PlanCard({
         <div className="flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-violet-700 uppercase">
             <LayoutListIcon className="size-3.5" />
-            App plan
+            {t("title")}
           </span>
           {state === "superseded" && (
-            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-muted-foreground">Earlier version</span>
+            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-muted-foreground">{t("earlier")}</span>
           )}
           {state === "confirmed" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
               <CheckIcon className="size-3" />
-              Confirmed
+              {t("confirmed")}
             </span>
           )}
         </div>
-        <h3 className="mt-1.5 text-base font-semibold tracking-tight">{plan.appName}</h3>
-        <p className="text-xs text-muted-foreground">{plan.tagline}</p>
+        <h3 dir="auto" className="mt-1.5 text-base font-semibold tracking-tight">
+          {plan.appName}
+        </h3>
+        <p dir="auto" className="text-xs text-muted-foreground">
+          {plan.tagline}
+        </p>
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1" title={colors.join(", ")}>
             {colors.map((color) => (
               <span key={color} className="size-3.5 rounded-full ring-1 ring-black/10" style={{ backgroundColor: color }} />
             ))}
           </span>
-          <span className="capitalize">{plan.design.mode} mode</span>
-          <span>{plan.navigation === "tabs" ? "Tab navigation" : "Stack navigation"}</span>
+          <span className="capitalize">{t(`mode.${plan.design.mode}`)}</span>
+          <span>{plan.navigation === "tabs" ? t("navigation.tabs") : t("navigation.stack")}</span>
         </div>
       </div>
 
@@ -79,7 +85,7 @@ export function PlanCard({
           aria-expanded={showScreens}
           className="flex w-full items-center justify-between text-start text-xs font-semibold"
         >
-          {plan.screens.length} screens
+          {t("screens", { count: plan.screens.length })}
           <ChevronDownIcon className={cn("size-3.5 text-muted-foreground transition-transform", showScreens && "rotate-180")} />
         </button>
 
@@ -91,13 +97,17 @@ export function PlanCard({
                   <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[11px] font-semibold text-violet-700">
                     {i + 1}
                   </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{screen.name}</p>
-                    <p className="text-xs leading-relaxed text-muted-foreground">{screen.purpose}</p>
+                  <div className="min-w-0 flex-1">
+                    <p dir="auto" className="text-sm font-medium">
+                      {screen.name}
+                    </p>
+                    <p dir="auto" className="text-xs leading-relaxed text-muted-foreground">
+                      {screen.purpose}
+                    </p>
                     {showDetails && (
                       <ul className="mt-1 space-y-0.5 text-xs text-foreground/80">
                         {screen.keyElements.map((element) => (
-                          <li key={element} className="flex gap-1.5">
+                          <li key={element} dir="auto" className="flex gap-1.5">
                             <span aria-hidden className="mt-1.5 size-1 shrink-0 rounded-full bg-violet-400" />
                             {element}
                           </li>
@@ -113,7 +123,7 @@ export function PlanCard({
               onClick={() => setShowDetails((s) => !s)}
               className="mt-2.5 text-xs font-medium text-violet-700 hover:underline"
             >
-              {showDetails ? "Hide screen details" : "Show screen details"}
+              {showDetails ? t("hideDetails") : t("showDetails")}
             </button>
           </>
         )}
@@ -127,9 +137,9 @@ export function PlanCard({
             className="h-9 w-full rounded-full bg-linear-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-md shadow-violet-500/30 hover:opacity-95"
           >
             <HammerIcon />
-            Confirm & build {plan.screens.length} screens
+            {t("confirm", { count: plan.screens.length })}
           </Button>
-          <p className="text-center text-[11px] text-muted-foreground">Uses {buildCost(plan, screens)} credits. Want changes? Tell me in the chat below.</p>
+          <p className="text-center text-[11px] text-muted-foreground">{t("cost", { count: buildCost(plan, screens) })}</p>
         </div>
       )}
     </section>

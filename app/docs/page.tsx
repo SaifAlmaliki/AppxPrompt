@@ -67,6 +67,7 @@ export default async function DocsPage() {
   const tCommon = await getTranslations("common")
   const tComposer = await getTranslations("composer")
   const tShared = await getTranslations("projects.shared")
+  const tThemes = await getTranslations("themes")
   const format = await getFormatter()
 
   const r = (key: Parameters<typeof t.rich>[0], values: Record<string, React.ReactNode | number> = {}) =>
@@ -128,7 +129,17 @@ export default async function DocsPage() {
         <Tip>{t("editing.tip")}</Tip>
       </>
     ),
-    themes: <p>{t("themes.p1")}</p>,
+    themes: (
+      <p>
+        {t("themes.p1", {
+          default: tThemes("default"),
+          ocean: tThemes("ocean"),
+          forest: tThemes("forest"),
+          sunset: tThemes("sunset"),
+          midnight: tThemes("midnight"),
+        })}
+      </p>
+    ),
     phone: (
       <>
         <Steps>

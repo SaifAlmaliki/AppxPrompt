@@ -470,7 +470,7 @@
     },
     "themes": {
       "title": "السمات",
-      "p1": "يأتي كل تطبيق بخمس سمات: الافتراضية، والمحيط، والغابة، والغروب، ومنتصف الليل وهي سمة داكنة. بدّل بينها من مبدّل السمات في مساحة العمل. لا يُعاد بناء شيء وهذا مجاني، فجرّبها كلها. تريد شيئًا آخر؟ اطلب من الوكيل سمة جديدة بألوان علامتك التجارية."
+      "p1": "يأتي كل تطبيق بخمس سمات: {default}، و{ocean}، و{forest}، و{sunset}، و{midnight} وهي سمة داكنة. بدّل بينها من مبدّل السمات في مساحة العمل. لا يُعاد بناء شيء وهذا مجاني، فجرّبها كلها. تريد شيئًا آخر؟ اطلب من الوكيل سمة جديدة بألوان علامتك التجارية."
     },
     "phone": {
       "title": "الاختبار على هاتفك",
@@ -668,5 +668,145 @@
     "gotIt": "حسنًا",
     "join": "انضم إلى Pro مقابل <amount>{price}</amount> شهريًا",
     "comparePlans": "قارن بين الخطط"
+  },
+  "workspace": {
+    "signedOut": {
+      "title": "سجّل الدخول لفتح هذا المشروع",
+      "description": "انتهت جلستك. سجّل الدخول من الصفحة الرئيسية للمتابعة.",
+      "goHome": "الانتقال إلى الصفحة الرئيسية"
+    },
+    "backHome": "العودة إلى الصفحة الرئيسية",
+    "sections": {
+      "label": "أقسام مساحة العمل",
+      "chat": "المحادثة",
+      "canvas": "اللوحة",
+      "preview": "المعاينة"
+    },
+    "setUpBackendMessage": "ربطتُ حسابي في CloudHike. يُرجى إعداد الواجهة الخلفية لهذا التطبيق.",
+    "header": {
+      "viewOnly": "للعرض فقط",
+      "creditsTitle": "المتبقي: {credits}",
+      "export": "تصدير",
+      "shareProject": "مشاركة المشروع",
+      "downloadZip": "تنزيل بصيغة ZIP",
+      "pushGitHub": "الدفع إلى GitHub",
+      "openSnack": "الفتح في Expo Snack",
+      "publish": "نشر",
+      "backend": {
+        "settingUp": "جارٍ إعداد الواجهة الخلفية…",
+        "needsAttention": "الواجهة الخلفية تحتاج إلى انتباه",
+        "connected": "تم ربط واجهة CloudHike الخلفية",
+        "connectedShort": "تم الربط",
+        "connect": "ربط الواجهة الخلفية"
+      }
+    },
+    "themeSwitcher": {
+      "trigger": "سمة التطبيق: {name}. تغيير السمة",
+      "label": "سمة التطبيق",
+      "mode": {
+        "light": "فاتحة",
+        "dark": "داكنة"
+      }
+    },
+    "errors": {
+      "network": "تعذّر الوصول إلى الخادم. تحقّق من اتصالك وحاول مرة أخرى.",
+      "writeEditFailed": "تعذّرت كتابة تعديلك في هذا الملف. جرّب التعديل بالذكاء الاصطناعي بدلًا من ذلك.",
+      "saveEditFailed": "تعذّر على الخادم حفظ تعديلك. حاول مرة أخرى.",
+      "saveEditOffline": "تعذّر الوصول إلى الخادم لحفظ تعديلك. تحقّق من اتصالك.",
+      "imageFailed": "تعذّر إكمال هذه الصورة. حاول مرة أخرى.",
+      "screenChanged": "تغيّرت هذه الشاشة أثناء إنشاء صورتك. حاول مرة أخرى.",
+      "publishNotSaved": "تعذّر حفظ آخر تعديلاتك، لذا لم يتم النشر. حاول مرة أخرى.",
+      "previewFailed": "تعذّر بدء المعاينة.",
+      "dependencyFailed": "تعذّر تحميل {name}: {message}"
+    }
+  },
+  "chat": {
+    "label": "المحادثة",
+    "agentName": "وكيل AppxPrompt",
+    "working": "جارٍ العمل",
+    "newSession": "جلسة جديدة",
+    "newSessionTitle": "بدء جلسة جديدة؟",
+    "newSessionDescription": "سيؤدي هذا إلى مسح المحادثة، وسينسى الوكيل ما دار فيها. يبقى تطبيقك وشاشاتك وخطتك كما هي.",
+    "cancel": "إلغاء",
+    "startNewSession": "بدء جلسة جديدة",
+    "empty": "جلسة جديدة. أخبر الوكيل بما تريده بعد ذلك.",
+    "agentSaid": "الوكيل:",
+    "youSaid": "أنت:",
+    "attachedFiles": "الملفات المرفقة",
+    "activity": "جارٍ العمل…",
+    "tryAgain": "حاول مرة أخرى",
+    "readOnly": "شُورك هذا المشروع معك للاطّلاع فقط، لذا لا يستطيع طلب التعديلات من الوكيل سوى مالكه.",
+    "removeElement": "إزالة {element} من هذه الرسالة",
+    "inputLabel": "راسل وكيل AppxPrompt",
+    "placeholder": {
+      "building": "جارٍ بناء شاشاتك…",
+      "element": "اطلب تغييرًا لهذا العنصر: {element}…",
+      "choices": "أجب برقم، مثل 1",
+      "plan": "اطلب تعديلات… مثال: أضف شاشة للإعدادات",
+      "default": "راسل الوكيل…"
+    },
+    "attach": "إرفاق ملف",
+    "agentWorking": "الوكيل يعمل",
+    "send": "إرسال الرسالة",
+    "elementIn": "{label} في {screen}",
+    "thinking": "جارٍ التفكير…",
+    "thoughtProcess": "عملية التفكير",
+    "tapNumber": "اضغط على رقم، أو اكتبه في الأسفل.",
+    "choices": "الخيارات",
+    "confirmMessage": "تبدو الخطة جيدة، ابدأ البناء!",
+    "errors": {
+      "agentStart": "تعذّر بدء الوكيل. حاول مرة أخرى.",
+      "connectionLost": "انقطع الاتصال بالوكيل. أعد تحميل الصفحة لرؤية آخر ما أنجزه.",
+      "themeSave": "تعذّر حفظ السمة. حاول مرة أخرى.",
+      "newSession": "تعذّر بدء جلسة جديدة. حاول مرة أخرى."
+    }
+  },
+  "planCard": {
+    "label": "خطة التطبيق: {name}",
+    "title": "خطة التطبيق",
+    "earlier": "نسخة سابقة",
+    "confirmed": "تم التأكيد",
+    "mode": {
+      "light": "الوضع الفاتح",
+      "dark": "الوضع الداكن"
+    },
+    "navigation": {
+      "tabs": "التنقل بالتبويبات",
+      "stack": "التنقل المتسلسل"
+    },
+    "screens": "{count, plural, zero {{count, number, integer} شاشة} one {شاشة واحدة} two {شاشتان} few {{count, number, integer} شاشات} many {{count, number, integer} شاشة} other {{count, number, integer} شاشة}}",
+    "hideDetails": "إخفاء تفاصيل الشاشات",
+    "showDetails": "إظهار تفاصيل الشاشات",
+    "confirm": "{count, plural, zero {تأكيد وبناء {count, number, integer} شاشة} one {تأكيد وبناء شاشة واحدة} two {تأكيد وبناء شاشتين} few {تأكيد وبناء {count, number, integer} شاشات} many {تأكيد وبناء {count, number, integer} شاشة} other {تأكيد وبناء {count, number, integer} شاشة}}",
+    "cost": "يستهلك {count, plural, zero {{count, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}. هل تريد تعديلات؟ أخبرني في المحادثة أدناه."
+  },
+  "buildProgress": {
+    "label": "تقدّم البناء",
+    "title": "جارٍ بناء تطبيقك",
+    "count": "{finished, number, integer} من {total, number, integer}",
+    "lines": "{count, plural, zero {{count, number, integer} سطر} one {سطر واحد} two {سطران} few {{count, number, integer} أسطر} many {{count, number, integer} سطرًا} other {{count, number, integer} سطر}}",
+    "designing": "قيد التصميم",
+    "failed": "فشل",
+    "done": "تم",
+    "waiting": "في الانتظار",
+    "code": "الشيفرة قيد الكتابة لشاشة {name}"
+  },
+  "themes": {
+    "default": "الافتراضية",
+    "ocean": "المحيط",
+    "forest": "الغابة",
+    "sunset": "الغروب",
+    "midnight": "منتصف الليل"
+  },
+  "elements": {
+    "container": "حاوية",
+    "screen": "شاشة",
+    "gradient": "تدرّج",
+    "text": "نص",
+    "image": "صورة",
+    "button": "زر",
+    "input": "حقل إدخال",
+    "switch": "مفتاح تبديل",
+    "icon": "أيقونة"
   }
 }

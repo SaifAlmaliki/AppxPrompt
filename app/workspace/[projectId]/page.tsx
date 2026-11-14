@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { and, asc, eq } from "drizzle-orm"
+import { getTranslations } from "next-intl/server"
 import { ArrowLeftIcon } from "lucide-react"
 
 import { db, messages, projectAssets, screens } from "@/db"
@@ -27,15 +28,16 @@ export default async function WorkspacePage({
   const user = await getCurrentUser()
 
   if (!user) {
+    const t = await getTranslations("workspace.signedOut")
     return (
       <WorkspaceShell>
         <div className="mx-auto max-w-md rounded-[2rem] border border-border/60 bg-muted/40 p-8 text-center">
-          <h1 className="text-xl font-semibold">Sign in to open this project</h1>
+          <h1 className="text-xl font-semibold">{t("title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your session has ended. Sign in from the home page to continue.
+            {t("description")}
           </p>
           <Link href="/" className="mt-5 inline-block text-sm font-medium text-violet-700 hover:underline">
-            Go to home
+            {t("goHome")}
           </Link>
         </div>
       </WorkspaceShell>
@@ -110,11 +112,13 @@ export default async function WorkspacePage({
   )
 }
 
-function WorkspaceShell({ children }: { children: React.ReactNode }) {
+async function WorkspaceShell({ children }: { children: React.ReactNode }) {
+  const t = await getTranslations("workspace")
+  const tHeader = await getTranslations("header")
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" aria-label="AppxPrompt home">
+        <Link href="/" aria-label={tHeader("homeLabel")}>
           <Logo />
         </Link>
         <Link
@@ -122,7 +126,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeftIcon className="size-4 rtl:-scale-x-100" />
-          Back to home
+          {t("backHome")}
         </Link>
       </header>
       <main className="px-4 py-8 sm:px-6">{children}</main>

@@ -400,6 +400,7 @@ export function PromptComposer() {
             </label>
             <textarea
               id="prompt"
+              dir="auto"
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}

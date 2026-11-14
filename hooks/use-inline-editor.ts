@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 
 import type { useProjectAgent } from "@/hooks/use-project-agent"
 import { componentFilePath, type AppPlan, type ProjectScreen } from "@/lib/agent-protocol"
@@ -79,6 +80,7 @@ export function useInlineEditor(projectId: string, agent: Agent, imageTools: boo
   const locked = readOnly || busy || status === "building"
   const openUpgrade = useUpgradeDialog()
   const { refresh: refreshAccount } = useAuth()
+  const t = useTranslations("workspace.errors")
 
   const [editingScreenId, setEditingScreenId] = React.useState<string | null>(null)
   const [selection, setSelection] = React.useState<EditorSelection | null>(null)
@@ -138,7 +140,7 @@ export function useInlineEditor(projectId: string, agent: Agent, imageTools: boo
       try {
         current = source.applyElementEdits(file.base, file.edits)
       } catch {
-        setSaveError("Couldn't write your edit into this file. Use Edit with AI instead.")
+        setSaveError(t("writeEditFailed"))
         ok = false
         continue
       }
@@ -156,7 +158,7 @@ export function useInlineEditor(projectId: string, agent: Agent, imageTools: boo
       }).catch(() => null)
       if (!response?.ok) {
         const body = await response?.json().catch(() => null)
-        setSaveError(body?.error ?? (response ? "The server couldn't save your edit. Please try again." : "Couldn't reach the server to save your edit. Check your connection."))
+        setSaveError(body?.error ?? (response ? t("saveEditFailed") : t("saveEditOffline")))
         ok = false
         continue
       }
@@ -166,7 +168,7 @@ export function useInlineEditor(projectId: string, agent: Agent, imageTools: boo
       if (filesRef.current[path]) filesRef.current = { ...filesRef.current, [path]: { ...filesRef.current[path], saved } }
     }
     return ok
-  }, [loadSource, projectId, setFileCode])
+  }, [loadSource, projectId, setFileCode, t])
 
   /** Saves in order, so a newer edit can't arrive before an older one. */
   const flush = React.useCallback(() => {
@@ -306,21 +308,21 @@ export function useInlineEditor(projectId: string, agent: Agent, imageTools: boo
         const response = await fetch(`/api/projects/${projectId}/images`, imageRequestInit(request, imageUri(target, filesRef.current[path]?.edits[source])))
         const body = await response.json().catch(() => null)
         if (isUpgradeReason(body?.code)) openUpgrade(body.code)
-        if (!response.ok || typeof body?.url !== "string") throw new Error(body?.error ?? "Couldn't finish this image. Please try again.")
+        if (!response.ok || typeof body?.url !== "string") throw new Error(body?.error ?? t("imageFailed"))
         void refreshAccount()
         // An element is known by its line, so in code that changed this could land on another one.
-        if (lockedRef.current || baseCode() !== startedOn) throw new Error("This screen changed while your image was being made. Please try again.")
+        if (lockedRef.current || baseCode() !== startedOn) throw new Error(t("screenChanged"))
         updateElement(target, { props: { source: { uri: body.url } } })
         return true
       } catch (cause) {
-        const message = cause instanceof TypeError ? "Couldn't reach the server. Check your connection and try again." : (cause as Error).message
+        const message = cause instanceof TypeError ? t("network") : (cause as Error).message
         setImageErrors((errors) => ({ ...errors, [source]: message }))
         return false
       } finally {
         finish()
       }
     },
-    [openUpgrade, projectId, refreshAccount, updateElement]
+    [openUpgrade, projectId, refreshAccount, t, updateElement]
   )
 
   const resetSelected = React.useCallback(() => {

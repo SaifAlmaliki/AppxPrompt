@@ -161,6 +161,24 @@ export function fallbackThemePackage(design: DesignColors): ThemePackage {
   return { activeThemeId: "default", themes: [themeFromDesign(design), ...presets] }
 }
 
+/** The English names of the built-in themes. They're shown through the `themes.<id>` messages. */
+export const BUILT_IN_THEME_NAMES = {
+  default: "Default",
+  ocean: "Ocean",
+  forest: "Forest",
+  sunset: "Sunset",
+  midnight: "Midnight",
+} as const
+
+export type BuiltInThemeId = keyof typeof BUILT_IN_THEME_NAMES
+
+/** The id of a built-in theme, or null for one the agent made, even if it reuses a built-in id. */
+export function builtInThemeId(theme: Pick<AppTheme, "id" | "name">): BuiltInThemeId | null {
+  return Object.hasOwn(BUILT_IN_THEME_NAMES, theme.id) && BUILT_IN_THEME_NAMES[theme.id as BuiltInThemeId] === theme.name
+    ? (theme.id as BuiltInThemeId)
+    : null
+}
+
 export function activeTheme(themePackage: ThemePackage | null | undefined) {
   if (!themePackage) return null
   return themePackage.themes.find((t) => t.id === themePackage.activeThemeId) ?? themePackage.themes[0] ?? null

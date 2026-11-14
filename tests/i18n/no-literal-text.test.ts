@@ -15,6 +15,13 @@ export const CHECKED: string[] = [
   "app/pricing/**/*.tsx",
   "app/billing/**/*.tsx",
   "components/billing/**/*.tsx",
+  "app/workspace/**/*.tsx",
+  "components/workspace/workspace-layout.tsx",
+  "components/workspace/workspace-header.tsx",
+  "components/workspace/chat-panel.tsx",
+  "components/workspace/plan-card.tsx",
+  "components/workspace/build-progress.tsx",
+  "components/workspace/theme-switcher.tsx",
 ];
 
 // Words that stay in Latin script in both languages, so they may appear as
@@ -197,6 +204,51 @@ export function literalsInSource(source: string): string[] {
   return found;
 }
 
+// People type Arabic and English into the same boxes, so a free-text field must
+// pick its direction from what is typed: every `<textarea>` and `<input type="text">`
+// needs a `dir`.
+export function fieldsWithoutDir(source: string): string[] {
+  const ast = parse(source, {
+    sourceType: "module",
+    plugins: ["typescript", "jsx"],
+  });
+  const found: string[] = [];
+  visit(ast.program, (node) => {
+    if (node.type !== "JSXOpeningElement") return;
+    const tag = (node.name as { name?: string }).name;
+    if (tag !== "textarea" && tag !== "input") return;
+    const attributes = (node.attributes as Node[]).filter(
+      (attribute) => attribute.type === "JSXAttribute",
+    );
+    const named = (name: string) =>
+      attributes.find((attribute) => (attribute.name as { name?: string }).name === name);
+    if (tag === "input") {
+      const type = named("type")?.value as { type?: string; value?: string } | undefined;
+      if (type?.type !== "StringLiteral" || type.value !== "text") return;
+    }
+    if (!named("dir")) found.push(`line ${node.loc?.start.line}: <${tag}> has no dir`);
+  });
+  return found;
+}
+
+describe("direction guard", () => {
+  it("flags text fields without dir", () => {
+    const found = fieldsWithoutDir(`
+      export const A = () => (
+        <form>
+          <textarea />
+          <textarea dir="auto" />
+          <input type="text" />
+          <input type="text" dir="auto" />
+          <input type="email" />
+          <input type="password" />
+        </form>
+      )
+    `);
+    expect(found).toHaveLength(2);
+  });
+});
+
 describe("literal-text guard", () => {
   it("finds literals in JSX text, attributes and branches", () => {
     const found = literalsInSource(`
@@ -244,6 +296,18 @@ describe("no literal user-facing text", () => {
     expect(
       offenders,
       `Move these into messages/en.json and messages/ar.json (getTranslations on the server, useTranslations in client components):\n${offenders.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("gives every text field a direction", () => {
+    const offenders = checkedFiles().flatMap((file) =>
+      fieldsWithoutDir(readFileSync(path.join(ROOT, file), "utf8")).map(
+        (hit) => `${file} ${hit}`,
+      ),
+    );
+    expect(
+      offenders,
+      `Add dir="auto" to these text fields (dir="ltr" for emails and other fixed Latin values):\n${offenders.join("\n")}`,
     ).toEqual([]);
   });
 });
