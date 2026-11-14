@@ -1,4 +1,4 @@
-import { errorText, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
+import { errorText, storedErrorText, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import en from "@/messages/en.json"
 
 export type PublishFailure =
@@ -17,7 +17,7 @@ export function storeFailure(error: PublishFailure): string {
 }
 
 export function failureText(stored: string | null, t: Translator<"errors">): string | null {
-  if (!stored?.startsWith(PREFIX)) return stored
+  if (!stored?.startsWith(PREFIX)) return storedErrorText(stored, t)
   try {
     const error = JSON.parse(stored.slice(PREFIX.length))
     if (error?.source === "provider" && typeof error.detail === "string") return error.detail

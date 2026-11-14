@@ -38,6 +38,27 @@ export function errorText(t: Translator<"errors">, key: ErrorKey, values?: Error
   return (t as unknown as (key: string, values?: ErrorValues) => string)(key, values)
 }
 
+const STORED_ERROR = "appxprompt-error:"
+
+/**
+ * An error to save for later, such as on a build, without a language: whoever reads
+ * it words it with `storedErrorText`. Text from elsewhere, such as EAS, is saved as it is.
+ */
+export function storedError(key: ErrorKey, values?: ErrorValues) {
+  return STORED_ERROR + JSON.stringify(values ? { key, values } : { key })
+}
+
+/** A saved error in `t`'s language. Text that isn't a stored key, including errors saved before keys were, is shown as it is. */
+export function storedErrorText(stored: string | null, t: Translator<"errors">) {
+  if (!stored?.startsWith(STORED_ERROR)) return stored
+  try {
+    const { key, values } = JSON.parse(stored.slice(STORED_ERROR.length)) as { key: string; values?: ErrorValues }
+    return key in en.errors ? errorText(t, key as ErrorKey, values) : stored
+  } catch {
+    return stored
+  }
+}
+
 let english: Translator<"errors"> | null = null
 
 /**

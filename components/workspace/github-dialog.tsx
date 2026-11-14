@@ -125,14 +125,12 @@ export function GitHubDialog({
     }
   }, [beforeExport, projectId, t, tw])
 
+  const pushRef = React.useRef(push)
+  // Switching language mustn't reload the dialog, which would push again.
   const tRef = React.useRef(t)
   React.useEffect(() => {
-    tRef.current = t
-  }, [t])
-
-  const pushRef = React.useRef(push)
-  React.useEffect(() => {
     pushRef.current = push
+    tRef.current = t
   })
 
   // Opening this is the request: a project that's been pushed before goes straight to a new branch.

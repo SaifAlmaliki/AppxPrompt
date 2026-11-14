@@ -8,8 +8,8 @@ const LINK = /\b(?:https?:\/\/|www\.)\S+/gi
  * link on its own, keeps the language it had.
  */
 export function detectChatLanguage(text: string, previous: Locale): Locale {
-  const withoutLinks = text.replace(LINK, " ")
-  if (/\p{Script=Arabic}/u.test(withoutLinks)) return "ar"
-  if (/\p{Script=Latin}/u.test(withoutLinks)) return "en"
+  const words = text.replace(LINK, " ")
+  if (/\p{Script=Arabic}/u.test(words)) return "ar"
+  if (/\p{Script=Latin}/u.test(words)) return "en"
   return previous
 }

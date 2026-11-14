@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { translatorFor } from "@/lib/i18n/server"
+import { storedError, translatorFor } from "@/lib/i18n/server"
 import { applicationFailure, failureText, storeFailure } from "@/lib/publish/errors"
 
 const en = translatorFor("en", "errors")
@@ -28,6 +28,14 @@ describe("persisted publish errors", () => {
       expect(failureText(stored, en)).toBe(detail)
       expect(failureText(stored, ar)).toBe(detail)
     }
+  })
+
+  it("reads application errors written by the remote branch", () => {
+    const stored = storedError("expoAnswered", { status: 503 })
+    expect(failureText(stored, en)).toBe(en("expoAnswered", { status: 503 }))
+    expect(failureText(stored, ar)).toBe(ar("expoAnswered", { status: 503 }))
+    const provider = storeFailure({ source: "provider", detail: stored })
+    expect(failureText(provider, ar)).toBe(stored)
   })
 
   it("preserves legacy text and null errors", () => {

@@ -25,6 +25,11 @@ describe("detectChatLanguage", () => {
     expect(detectChatLanguage("see https://example.com/مرحبا", "ar")).toBe("en")
   })
 
+  it("ignores Arabic letters inside a link", () => {
+    expect(detectChatLanguage("https://ar.wikipedia.org/wiki/مصر", "en")).toBe("en")
+    expect(detectChatLanguage("like https://ar.wikipedia.org/wiki/مصر", "ar")).toBe("en")
+  })
+
   it("is Arabic when a message mixes scripts", () => {
     expect(detectChatLanguage("make it like Uber لكن للمطاعم", "en")).toBe("ar")
   })

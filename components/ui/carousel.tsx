@@ -8,6 +8,7 @@ import useEmblaCarousel, {
 } from "embla-carousel-react"
 
 import { Button } from "@/components/ui/button"
+import { useDirection } from "@/components/ui/direction"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 type CarouselApi = UseEmblaCarouselType[1]
@@ -53,10 +54,15 @@ function Carousel({
   ...props
 }: React.ComponentProps<"div"> & CarouselProps) {
   const t = useTranslations("ui")
+  const pageDirection = useDirection()
+  const horizontal = orientation === "horizontal"
+  // A horizontal carousel runs the way the page reads, unless it says otherwise.
+  const direction = opts?.direction ?? (horizontal ? pageDirection : undefined)
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
-      axis: orientation === "horizontal" ? "x" : "y",
+      ...(direction ? { direction } : {}),
+      axis: horizontal ? "x" : "y",
     },
     plugins
   )
@@ -79,15 +85,19 @@ function Carousel({
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // In a right-to-left carousel the previous slide is on the right.
+      const reversed = horizontal && direction === "rtl"
       if (event.key === "ArrowLeft") {
         event.preventDefault()
-        scrollPrev()
+        if (reversed) scrollNext()
+        else scrollPrev()
       } else if (event.key === "ArrowRight") {
         event.preventDefault()
-        scrollNext()
+        if (reversed) scrollPrev()
+        else scrollNext()
       }
     },
-    [scrollPrev, scrollNext]
+    [direction, horizontal, scrollPrev, scrollNext]
   )
 
   React.useEffect(() => {
