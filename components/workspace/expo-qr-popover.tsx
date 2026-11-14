@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { QRCodeSVG } from "qrcode.react"
 import { AlertCircleIcon, CheckIcon, CopyIcon, QrCodeIcon, RotateCwIcon } from "lucide-react"
 
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 
 export function ExpoQrPopover({ plan, screens }: { plan: AppPlan | null; screens: ProjectScreen[] }) {
+  const t = useTranslations("expoQr")
   const [open, setOpen] = React.useState(false)
   // Starts on first use, then stays online so a connected phone keeps getting changes.
   const [started, setStarted] = React.useState(false)
@@ -32,23 +34,21 @@ export function ExpoQrPopover({ plan, screens }: { plan: AppPlan | null; screens
           <Button
             variant="outline"
             size="sm"
-            aria-label="Scan QR code to test on your device"
+            aria-label={t("triggerLabel")}
             className="relative rounded-full border-violet-200 text-violet-700 hover:bg-violet-500/10 hover:text-violet-700 aria-expanded:bg-violet-500/10"
           />
         }
       >
         <QrCodeIcon />
-        <span className="hidden @[26rem]:inline">Scan QR Code</span>
+        <span className="hidden @[26rem]:inline">{t("trigger")}</span>
         {connected && (
-          <span aria-hidden className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+          <span aria-hidden className="absolute -top-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
         )}
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-80 gap-3 rounded-2xl p-4 shadow-[0_16px_48px_-16px_rgba(76,29,149,0.35)]">
         <div className="space-y-0.5">
-          <PopoverTitle className="text-sm font-semibold">Test on your device</PopoverTitle>
-          <PopoverDescription className="text-xs">
-            Scan with your iPhone's Camera, or from inside Expo Go on Android. Keep this tab open while you test.
-          </PopoverDescription>
+          <PopoverTitle className="text-sm font-semibold">{t("title")}</PopoverTitle>
+          <PopoverDescription className="text-xs">{t("description")}</PopoverDescription>
         </div>
         <PopoverBody status={status} hasProject={hasProject} retry={retry} />
       </PopoverContent>
@@ -57,22 +57,23 @@ export function ExpoQrPopover({ plan, screens }: { plan: AppPlan | null; screens
 }
 
 function PopoverBody({ status, hasProject, retry }: { status: ExpoSnackStatus; hasProject: boolean; retry: () => void }) {
+  const t = useTranslations("expoQr")
   if (!hasProject) {
-    return <Notice icon={<Spinner className="size-4 text-violet-600" />} text="Your QR code appears once the agent has built your first screen." />
+    return <Notice icon={<Spinner className="size-4 text-violet-600" />} text={t("noProject")} />
   }
   if (status.state === "error") {
     return (
       <Notice icon={<AlertCircleIcon className="size-4 text-destructive" />} text={status.message}>
         <Button variant="outline" size="sm" className="rounded-full" onClick={retry}>
           <RotateCwIcon />
-          Try again
+          {t("tryAgain")}
         </Button>
       </Notice>
     )
   }
   if (status.state !== "ready") {
     return (
-      <div role="status" aria-label="Getting your QR code" className="flex justify-center">
+      <div role="status" aria-label={t("loading")} className="flex justify-center">
         <Skeleton className="size-[216px] rounded-2xl" />
       </div>
     )
@@ -82,14 +83,12 @@ function PopoverBody({ status, hasProject, retry }: { status: ExpoSnackStatus; h
     <>
       <div className="flex justify-center">
         <div className="rounded-2xl border border-border/60 bg-white p-3">
-          <QRCodeSVG value={status.url} size={192} level="M" title="QR code that opens this app in Expo Go" />
+          <QRCodeSVG value={status.url} size={192} level="M" title={t("qrTitle")} />
         </div>
       </div>
       <ConnectionStatus devices={status.devices} />
       {status.problem && <p className="text-xs break-words text-destructive">{status.problem}</p>}
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Needs Expo Go for SDK 54. If it says the app is incompatible, your Expo Go is on a newer SDK.
-      </p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{t("sdkNote")}</p>
       <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
         <a
           href="https://expo.dev/go"
@@ -97,7 +96,7 @@ function PopoverBody({ status, hasProject, retry }: { status: ExpoSnackStatus; h
           rel="noreferrer"
           className="text-xs font-medium text-violet-700 hover:underline"
         >
-          Get Expo Go
+          {t("getExpoGo")}
         </a>
         <CopyLinkButton url={status.url} />
       </div>
@@ -116,18 +115,23 @@ function Notice({ icon, text, children }: { icon: React.ReactNode; text: string;
 }
 
 function ConnectionStatus({ devices }: { devices: ExpoDevice[] }) {
+  const t = useTranslations("expoQr")
   if (devices.length === 0) {
-    return <StatusRow tone="waiting">Waiting for a device to connect</StatusRow>
+    return <StatusRow tone="waiting">{t("waiting")}</StatusRow>
   }
   return (
     <ul className="space-y-1.5" aria-live="polite">
       {devices.map((device) => (
         <li key={device.id}>
           <StatusRow tone={device.error ? "error" : "connected"}>
-            <span className="font-medium text-foreground">{device.name || device.platform}</span>
+            <bdi className="font-medium text-foreground">{device.name || device.platform}</bdi>
             {" · "}
-            {device.error ? "Hit a problem" : "Live"}
-            {device.error && <span className="mt-0.5 line-clamp-3 block font-mono text-[11px] break-words">{device.error}</span>}
+            {device.error ? t("problem") : t("live")}
+            {device.error && (
+              <span dir="auto" className="mt-0.5 line-clamp-3 block font-mono text-[11px] break-words">
+                {device.error}
+              </span>
+            )}
           </StatusRow>
         </li>
       ))}
@@ -151,6 +155,7 @@ function StatusRow({ tone, children }: { tone: keyof typeof STATUS_DOT; children
 }
 
 export function CopyLinkButton({ url }: { url: string }) {
+  const t = useTranslations("expoQr")
   const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
@@ -167,7 +172,7 @@ export function CopyLinkButton({ url }: { url: string }) {
       onClick={() => void navigator.clipboard.writeText(url).then(() => setCopied(true))}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
-      {copied ? "Copied" : "Copy link"}
+      {copied ? t("copied") : t("copyLink")}
     </Button>
   )
 }

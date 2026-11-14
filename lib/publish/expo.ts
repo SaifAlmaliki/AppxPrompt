@@ -3,16 +3,19 @@
 
 import { createHash, randomBytes } from "node:crypto"
 
+import { LocalizedError, type ErrorKey, type ErrorValues } from "@/lib/i18n/server"
+
 const GRAPHQL_URL = "https://api.expo.dev/graphql"
 
 /** Something Expo said no to. `unauthorized` means the person's token has to be replaced. */
-export class ExpoError extends Error {
+export class ExpoError extends LocalizedError {
   constructor(
-    message: string,
+    key: ErrorKey,
     public unauthorized = false,
-    public code?: string
+    public code?: string,
+    values?: ErrorValues
   ) {
-    super(message)
+    super(key, values)
   }
 }
 
@@ -28,10 +31,10 @@ async function expoRequest<T>(accessToken: string, query: string, variables: obj
     errors?: { message?: string; extensions?: { errorCode?: string } }[]
   } | null
   const unauthorized = response.status === 401 || Boolean(result?.errors?.some((error) => /UNAUTHORIZED|UNAUTHENTICATED/.test(error.extensions?.errorCode ?? "")))
-  if (unauthorized) throw new ExpoError("Expo no longer accepts this token. Connect your account again.", true)
+  if (unauthorized) throw new ExpoError("expoReauth", true)
   if (!response.ok || !result?.data || result.errors?.length) {
     const error = result?.errors?.[0]
-    throw new ExpoError(error?.message ?? `Expo answered ${response.status}.`, false, error?.extensions?.errorCode)
+    throw new ExpoError(error?.message ? "passthrough" : "expoAnswered", false, error?.extensions?.errorCode, error?.message ? { message: error.message } : { status: response.status })
   }
   return result.data
 }
@@ -58,7 +61,7 @@ export async function expoAccountName(accessToken: string) {
     `query { meActor { __typename ... on UserActor { primaryAccount { name } } accounts { name } } }`
   )
   const name = meActor?.primaryAccount?.name ?? meActor?.accounts[0]?.name
-  if (!name) throw new ExpoError("This token doesn't belong to an Expo account.", true)
+  if (!name) throw new ExpoError("expoNoAccount", true)
   return name
 }
 
@@ -147,7 +150,7 @@ async function generateKeystore(accessToken: string) {
     keyAlias: string
     keyPassword: string
   } | null
-  if (!response.ok || !keystore?.keystoreBase64) throw new ExpoError("Expo couldn't create a signing key for this app. Please try again.")
+  if (!response.ok || !keystore?.keystoreBase64) throw new ExpoError("expoKeystoreFailed")
   return keystore
 }
 
@@ -185,7 +188,7 @@ export async function ensureAndroidKeystore(accessToken: string, owner: string, 
   const existing = (existingCredentials?.androidAppBuildCredentialsList ?? []).filter((item) => item.androidKeystore)
   if (existing.some((item) => item.isDefault)) return
   if (existing.length > 0) {
-    throw new ExpoError("This app has Android credentials on EAS, but none is the default. Choose one with: eas credentials --platform android")
+    throw new ExpoError("expoCredentialsNoDefault")
   }
 
   const keystore = await generateKeystore(accessToken)
@@ -249,7 +252,7 @@ async function uploadSource(accessToken: string, accountId: string, content: Buf
     body: new Uint8Array(content),
     cache: "no-store",
   })
-  if (!response.ok) throw new ExpoError(`Uploading the project to Expo failed (${response.status}). Please try again.`)
+  if (!response.ok) throw new ExpoError("expoUploadFailed", false, undefined, { status: response.status })
   return bucketKey
 }
 
@@ -353,12 +356,12 @@ export async function ensureWebDomain(accessToken: string, appId: string) {
       if (cause instanceof ExpoError && cause.code === "DEV_DOMAIN_NAME_TAKEN") continue
       // The token got this far, so it works. It just isn't allowed to do this, as with a robot's token.
       if (cause instanceof ExpoError && cause.unauthorized) {
-        throw new ExpoError("This Expo token can't set up a website for the app. Connect a personal access token from an admin of the account.")
+        throw new ExpoError("expoNoWebAccess")
       }
       throw cause
     }
   }
-  throw new ExpoError("Expo couldn't find a free web address for this app. Please try again.")
+  throw new ExpoError("expoNoDomain")
 }
 
 export type WebRunState = {

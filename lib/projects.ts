@@ -3,6 +3,7 @@
 export const PROJECT_PLATFORMS = ["ios-android", "ios", "android"] as const
 export type ProjectPlatform = (typeof PROJECT_PLATFORMS)[number]
 
+// English only: for the agent's instructions and prompts. Pages shown to people use `platforms.<id>` in the message files.
 export const PLATFORM_LABELS: Record<ProjectPlatform, string> = {
   "ios-android": "iOS & Android",
   ios: "iOS only",

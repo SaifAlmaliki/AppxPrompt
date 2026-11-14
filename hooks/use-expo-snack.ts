@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import type { Snack, SnackState } from "snack-sdk"
 
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
@@ -16,7 +17,7 @@ export type ExpoSnackStatus =
   | { state: "ready"; url: string; devices: ExpoDevice[]; problem: string | null }
   | { state: "error"; message: string }
 
-function readStatus(state: SnackState): ExpoSnackStatus {
+function readStatus(state: SnackState, dependencyFailed: (name: string, message: string) => string): ExpoSnackStatus {
   const problem = Object.entries(state.dependencies).find(([, dependency]) => dependency.error)
   return {
     state: "ready",
@@ -27,7 +28,7 @@ function readStatus(state: SnackState): ExpoSnackStatus {
       platform: client.platform,
       error: client.error?.message ?? null,
     })),
-    problem: problem ? `Couldn't load ${problem[0]}: ${problem[1].error!.message}` : null,
+    problem: problem ? dependencyFailed(problem[0], problem[1].error!.message) : null,
   }
 }
 
@@ -41,6 +42,13 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
   const snackRef = React.useRef<Snack | null>(null)
   const sentFiles = React.useRef<string[]>([])
 
+  // Read from inside the Snack's long-lived listeners, so a change of language doesn't restart it.
+  const t = useTranslations("workspace.errors")
+  const tRef = React.useRef(t)
+  React.useEffect(() => {
+    tRef.current = t
+  })
+
   const project = React.useMemo(() => snackProject(plan, screens), [plan, screens])
   const hasProject = project !== null
   const latest = React.useRef(project)
@@ -52,6 +60,7 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
     if (!enabled || !hasProject) return
     let active = true
     let unsubscribe: (() => void) | undefined
+    const dependencyFailed = (name: string, message: string) => tRef.current("dependencyFailed", { name, message })
     setStatus({ state: "starting" })
 
     void (async () => {
@@ -76,12 +85,12 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
           if (missing.length > 0) {
             snack.updateDependencies(Object.fromEntries(missing.map(([name, { wantedVersion }]) => [name, { version: wantedVersion ?? "*" }])))
           }
-          if (state.url) setStatus(readStatus(state))
+          if (state.url) setStatus(readStatus(state, dependencyFailed))
         })
         const state = await snack.getStateAsync()
-        if (active) setStatus(readStatus(state))
+        if (active) setStatus(readStatus(state, dependencyFailed))
       } catch (error) {
-        if (active) setStatus({ state: "error", message: error instanceof Error ? error.message : "Couldn't start the preview." })
+        if (active) setStatus({ state: "error", message: error instanceof Error ? error.message : tRef.current("previewFailed") })
       }
     })()
 

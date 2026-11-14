@@ -174,7 +174,7 @@ export function AppFrame({
   const receivesPointer = interactive || editMode
 
   return (
-    <div ref={containerRef} className="relative size-full overflow-hidden" style={{ background: theme?.colors.background }}>
+    <div ref={containerRef} dir="ltr" className="relative size-full overflow-hidden" style={{ background: theme?.colors.background }}>
       {size && (
         <iframe
           ref={frameRef}

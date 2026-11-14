@@ -1,0 +1,1529 @@
+{
+  "common": {
+    "credits": "{count, plural, one {# credit} other {# credits}}"
+  },
+  "languageToggle": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "meta": {
+    "home": {
+      "title": "AppxPrompt — Build mobile apps with AI",
+      "description": "Describe your idea and AppxPrompt's AI agent designs and builds your iOS and Android app."
+    },
+    "pricing": {
+      "title": "Pricing — AppxPrompt",
+      "description": "Start free and build your first apps with AI. Upgrade to Pro for unlimited projects and iOS and Android exports."
+    },
+    "docs": {
+      "title": "Docs — AppxPrompt",
+      "description": "Learn how to plan, build, edit, test, and publish a mobile app with AppxPrompt, from your first prompt to the app stores."
+    },
+    "billing": {
+      "title": "Usage & billing — AppxPrompt",
+      "description": "See your plan, the credits you have left, and how many projects you've used."
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Free"
+    },
+    "pro": {
+      "name": "Pro"
+    },
+    "current": "Current plan",
+    "label": "{plan} plan"
+  },
+  "platforms": {
+    "ios-android": "iOS & Android",
+    "ios": "iOS only",
+    "android": "Android only"
+  },
+  "header": {
+    "nav": {
+      "explore": "Explore",
+      "templates": "Templates",
+      "pricing": "Pricing",
+      "docs": "Docs"
+    },
+    "homeLabel": "AppxPrompt home",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "openMenu": "Open menu",
+    "creditsTitle": "{credits} remaining on the {plan} plan",
+    "creditsUnit": "{count, plural, other {credits}}",
+    "accountMenu": "Open account menu",
+    "managePro": "Manage Pro plan",
+    "upgradePro": "Upgrade to Pro",
+    "usageBilling": "Usage & billing",
+    "myProjects": "My projects",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "home": {
+    "badge": "New",
+    "tagline": "AI agent for mobile apps",
+    "heroTitle": "Turn your idea into a <highlight>mobile app</highlight>",
+    "heroSubtitle": "Describe what you want to build. AppxPrompt designs the screens, writes the code, and gets it ready for iOS and Android.",
+    "footer": "© {year} AppxPrompt. All rights reserved."
+  },
+  "composer": {
+    "label": "Describe the app you want to build",
+    "placeholder": "Describe your app idea… e.g. A recipe app that suggests meals from what's in my fridge",
+    "attach": "Attach",
+    "dropFiles": "Drop files to attach",
+    "newLine": "<kbd>Shift + Enter</kbd> for new line",
+    "generate": "Generate app",
+    "creatingLabel": "Creating project",
+    "previewFile": "Preview {name}",
+    "removeFile": "Remove {name}",
+    "status": {
+      "uploading": "Uploading {count, plural, one {# asset} other {# assets}}… {percent}%",
+      "sending": "Sending your prompt…",
+      "creating": "Creating your project…",
+      "redirecting": "Opening your workspace…"
+    },
+    "fileSize": {
+      "bytes": "{value} B",
+      "kilobytes": "{value} KB",
+      "megabytes": "{value} MB"
+    },
+    "errors": {
+      "unsupported": "Attach images, PDFs, or text files (.txt, .md, .json, .csv).",
+      "tooLarge": "Files must be under {size}.",
+      "tooMany": "You can attach up to {count, plural, one {# file} other {# files}}.",
+      "sessionExpired": "Your session has expired. Sign in again to create your app.",
+      "createFailed": "We couldn't create your project. Please try again.",
+      "network": "Couldn't reach the server. Check your connection and try again."
+    },
+    "signUpReason": "Create a free account to generate your app — your prompt is saved."
+  },
+  "projects": {
+    "public": {
+      "title": "Built with AppxPrompt",
+      "description": "Real apps from the community. Open one and try it.",
+      "signInToSee": "Sign in to see your projects",
+      "emptyTitle": "No public apps yet",
+      "emptyBody": "Be the first: build an app and share it with everyone here.",
+      "getStarted": "Get started"
+    },
+    "yours": {
+      "title": "Your projects",
+      "description": "Pick up where you left off, or start something new."
+    },
+    "shared": {
+      "title": "Shared with you",
+      "description": "Projects other people have given you access to view."
+    },
+    "newProject": "New project",
+    "duplicating": "Duplicating your project…",
+    "loadFailed": {
+      "publicApps": "We couldn't load these apps.",
+      "projects": "We couldn't load your projects.",
+      "usage": "We couldn't load your usage.",
+      "retry": "Try again"
+    },
+    "status": {
+      "planning": "Planning",
+      "building": "Building",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "card": {
+      "public": "Public",
+      "edited": "Edited {time}",
+      "noPreview": "Your app appears here once it's built",
+      "previewUnavailable": "Preview unavailable",
+      "preview": "{name} preview"
+    },
+    "menu": {
+      "actions": "Actions for {name}",
+      "open": "Open project",
+      "openNewTab": "Open in new tab",
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "share": "Share",
+      "makePrivate": "Make private",
+      "makePublic": "Make public…",
+      "exportZip": "Export as ZIP",
+      "delete": "Delete"
+    },
+    "rename": {
+      "title": "Rename project",
+      "description": "Your exported app gets this name too.",
+      "label": "Project name",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "delete": {
+      "title": "Delete {name}?",
+      "description": "Its screens, chat, and files are gone for good, including for anyone it's shared with. Its website, GitHub repository, and CloudHike backend stay where they are.",
+      "cancel": "Cancel",
+      "confirm": "Delete project"
+    },
+    "publicDialog": {
+      "couldntLoad": "This app couldn't be loaded",
+      "loading": "Loading app…",
+      "madeBy": "Made by {owner}",
+      "notice": "This is the real app, running on sample data. Tap around: nothing you do here reaches anyone else.",
+      "buildOwn": "Build your own",
+      "startOverLabel": "Start over with the sample data",
+      "startOver": "Start over",
+      "running": "{name}, running"
+    },
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "templates": {
+    "heading": "Start from a template",
+    "subheading": "Each one is a detailed prompt. Pick one, change anything you like, and send it.",
+    "screensLabel": "Screens",
+    "use": "Use this template",
+    "recipe-planner": {
+      "name": "Recipe planner",
+      "category": "Food",
+      "description": "Find recipes by ingredient, plan the week's meals, and build a shopping list.",
+      "screens": [
+        "Discover",
+        "Recipe",
+        "Meal plan",
+        "Shopping list"
+      ],
+      "prompt": "A recipe and meal planning app. Screens: Discover, with a search bar, ingredient filters, and recipe cards with photo, cooking time, and calories; Recipe, with ingredients, step-by-step instructions, and a button to add it to the plan; Meal plan, a weekly calendar with breakfast, lunch, and dinner slots; and Shopping list, which collects the ingredients from the plan, grouped by aisle, with checkboxes. Fresh, warm design with rounded cards and a green accent."
+    },
+    "workout-tracker": {
+      "name": "Workout tracker",
+      "category": "Health",
+      "description": "Log workouts, time your sets, and watch your strength go up week by week.",
+      "screens": [
+        "Today",
+        "Workout",
+        "History",
+        "Progress"
+      ],
+      "prompt": "A workout tracking app. Screens: Today, showing the planned workout, a streak counter, and a start button; Workout, to log sets, reps, and weight for each exercise with a rest timer between sets; History, a list of past workouts by date with total volume; and Progress, with charts of personal records and weekly volume per muscle group. Bold, energetic design with a dark background and a bright orange accent."
+    },
+    "budget-tracker": {
+      "name": "Budget tracker",
+      "category": "Finance",
+      "description": "Track spending by category, set monthly budgets, and spot where money goes.",
+      "screens": [
+        "Overview",
+        "Add expense",
+        "Budgets",
+        "Insights"
+      ],
+      "prompt": "A personal budget app. Screens: Overview, with this month's balance, spending against budget, and recent transactions; Add expense, a quick form with amount, category icons, date, and a note; Budgets, a monthly limit for each category with a progress bar that turns red when it's close; and Insights, with a spending-by-category donut chart and a month-by-month comparison. Calm, trustworthy design with a navy and teal palette."
+    },
+    "salon-booking": {
+      "name": "Salon booking",
+      "category": "Business",
+      "description": "Let clients browse services, pick a stylist, and book a time slot.",
+      "screens": [
+        "Services",
+        "Stylists",
+        "Book",
+        "My bookings"
+      ],
+      "prompt": "A booking app for a hair salon. Screens: Services, a list of services with price and duration grouped by category; Stylists, with photos, specialties, and ratings; Book, where the client picks a service, a stylist, a date, and an open time slot, then confirms; and My bookings, with upcoming and past appointments and options to reschedule or cancel. Elegant, modern design with a soft rose and charcoal palette."
+    },
+    "local-events": {
+      "name": "Local events",
+      "category": "Social",
+      "description": "Discover events nearby, RSVP, and see who else is going.",
+      "screens": [
+        "Explore",
+        "Event",
+        "My events",
+        "Profile"
+      ],
+      "prompt": "A local events and meetups app. Screens: Explore, with event cards showing a cover image, date, place, and category chips to filter by; Event, with details, a map location, the host, attendees' avatars, and an RSVP button; My events, a list of events I'm going to and ones I've hosted; and Profile, with my interests, past events, and a short bio. Vibrant, playful design with a purple and yellow palette."
+    },
+    "team-tasks": {
+      "name": "Team tasks",
+      "category": "Productivity",
+      "description": "Organize projects into boards, assign tasks, and track what's due.",
+      "screens": [
+        "Projects",
+        "Board",
+        "Task",
+        "My tasks"
+      ],
+      "prompt": "A task manager for small teams. Screens: Projects, a list of projects with progress bars and member avatars; Board, a project's tasks in To do, In progress, and Done columns; Task, with title, description, assignee, due date, priority, and a checklist; and My tasks, everything assigned to me, sorted by due date with overdue tasks highlighted. Clean, minimal design with plenty of white space and a blue accent."
+    },
+    "language-flashcards": {
+      "name": "Language flashcards",
+      "category": "Education",
+      "description": "Learn new words with flashcards, daily goals, and quick quizzes.",
+      "screens": [
+        "Home",
+        "Study",
+        "Quiz",
+        "Word list"
+      ],
+      "prompt": "A language learning flashcards app. Screens: Home, with today's goal, a streak, and decks to pick from; Study, a flashcard that flips to show the translation and an example sentence, with buttons for 'Again' and 'Got it'; Quiz, multiple-choice questions with a score at the end; and Word list, every word in a deck with search and a mastered badge. Friendly, encouraging design with bright colors and large, readable type."
+    },
+    "pet-care": {
+      "name": "Pet care",
+      "category": "Lifestyle",
+      "description": "Keep every pet's meals, vet visits, and reminders in one place.",
+      "screens": [
+        "My pets",
+        "Pet profile",
+        "Reminders",
+        "Health log"
+      ],
+      "prompt": "A pet care app. Screens: My pets, cards for each pet with photo, name, and the next reminder; Pet profile, with breed, age, weight, and feeding notes; Reminders, for meals, walks, medication, and vet visits, with times and repeat options; and Health log, a timeline of vet visits, vaccinations, and weight. Warm, cheerful design with soft orange and cream colors."
+    }
+  },
+  "faq": {
+    "heading": "Frequently asked questions",
+    "subtitle": "Can't find your answer? The <docs>docs</docs> cover every feature step by step.",
+    "items": {
+      "builds": {
+        "question": "What does AppxPrompt build?",
+        "answer": "A real mobile app, written in Expo and React Native, that runs on iOS and Android and on the web. You describe it, the agent plans the screens with you, and then builds them one at a time while you watch."
+      },
+      "coding": {
+        "question": "Do I need to know how to code?",
+        "answer": "No. You talk to the agent in plain language, and you can click any element in a screen to change its text, color, or image. If you do code, every file is there to read, and you can download the project."
+      },
+      "ownership": {
+        "question": "Who owns the code?",
+        "answer": "You do. Download a complete Expo project as a ZIP, or push it to your own GitHub repository, and keep working on it anywhere. Nothing ties it to AppxPrompt."
+      },
+      "phone": {
+        "question": "How do I try my app on a phone?",
+        "answer": "Click {scanQr} in the workspace and scan it with Expo Go. The app opens on your phone, and every change you make shows up there right away while the tab stays open."
+      },
+      "backend": {
+        "question": "Can my app have real accounts and data?",
+        "answer": "Yes. {connectBackend} gives your app its own CloudHike database, sign-in, and file storage, with no changes to your screens. Until then, apps run on sample data stored in your browser."
+      },
+      "stores": {
+        "question": "Can I put my app in the App Store and Google Play?",
+        "answer": "On {proName}, {publish} builds the .aab, .apk, and .ipa files through your own Expo account, ready to upload with your Apple and Google developer accounts. Any plan can publish the app as a website with its own address."
+      },
+      "screens": {
+        "question": "How many screens can an app have?",
+        "answer": "Up to {free} on {freeName} and {pro} on {proName}. The agent keeps a first plan small so you can see results quickly, and adds more screens whenever you ask."
+      },
+      "cost": {
+        "question": "What does it cost?",
+        "answer": "Starting is free, with {signup, plural, one {# credit} other {# credits}} that never expire. A new screen costs {screen, plural, one {# credit} other {# credits}} and a round of changes costs {edit}, while chatting, planning, and switching themes are free. See <pricing>Pricing</pricing> for {proName}."
+      },
+      "privacy": {
+        "question": "Who can see my projects?",
+        "answer": "Only you, unless you choose otherwise. You can share a project with someone by email so they can view it, or show it on the AppxPrompt home page for anyone to try with sample data."
+      }
+    }
+  },
+  "auth": {
+    "title": {
+      "signUp": "Create your account",
+      "signIn": "Welcome back"
+    },
+    "description": {
+      "signUp": "Start turning your ideas into mobile apps — with {credits, plural, one {# free credit} other {# free credits}}.",
+      "signIn": "Sign in to continue building with AppxPrompt."
+    },
+    "orEmail": "or continue with email",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Jane Doe",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordHint": "At least {min, plural, one {# character} other {# characters}}.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "submit": {
+      "signIn": "Sign in",
+      "signUp": "Create account",
+      "signingIn": "Signing in…",
+      "signingUp": "Creating account…"
+    },
+    "switch": {
+      "haveAccount": "Already have an account?",
+      "newHere": "New to AppxPrompt?",
+      "toSignIn": "Sign in",
+      "toSignUp": "Create an account"
+    },
+    "callback": {
+      "title": "Couldn't sign you in",
+      "back": "Back to AppxPrompt",
+      "signingIn": "Signing you in…"
+    },
+    "errors": {
+      "enterName": "Enter your name.",
+      "nameTooLong": "Name must be {max, plural, one {# character} other {# characters}} or fewer.",
+      "enterEmail": "Enter your email address.",
+      "invalidEmail": "Enter a valid email address.",
+      "enterPassword": "Enter your password.",
+      "passwordTooShort": "Password must be at least {min, plural, one {# character} other {# characters}}.",
+      "passwordTooLong": "Password must be {max, plural, one {# character} other {# characters}} or fewer.",
+      "fixFields": "Please fix the highlighted fields.",
+      "invalidRequest": "Invalid request.",
+      "incorrectCredentials": "Incorrect email or password.",
+      "accountExists": "An account with this email already exists. Try signing in.",
+      "passwordShort": "Password is too short.",
+      "passwordLong": "Password is too long.",
+      "tooManyAttempts": "Too many attempts. Please wait a moment and try again.",
+      "serverError": "Something went wrong on our side. Please try again.",
+      "generic": "Something went wrong. Please try again.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "linkExpired": "This sign-in link has expired. Please try again.",
+      "notVerified": "Sign-in could not be verified. Please try again.",
+      "cancelled": "Sign-in was cancelled.",
+      "unsupportedProvider": "That sign-in option isn't available.",
+      "incomplete": "Sign-in wasn't completed. Please try again.",
+      "failed": "Sign-in failed. Please try again."
+    }
+  },
+  "quickPrompts": {
+    "habit-tracker": {
+      "label": "Habit tracker",
+      "prompt": "A habit tracker app with daily streaks, reminders, and a weekly progress chart. Clean, calming design with soft greens."
+    },
+    "food-delivery": {
+      "label": "Food delivery",
+      "prompt": "A food delivery app with restaurant listings, search and filters, a cart, and live order tracking on a map."
+    },
+    "fitness-coach": {
+      "label": "Fitness coach",
+      "prompt": "A personal fitness coach app with workout plans, an exercise timer, and progress stats with charts."
+    },
+    "expense-manager": {
+      "label": "Expense manager",
+      "prompt": "An expense manager that lets users log spending by category, set monthly budgets, and see spending insights."
+    },
+    "travel-planner": {
+      "label": "Travel planner",
+      "prompt": "A travel planner app to build day-by-day itineraries, save places, and share trips with friends."
+    },
+    "social-feed": {
+      "label": "Social feed",
+      "prompt": "A minimal social app with a photo feed, likes, comments, user profiles, and direct messages."
+    }
+  },
+  "docs": {
+    "heading": "AppxPrompt docs",
+    "subtitle": "Everything you need to go from an idea to an app on your phone, and from there to the app stores.",
+    "nav": "On this page",
+    "getting-started": {
+      "title": "Getting started",
+      "p1": "AppxPrompt turns a description into a working Expo (React Native) app for iOS and Android. The whole journey takes a few minutes:",
+      "step1": "Describe your app in the box on the home page, or start from a <templates>template</templates>.",
+      "step2": "Answer a few questions from the agent, then confirm the screen plan it proposes.",
+      "step3": "Watch the screens being built, and tap through the running app in the preview.",
+      "step4": "Change anything by chatting, or click an element to edit it directly.",
+      "step5": "Try it on your phone, download the code, or publish it.",
+      "p2": "You need a free account to create a project. If you write a prompt first, it's kept while you sign up, and your project starts as soon as you're in."
+    },
+    "writing-prompts": {
+      "title": "Write a good prompt",
+      "p1": "The agent asks about anything you leave out, but a clear prompt gets you to a good first version faster. Mention:",
+      "item1": "<strong>What the app is for</strong> and who uses it: \"A booking app for a hair salon's clients.\"",
+      "item2": "<strong>The main screens</strong> and what each one shows: \"a list of services with prices, and a calendar to pick a time.\"",
+      "item3": "<strong>The look</strong> you want: \"elegant, soft rose and charcoal, rounded cards.\"",
+      "p2": "You can attach up to {count, plural, one {# file} other {# files}} to a prompt: screenshots of apps you like, sketches, a logo, or a PDF or text file with your requirements. Pick the platform from the menu next to {attach}.",
+      "tip": "Start small. A focused app with three or four screens is quicker to get right, and you can add more screens any time."
+    },
+    "planning": {
+      "title": "Plan with the agent",
+      "p1": "When your workspace opens, the agent reads your prompt and asks a few short questions about what matters most. Questions often come with numbered choices, so you can answer with just a number, or type your own answer.",
+      "p2": "Then it proposes a plan: the screens it will build, what each does, and the tabs the app will have. Ask for changes in the chat (\"add a settings screen\", \"drop the map\") until it's right, then confirm with the button on the plan or by saying so. Nothing is built, and no credits are used, until you confirm.",
+      "tip": "Unless you ask for more, a first plan has a few main screens plus a sign-in screen, so you see results quickly."
+    },
+    "building": {
+      "title": "How a build works",
+      "p1": "Once you confirm, the agent builds your app in this order:",
+      "step1": "<strong>Themes and data.</strong> The colors, fonts, and sample content your screens share.",
+      "step2": "<strong>Shared components.</strong> Buttons, cards, and other pieces reused across screens, so one change updates the whole app.",
+      "step3": "<strong>Screens</strong>, one at a time, each appearing in the preview as soon as it's ready.",
+      "p2": "Builds run in the background, so you can leave the page and come back to follow along. Credits are taken when a build starts, and if it fails you get back the credits for whatever it didn't finish."
+    },
+    "editing": {
+      "title": "Edit your app",
+      "h1": "By chat",
+      "p1": "Ask for any change in the chat: new screens, a different layout, extra fields, renamed tabs. Only the screens and components affected are rebuilt, and each one keeps working until its new version is ready.",
+      "h2": "Inline editing",
+      "p2": "Click the Edit icon on a screen in the canvas, then click any element to change its text, colors, or image. Edits show up instantly, without reloading the app, and are saved straight into the code. A selected element is also sent with your next chat message, so you can say \"make this bigger\" and the agent knows what you mean.",
+      "h3": "AI images",
+      "p3": "In edit mode, select an image to replace it with a link, generate a new one from a description, or transform it (\"make it a watercolor\"). Each AI image costs {credits}.",
+      "tip": "Colors you pick by hand stay the same when you switch themes. To keep an element in step with the theme, ask the agent instead."
+    },
+    "themes": {
+      "title": "Themes",
+      "p1": "Every app comes with five themes: {default}, {ocean}, {forest}, {sunset}, and {midnight}, which is dark. Switch between them from the theme switcher in the workspace. Nothing is rebuilt and it's free, so try them all. Want something else? Ask the agent for a new theme in your brand colors."
+    },
+    "phone": {
+      "title": "Test on your phone",
+      "step1": "Install <expoGo>Expo Go</expoGo> on your phone.",
+      "step2": "In the workspace, click <strong>{button}</strong>.",
+      "step3": "Scan it with your iPhone's Camera, or from inside Expo Go on Android.",
+      "p1": "The app runs on your phone and updates live as you make changes. Keep the browser tab open while you test, because closing it takes the app offline.",
+      "tip": "Your app needs Expo Go for SDK 54. If Expo Go says the app is incompatible, it's on a newer SDK."
+    },
+    "backend": {
+      "title": "Add a backend",
+      "p1": "New apps run on sample data stored in your browser, which is perfect for trying ideas. When you're ready for real users, click <strong>{button}</strong> in the workspace header and sign in to CloudHike.",
+      "p2": "Your app gets its own CloudHike project with a database, plus sign-in and file storage if its screens use them. Every collection in your app becomes a real table, and your screens don't need to change. Later builds keep the backend up to date on their own."
+    },
+    "export": {
+      "title": "Export your code",
+      "p1": "The code is yours. Open the <strong>{button}</strong> menu in the workspace header:",
+      "item1": "<strong>{download}</strong> gives you a complete Expo project. Run <code>npm install</code> and <code>npx expo start</code>, then scan the QR code with Expo Go. The included README has the details.",
+      "item2": "<strong>{push}</strong> connects your GitHub account and pushes to a repository you choose. The first push to an empty repository goes to its default branch. Every other push goes to a new <code>appxprompt/…</code> branch, so nothing already on GitHub is overwritten."
+    },
+    "publish": {
+      "title": "Publish your app",
+      "p1": "Click <strong>{button}</strong> in the workspace header. Publishing runs through your own Expo account, so the first time you'll paste an <expoToken>Expo access token</expoToken>. AppxPrompt stores it encrypted and only uses it to publish your app and follow its progress.",
+      "h1": "As a website",
+      "p2": "<strong>{web}</strong> puts your app online at its own <code>expo.app</code> address. The address stays the same when you publish updates, and if an update fails the previous version stays online. Available on every plan.",
+      "h2": "For the app stores",
+      "p3": "On {pro}, Expo builds the files for you:",
+      "item1": "<file>.aab</file> to upload to Google Play.",
+      "item2": "<file>.apk</file> to install directly on Android phones.",
+      "item3": "<file>.ipa</file> to upload to the App Store.",
+      "p4": "Android signing is set up for you. iOS builds need your Apple developer credentials in Expo, and the dialog walks you through it if they're missing. Keep the dialog open to follow a build's progress."
+    },
+    "sharing": {
+      "title": "Share and showcase",
+      "p1": "Projects are private by default. Choose <strong>{share}</strong> from the {export} menu to give someone with an AppxPrompt account view-only access by email. It shows up under \"{shared}\" on their home page.",
+      "p2": "In the same dialog, turn on <strong>{showcase}</strong> to let anyone try your app. Visitors only ever see sample data, never your backend, and anything they do stays in their own browser.",
+      "p3": "To try a variation without touching the original, duplicate a project from its menu on the home page."
+    },
+    "credits": {
+      "title": "Plans and credits",
+      "table": {
+        "projects": "Projects",
+        "unlimited": "Unlimited",
+        "screens": "Screens per project",
+        "credits": "Credits",
+        "freeCredits": "{count, number, integer}, never expire",
+        "proCredits": "{count, number, integer} a month",
+        "publishing": "Web publishing, ZIP, and GitHub",
+        "native": "Android and iOS builds",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "p1": "A new screen costs {screenCredits}, a round of changes costs {edit, number, integer}, and an AI image costs {image, number, integer}. Chatting, planning, and switching themes are free, though the agent needs at least {editCredits} to reply. Your balance is always in the header. See <pricing>Pricing</pricing> for details."
+    }
+  },
+  "pricing": {
+    "title": "Simple pricing for building apps",
+    "subtitle": "Start free, and upgrade when you're ready to ship to the app stores.",
+    "plans": {
+      "free": {
+        "tagline": "Try AppxPrompt and build your first apps.",
+        "price": "$0",
+        "period": "forever"
+      },
+      "pro": {
+        "tagline": "For people shipping apps every month.",
+        "period": "per month"
+      }
+    },
+    "features": {
+      "credits": {
+        "free": "{count, plural, one {# one-time credit that never expires} other {# one-time credits that never expire}}",
+        "pro": "{credits} every month. Unused ones expire at renewal"
+      },
+      "build": {
+        "free": "About {apps, plural, one {# small app} other {# small apps}} and {edits, plural, one {# edit} other {# edits}}",
+        "pro": "About {apps, plural, one {# small app} other {# small apps}} or {edits, plural, one {# edit} other {# edits}}"
+      },
+      "projects": {
+        "free": "{count, plural, one {# project} other {# projects}}",
+        "unlimited": "Unlimited projects"
+      },
+      "screens": "Up to {count, plural, one {# screen} other {# screens}} per project",
+      "web": "Publish as a website",
+      "stores": {
+        "pro": "Export for iOS and Android",
+        "free": "No iOS or Android export"
+      }
+    },
+    "status": {
+      "welcome": "Welcome to Pro! Your credits are ready.",
+      "confirming": "Confirming your payment…",
+      "stillConfirming": "Your payment is still being confirmed. This page will show Pro once it's through, so check back in a minute."
+    },
+    "actions": {
+      "getStarted": "Get started free",
+      "buildApp": "Build an app",
+      "movesToFree": "Your plan moves here on {date}",
+      "downgrade": "Downgrade to Free",
+      "signUpPro": "Sign up to join Pro",
+      "keepPro": "Keep Pro",
+      "manageBilling": "Manage billing",
+      "proEnds": "Pro ends on {date}",
+      "renews": "Renews on {date}"
+    },
+    "downgrade": {
+      "title": "Downgrade to Free?",
+      "description": "You'll keep Pro until {date}, and won't be charged again. Then your monthly credits end, and you can't export for iOS or Android, or start new projects beyond {max, number, integer}. The projects you've already made stay yours.",
+      "periodEnd": "the end of this billing period",
+      "confirm": "Downgrade"
+    },
+    "costs": {
+      "heading": "How credits work",
+      "free": "Free",
+      "smallApp": {
+        "label": "A small app",
+        "detail": "{screens, plural, one {# screen} other {# screens}}, at {credits} each"
+      },
+      "edit": {
+        "label": "An edit",
+        "detail": "One round of changes by chat"
+      },
+      "image": {
+        "label": "An AI image",
+        "detail": "Made or changed in edit mode"
+      },
+      "planning": {
+        "label": "Planning",
+        "detail": "Chatting, plans, and theme switches"
+      }
+    },
+    "questions": {
+      "heading": "Questions",
+      "used": {
+        "question": "When are credits used?",
+        "answer": "When a build starts. A new screen costs {screenCredits} and a round of changes costs {edit, number, integer}, and a new screen added in that round costs {screen, number, integer} on top. If a build fails, you get back the credits for what it didn't finish."
+      },
+      "rollover": {
+        "question": "Do my credits roll over?",
+        "answer": "Free credits never expire. Pro's monthly credits expire at each renewal and are replaced with a new {monthly, number, integer}. Free credits you still have when you join Pro stay yours, and are used after the monthly ones."
+      },
+      "downgrade": {
+        "question": "Can I downgrade at any time?",
+        "answer": "Yes. You keep Pro until the end of the period you've paid for, and then move to Free. Your projects stay yours, even if you have more than {max, number, integer}, but you can't start new ones beyond that."
+      },
+      "publish": {
+        "question": "Can I publish on the Free plan?",
+        "answer": "Yes, as a website with its own address. Building .aab, .apk, and .ipa files for the app stores is part of Pro."
+      }
+    }
+  },
+  "billing": {
+    "subtitle": "Your plan, the credits you have left, and how many projects you've used.",
+    "signInPrompt": "Sign in to see your usage and billing.",
+    "creditsLeft": "{credits} left",
+    "creditsLeftLabel": "Credits left",
+    "projectsUsedLabel": "Projects used",
+    "lowCredits": "Not enough left for another change.",
+    "oneTimeCredits": "One-time credits that never expire.",
+    "endsWithPro": "Monthly credits end with Pro on {date}.",
+    "expiresOn": "Unused monthly credits expire on {date}.",
+    "projectsCount": "{count, plural, one {# project} other {# projects}}",
+    "projectsOf": "{used, number, integer} of {max, plural, one {# project} other {# projects}}",
+    "unlimited": "Unlimited on Pro.",
+    "allProjectsUsed": "You've used all your projects.",
+    "screensEach": "Up to {count, plural, one {# screen} other {# screens}} each.",
+    "managePlan": "Manage plan",
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again."
+    }
+  },
+  "upgrade": {
+    "projects": {
+      "title": "You've used your free projects",
+      "description": "The Free plan includes {max, plural, one {# project} other {# projects}}. Join Pro to build as many as you like."
+    },
+    "screens": {
+      "title": "This app needs more screens",
+      "description": "The Free plan allows {free, plural, one {# screen} other {# screens}} per project. Join Pro to build up to {pro, number, integer}."
+    },
+    "credits": {
+      "title": "You're out of credits",
+      "description": "You don't have enough credits for this. Join Pro to get a fresh set every month."
+    },
+    "native-publish": {
+      "title": "Publish to the app stores with Pro",
+      "description": "Exporting for iOS and Android is part of Pro. On Free, you can still publish your app as a website."
+    },
+    "highlightCredits": "{credits} every month",
+    "alreadyPro": {
+      "title": "You've used this month's credits",
+      "renews": "You'll get {count, number, integer} more when Pro renews on {date}.",
+      "noneLeft": "You don't have enough credits left for this."
+    },
+    "gotIt": "Got it",
+    "join": "Join Pro for <amount>{price}</amount>/month",
+    "comparePlans": "Compare plans"
+  },
+  "workspace": {
+    "signedOut": {
+      "title": "Sign in to open this project",
+      "description": "Your session has ended. Sign in from the home page to continue.",
+      "goHome": "Go to home"
+    },
+    "backHome": "Back to home",
+    "sections": {
+      "label": "Workspace sections",
+      "chat": "Chat",
+      "canvas": "Canvas",
+      "preview": "Preview"
+    },
+    "setUpBackendMessage": "I connected my CloudHike account. Please set up the backend for this app.",
+    "header": {
+      "viewOnly": "View only",
+      "creditsTitle": "{credits} remaining",
+      "export": "Export",
+      "shareProject": "Share project",
+      "downloadZip": "Download as ZIP",
+      "pushGitHub": "Push to GitHub",
+      "openSnack": "Open in Expo Snack",
+      "publish": "Publish",
+      "backend": {
+        "settingUp": "Setting up backend…",
+        "needsAttention": "Backend needs attention",
+        "connected": "CloudHike Backend Connected",
+        "connectedShort": "Connected",
+        "connect": "Connect Backend"
+      }
+    },
+    "themeSwitcher": {
+      "trigger": "App theme: {name}. Change theme",
+      "label": "App theme",
+      "mode": {
+        "light": "light",
+        "dark": "dark"
+      }
+    },
+    "errors": {
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "writeEditFailed": "Couldn't write your edit into this file. Use Edit with AI instead.",
+      "saveEditFailed": "The server couldn't save your edit. Please try again.",
+      "saveEditOffline": "Couldn't reach the server to save your edit. Check your connection.",
+      "imageFailed": "Couldn't finish this image. Please try again.",
+      "screenChanged": "This screen changed while your image was being made. Please try again.",
+      "publishNotSaved": "We couldn't save your latest edits, so we didn't publish. Please try again.",
+      "previewFailed": "Couldn't start the preview.",
+      "dependencyFailed": "Couldn't load {name}: {message}"
+    }
+  },
+  "chat": {
+    "label": "Chat",
+    "agentName": "AppxPrompt Agent",
+    "working": "Working",
+    "newSession": "New session",
+    "newSessionTitle": "Start a new session?",
+    "newSessionDescription": "This clears the chat, and the agent forgets the conversation. Your app, screens, and plan stay as they are.",
+    "cancel": "Cancel",
+    "startNewSession": "Start new session",
+    "empty": "New session. Tell the agent what to do next.",
+    "agentSaid": "Agent:",
+    "youSaid": "You:",
+    "attachedFiles": "Attached files",
+    "activity": "Working…",
+    "tryAgain": "Try again",
+    "readOnly": "This project was shared with you to view, so only its owner can ask the agent for changes.",
+    "removeElement": "Remove {element} from this message",
+    "inputLabel": "Message the AppxPrompt agent",
+    "placeholder": {
+      "building": "Building your screens…",
+      "element": "Ask for a change to this {element}…",
+      "choices": "Reply with a number, like 1",
+      "plan": "Ask for changes… e.g. Add a settings screen",
+      "default": "Message the agent…"
+    },
+    "attach": "Attach file",
+    "agentWorking": "The agent is working",
+    "send": "Send message",
+    "elementIn": "{label} in {screen}",
+    "thinking": "Thinking…",
+    "thoughtProcess": "Thought process",
+    "tapNumber": "Tap a number, or type it below.",
+    "choices": "Choices",
+    "confirmMessage": "Looks good, build it!",
+    "errors": {
+      "agentStart": "The agent couldn't start. Please try again.",
+      "connectionLost": "Lost the connection to the agent. Reload the page to see its latest progress.",
+      "themeSave": "Couldn't save the theme. Please try again.",
+      "newSession": "Couldn't start a new session. Please try again."
+    }
+  },
+  "planCard": {
+    "label": "App plan: {name}",
+    "title": "App plan",
+    "earlier": "Earlier version",
+    "confirmed": "Confirmed",
+    "mode": {
+      "light": "light mode",
+      "dark": "dark mode"
+    },
+    "navigation": {
+      "tabs": "Tab navigation",
+      "stack": "Stack navigation"
+    },
+    "screens": "{count, plural, one {# screen} other {# screens}}",
+    "hideDetails": "Hide screen details",
+    "showDetails": "Show screen details",
+    "confirm": "{count, plural, one {Confirm & build # screen} other {Confirm & build # screens}}",
+    "cost": "Uses {count, plural, one {# credit} other {# credits}}. Want changes? Tell me in the chat below."
+  },
+  "buildProgress": {
+    "label": "Build progress",
+    "title": "Building your app",
+    "count": "{finished, number, integer} of {total, number, integer}",
+    "lines": "{count, plural, one {# line} other {# lines}}",
+    "designing": "designing",
+    "failed": "Failed",
+    "done": "Done",
+    "waiting": "Waiting",
+    "code": "Code being written for {name}"
+  },
+  "themes": {
+    "default": "Default",
+    "ocean": "Ocean",
+    "forest": "Forest",
+    "sunset": "Sunset",
+    "midnight": "Midnight"
+  },
+  "elements": {
+    "container": "Container",
+    "screen": "Screen",
+    "gradient": "Gradient",
+    "text": "Text",
+    "image": "Image",
+    "button": "Button",
+    "input": "Input",
+    "switch": "Switch",
+    "icon": "Icon"
+  },
+  "canvas": {
+    "label": "Canvas",
+    "roleDescription": "canvas",
+    "viewport": "App screens canvas. Drag to pan, Ctrl or Command and scroll to zoom.",
+    "toolbar": "Canvas tools",
+    "tools": {
+      "select": "Select (move screens)",
+      "hand": "Hand (pan canvas)",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "fit": "Fit to screen"
+    },
+    "editing": "Editing <bdi>{name}</bdi>",
+    "notSaved": "Not saved",
+    "saving": "Saving",
+    "autosave": "Changes save as you go",
+    "clickToEdit": "Click any element to edit it",
+    "done": "Done",
+    "screenActions": "Screen actions",
+    "actions": {
+      "edit": "Edit screen",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "empty": {
+      "planningTitle": "The agent is planning your app",
+      "title": "Your screens will appear here",
+      "body": "Once the agent plans your app, each screen shows up on this canvas."
+    },
+    "status": {
+      "building": "Building",
+      "built": "Built",
+      "failed": "Failed",
+      "planned": "Planned",
+      "queued": "Queued"
+    },
+    "editLabel": "Edit {name}",
+    "stopEditingLabel": "Stop editing {name}",
+    "tooltip": {
+      "viewOnly": "You have view-only access",
+      "waitForAgent": "Wait for the agent to finish",
+      "stopEditing": "Stop editing",
+      "edit": "Edit this screen"
+    }
+  },
+  "preview": {
+    "tabs": {
+      "preview": "App Preview",
+      "code": "Code"
+    },
+    "resetData": "Reset app data",
+    "reload": "Reload preview",
+    "frameTitle": "{name} preview",
+    "defaultAppName": "App",
+    "emptyTitle": "Your app preview will appear here",
+    "emptyBody": "Once the agent builds your screens, you can tap through them live.",
+    "website": {
+      "failed": "Publishing failed",
+      "updateFailed": "Update failed",
+      "updating": "Updating…",
+      "view": "View",
+      "open": "Open website",
+      "step": "{step}…"
+    },
+    "publishStep": {
+      "uploading": "Uploading files",
+      "queued": "Waiting for an Expo build server",
+      "building": "Building web app",
+      "deploying": "Deploying"
+    },
+    "code": {
+      "emptyTitle": "No code yet",
+      "designing": "The agent is designing <bdi>{name}</bdi>. Its code appears here as it's written.",
+      "awaitingPlan": "Once you confirm the plan, each screen's code streams in here as the agent writes it.",
+      "filesLabel": "Project files",
+      "files": "Files",
+      "beingWritten": "Being written"
+    }
+  },
+  "expoQr": {
+    "triggerLabel": "Scan QR code to test on your device",
+    "trigger": "Scan QR Code",
+    "title": "Test on your device",
+    "description": "Scan with your iPhone's Camera, or from inside Expo Go on Android. Keep this tab open while you test.",
+    "noProject": "Your QR code appears once the agent has built your first screen.",
+    "tryAgain": "Try again",
+    "loading": "Getting your QR code",
+    "qrTitle": "QR code that opens this app in Expo Go",
+    "sdkNote": "Needs Expo Go for SDK 54. If it says the app is incompatible, your Expo Go is on a newer SDK.",
+    "getExpoGo": "Get Expo Go",
+    "waiting": "Waiting for a device to connect",
+    "problem": "Hit a problem",
+    "live": "Live",
+    "copied": "Copied",
+    "copyLink": "Copy link"
+  },
+  "elementEditor": {
+    "categories": {
+      "content": "Content",
+      "colors": "Colors",
+      "typography": "Type",
+      "spacing": "Spacing",
+      "layout": "Layout",
+      "border": "Border",
+      "effects": "Effects"
+    },
+    "fields": {
+      "text": "Text",
+      "placeholder": "Placeholder",
+      "icon": "Icon name",
+      "iconSize": "Icon size",
+      "image": "Image",
+      "uri": "Image URL",
+      "resizeMode": "Image fit",
+      "color": "Text color",
+      "iconColor": "Icon color",
+      "background": "Background",
+      "fontSize": "Size",
+      "fontWeight": "Weight",
+      "textAlign": "Align",
+      "lineHeight": "Line height",
+      "letterSpacing": "Letter spacing",
+      "fontStyle": "Style",
+      "textTransform": "Case",
+      "textDecorationLine": "Decoration",
+      "paddingX": "Padding sides",
+      "paddingY": "Padding top/bottom",
+      "marginX": "Margin sides",
+      "marginY": "Margin top/bottom",
+      "gap": "Gap",
+      "paddingTop": "Padding top",
+      "paddingRight": "Padding right",
+      "paddingBottom": "Padding bottom",
+      "paddingLeft": "Padding left",
+      "marginTop": "Margin top",
+      "marginRight": "Margin right",
+      "marginBottom": "Margin bottom",
+      "marginLeft": "Margin left",
+      "flexDirection": "Direction",
+      "justifyContent": "Distribute",
+      "alignItems": "Align items",
+      "width": "Width",
+      "height": "Height",
+      "minWidth": "Min width",
+      "minHeight": "Min height",
+      "maxWidth": "Max width",
+      "maxHeight": "Max height",
+      "flexGrow": "Grow",
+      "alignSelf": "Align self",
+      "flexWrap": "Wrap",
+      "overflow": "Overflow",
+      "borderWidth": "Width",
+      "borderColor": "Color",
+      "borderRadius": "Corner radius",
+      "opacity": "Opacity",
+      "shadow": "Shadow"
+    },
+    "hints": {
+      "icon": "An Ionicons name, like heart-outline"
+    },
+    "options": {
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "heavy": "Heavy",
+      "start": "Start",
+      "center": "Center",
+      "end": "End",
+      "between": "Between",
+      "stretch": "Stretch",
+      "left": "Left",
+      "right": "Right",
+      "justify": "Justify",
+      "normal": "Normal",
+      "italic": "Italic",
+      "none": "None",
+      "upper": "AA",
+      "lower": "aa",
+      "capitalize": "Aa",
+      "underline": "Underline",
+      "strike": "Strike",
+      "auto": "Auto",
+      "column": "Column",
+      "row": "Row",
+      "noWrap": "No wrap",
+      "wrap": "Wrap",
+      "visible": "Visible",
+      "hidden": "Hidden",
+      "cover": "Cover",
+      "contain": "Contain",
+      "soft": "Soft",
+      "strong": "Strong"
+    },
+    "tokens": {
+      "background": "Background",
+      "surface": "Surface",
+      "surfaceAlt": "Surface Alt",
+      "border": "Border",
+      "text": "Text",
+      "textMuted": "Text Muted",
+      "primary": "Primary",
+      "accent": "Accent",
+      "success": "Success",
+      "warning": "Warning",
+      "danger": "Danger",
+      "onPrimary": "On Primary",
+      "onAccent": "On Accent",
+      "primarySoft": "Primary Soft",
+      "accentSoft": "Accent Soft",
+      "successSoft": "Success Soft",
+      "warningSoft": "Warning Soft",
+      "dangerSoft": "Danger Soft",
+      "overlay": "Overlay",
+      "shadow": "Shadow"
+    },
+    "colorPicker": {
+      "themeColors": "Theme colors",
+      "custom": "Custom {label}",
+      "hex": "Hex color",
+      "none": "None",
+      "note": "Custom colors stay the same when the theme changes."
+    },
+    "image": {
+      "fromData": "This comes from your app's data. Use Edit with AI to change it.",
+      "current": "Current image",
+      "chooseFile": "Choose an image file",
+      "upload": "Upload from your computer",
+      "describeGenerate": "Describe the image to generate",
+      "generatePlaceholder": "A cozy coffee shop in warm morning light…",
+      "describeTransform": "Describe how to transform this image",
+      "transformPlaceholder": "Make it golden hour and add soft shadows…",
+      "generate": "Generate",
+      "apply": "Apply",
+      "tools": {
+        "replace": "Replace Image",
+        "generate": "Generate AI Image",
+        "transform": "Apply AI Transformation"
+      },
+      "progress": {
+        "upload": "Uploading your image…",
+        "generate": "Generating your image. This can take up to a minute…",
+        "transform": "Transforming your image. This can take up to a minute…"
+      }
+    },
+    "text": {
+      "fromDataNamed": "“<bdi>{label}</bdi>” comes from your app's data, so it changes with each record. Use Edit with AI to change how it's shown.",
+      "fromData": "This text comes from your app's data, so it changes with each record. Use Edit with AI to change how it's shown."
+    },
+    "header": {
+      "selectParent": "Select parent",
+      "undo": "Undo changes to this element",
+      "quickEdit": "Quick edit",
+      "advancedEdit": "Advanced edit",
+      "close": "Close"
+    },
+    "notes": {
+      "readOnly": "This element can't be changed by hand. Use Edit with AI instead.",
+      "shared": "Part of a shared component, so this changes everywhere it's used.",
+      "repeats": "{count, plural, other {This repeats {count, number, integer} times here, so all of them change.}}",
+      "tryAgain": "Try again"
+    },
+    "ai": {
+      "button": "Edit with AI",
+      "inputLabel": "Tell the AI how to change this {element}",
+      "placeholder": "Change this {element}…",
+      "send": "Send to AI"
+    },
+    "dialog": "Edit {element}",
+    "categoriesLabel": "Property categories",
+    "advancedPanel": "Advanced edit: {element}"
+  },
+  "ui": {
+    "close": "Close",
+    "more": "More",
+    "carousel": "carousel",
+    "slide": "slide",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "copy": "Copy",
+    "copied": "Copied",
+    "scrollToEnd": "Scroll to end",
+    "scrollToStart": "Scroll to start",
+    "breadcrumb": "breadcrumb",
+    "pagination": "pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page",
+    "morePages": "More pages",
+    "toggleSidebar": "Toggle Sidebar",
+    "sidebar": "Sidebar",
+    "sidebarDescription": "Displays the mobile sidebar.",
+    "loading": "Loading",
+    "closeToast": "Close toast",
+    "commandTitle": "Command Palette",
+    "commandDescription": "Search for a command to run..."
+  },
+  "publish": {
+    "title": "Publish",
+    "description": "Put your app on the web, or build it for the app stores. You can close this while it runs.",
+    "tryAgain": "Try again",
+    "checking": "Checking your connections…",
+    "notAvailable": "Publishing isn't set up on this AppxPrompt server yet.",
+    "loadErrorSummary": "Couldn't check your builds",
+    "tabs": {
+      "web": "Web",
+      "stores": "App stores"
+    },
+    "errors": {
+      "loadFailed": "We couldn't check on your builds. Please try again.",
+      "notSaved": "We couldn't save your latest edits, so we didn't start the build. Please try again.",
+      "disconnectFailed": "We couldn't disconnect Expo. Please try again.",
+      "siteFailed": "EAS couldn't publish the website.",
+      "buildFailed": "The build failed."
+    },
+    "formats": {
+      "aab": {
+        "title": "Android .aab",
+        "detail": "For uploading to Google Play."
+      },
+      "apk": {
+        "title": "Android .apk",
+        "detail": "Installs directly on a phone, for testing."
+      },
+      "ipa": {
+        "title": "iOS .ipa",
+        "detail": "For the App Store. Needs an Apple Developer account."
+      }
+    },
+    "status": {
+      "queued": "Queued",
+      "building": "Building",
+      "ready": "Ready",
+      "failed": "Failed",
+      "retrying": "Retrying"
+    },
+    "builds": {
+      "title": "Builds",
+      "viewError": "View error",
+      "download": "Download <bdi>{format}</bdi>",
+      "retry": "Retry"
+    },
+    "locked": {
+      "title": "Export for iOS and Android with Pro",
+      "description": "Build <file>.aab</file>, <file>.apk</file>, and <file>.ipa</file> files for Google Play and the App Store. On Free, you can publish your app from the Web tab.",
+      "upgrade": "Upgrade to Pro"
+    },
+    "connect": {
+      "privacy": "Websites and builds run on your own Expo account. AppxPrompt encrypts your token, and only uses it to publish your app and follow its progress.",
+      "tokenLabel": "Expo access token",
+      "create": "Create a token on Expo",
+      "errorSummary": "Couldn't connect Expo",
+      "checking": "Checking token…",
+      "submit": "Connect Expo"
+    },
+    "account": {
+      "runsOn": "This runs on the <value>{account}</value> Expo account",
+      "disconnect": "Disconnect Expo",
+      "errorSummary": "Couldn't disconnect Expo"
+    },
+    "web": {
+      "live": "Your website is live",
+      "liveNow": "Live now",
+      "updated": "· updated {time}",
+      "intro": "Publish your app as a website on your Expo account, with its own address anyone can open. When you make changes, publish again to update the same site.",
+      "errorSummary": "Couldn't publish",
+      "updateFailed": "The update failed. Your last version is still live.",
+      "failed": "Publishing failed",
+      "publishing": "Publishing…",
+      "publishUpdate": "Publish update",
+      "publishWeb": "Publish as Web"
+    },
+    "export": {
+      "fileType": "File type",
+      "version": "Version",
+      "versionHint": "The version people see in the store. The build number goes up by itself.",
+      "versionInvalid": "Use three numbers, like 1.0.0.",
+      "errorSummary": "Couldn't start the build",
+      "starting": "Starting build…",
+      "running": "A build is running",
+      "submit": "Export"
+    },
+    "iosSetup": {
+      "notStarted": "No build was started: EAS has no Apple credentials for this app yet.",
+      "intro": "You need a paid Apple Developer account. Choose {zip} from the {menu} menu and unzip it. Then, in that folder, log in to Expo as <value>{account}</value> and run these once:",
+      "profile": "When asked, choose the <profile>ipa</profile> profile, then Build Credentials, and let it set up everything using your Apple account. The app's bundle id is <bundle>{bundleId}</bundle>.",
+      "back": "Done, back to export"
+    }
+  },
+  "github": {
+    "title": "Push to GitHub",
+    "tagline": "Keep your project's code in your own repository.",
+    "connectedAs": "Connected as <account>{login}</account>",
+    "disconnect": "Disconnect",
+    "checking": "Checking your GitHub connection…",
+    "notAvailable": "GitHub isn't set up on this AppxPrompt server yet.",
+    "tryAgain": "Try again",
+    "connectResult": {
+      "denied": "You cancelled on GitHub, so nothing was connected.",
+      "error": "We couldn't connect your GitHub account. Please try again."
+    },
+    "errors": {
+      "notSaved": "We couldn't save your latest edits, so we stopped the push. Please try again.",
+      "connectionLost": "We lost the connection during the push. Check your repository on GitHub before trying again.",
+      "loadFailed": "We couldn't check your GitHub connection. Please try again.",
+      "disconnectFailed": "We couldn't disconnect GitHub. Please try again.",
+      "reposFailed": "We couldn't load your repositories. Please try again."
+    },
+    "progress": {
+      "saving": "Saving your latest edits…",
+      "label": "Push progress",
+      "hint": "This usually takes a few seconds. Keep this window open."
+    },
+    "connect": {
+      "privacy": "You sign in on GitHub, and AppxPrompt never sees your password. GitHub asks for access to your repositories, which AppxPrompt only uses to list them and to push when you ask.",
+      "button": "Connect GitHub"
+    },
+    "picker": {
+      "label": "Repository",
+      "create": "New repository",
+      "existing": "Existing repository",
+      "name": "Repository name",
+      "private": "Private",
+      "privateHint": "Only you and people you invite on GitHub can see it.",
+      "creating": "Creating repository…",
+      "createButton": "Create repository",
+      "loading": "Loading your repositories…",
+      "none": "No repositories you can push to yet. Create a new one instead.",
+      "search": "Search repositories",
+      "noMatch": "No repositories match that search."
+    },
+    "confirm": {
+      "change": "Change",
+      "hasCode": "This repository already has code, so <bdi>{projectName}</bdi> goes to a new branch. <value>{branch}</value> stays as it is.",
+      "empty": "This commits the complete project to <value>{branch}</value>.",
+      "unknown": "This commits the complete project. Existing code is never overwritten: a repository that already has code gets a new branch.",
+      "push": "Commit and push"
+    },
+    "done": {
+      "upToDate": "Already up to date. There's nothing new to push.",
+      "pushed": "Pushed {count, plural, one {# file} other {# files}} to GitHub.",
+      "branch": "Branch",
+      "commitMessage": "Commit message",
+      "changeRepository": "Change repository",
+      "openPullRequest": "Open pull request",
+      "view": "View on GitHub",
+      "done": "Done"
+    }
+  },
+  "backend": {
+    "title": "Connect a backend",
+    "titleConnected": "CloudHike Backend Connected",
+    "description": "Store your app's data in the cloud and sync it live.",
+    "descriptionConnected": "Your app's data lives in your own CloudHike account.",
+    "connectResult": {
+      "denied": "You cancelled on CloudHike, so nothing was connected.",
+      "error": "We couldn't connect your CloudHike account. Please try again."
+    },
+    "services": {
+      "postgres": "Database",
+      "auth": "Authentication",
+      "storage": "File storage",
+      "redis": "Redis",
+      "jobs": "Background jobs",
+      "email": "Email"
+    },
+    "serviceStatus": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "provisioning": "Provisioning",
+      "pending": "Pending",
+      "queued": "Queued"
+    },
+    "connect": {
+      "provider": "Default provider",
+      "intro": "Once you're connected, the AppxPrompt agent deploys what your app needs and connects it for you.",
+      "privacy": "You sign in on CloudHike, and AppxPrompt never sees your password. Services run in your account and usage is billed to your workspace there.",
+      "notAvailable": "CloudHike isn't set up on this AppxPrompt server yet.",
+      "useAccount": "Use my connected CloudHike account",
+      "reconnect": "Connect CloudHike again",
+      "connect": "Connect CloudHike",
+      "linkFailed": "We couldn't connect this app. Please try again."
+    },
+    "connected": {
+      "ready": "Your app is saving to CloudHike.",
+      "provisioning": "The agent is setting up your services…",
+      "failed": "The last setup didn't finish. Ask the agent to try again.",
+      "linked": "Connected. The agent deploys services once your app is built.",
+      "accountLost": "Your app keeps running, but CloudHike no longer accepts AppxPrompt's access, so nothing new can be deployed.",
+      "confirmTitle": "Disconnect this app from CloudHike?",
+      "confirmBody": "The app goes back to saving on the device. Your data and services stay in CloudHike, and keep being billed until you delete them there.",
+      "keep": "Keep connected",
+      "disconnect": "Disconnect",
+      "disconnectFailed": "We couldn't disconnect this app. Please try again.",
+      "open": "Open in CloudHike"
+    }
+  },
+  "share": {
+    "title": "Share project",
+    "description": "People you add can view this project and download it, but can't change it.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "name@example.com",
+    "submit": "Share",
+    "invalidEmail": "Enter a valid email address.",
+    "shared": "Shared with <bdi>{email}</bdi>. It's now under {shared} on their home page.",
+    "public": {
+      "label": "Show on the AppxPrompt home page",
+      "description": "Anyone can try the app on sample data and read its code, and they'll see your name. They can't see your chat or real data, or change anything."
+    },
+    "people": {
+      "label": "People with access",
+      "loading": "Loading…",
+      "empty": "Only you, for now.",
+      "stop": "Stop sharing with {email}",
+      "remove": "Remove access"
+    },
+    "copy": {
+      "link": "Copy project link",
+      "copied": "Link copied"
+    },
+    "errors": {
+      "copyFailed": "Couldn't copy the link. Copy it from your browser's address bar instead.",
+      "changeFailed": "We couldn't change this. Please try again."
+    }
+  },
+  "download": {
+    "title": "Download as ZIP",
+    "description": "The complete Expo project, ready to run on your computer.",
+    "packaging": "Packaging your project…",
+    "tryAgain": "Try again",
+    "downloading": "<file>{fileName}</file> is downloading.",
+    "unzip": "Unzip it, open a terminal in the folder, and run:",
+    "scan": "Then scan the QR code with Expo Go. The README has the details.",
+    "done": "Done",
+    "errors": {
+      "notSaved": "We couldn't save your latest edits, so we stopped the download. Please try again.",
+      "packageFailed": "We couldn't package your project. Please try again."
+    }
+  },
+  "errors": {
+    "signInRequired": "Please sign in to continue.",
+    "signInToCreate": "Please sign in to create a project.",
+    "invalidRequest": "Invalid request.",
+    "projectNotFound": "Project not found.",
+    "themeNotFound": "Theme not found.",
+    "sessionLookupFailed": "Session lookup failed.",
+    "anonymousCreator": "AppxPrompt creator",
+    "passthrough": "{message}",
+    "enterEmail": "Enter your email address.",
+    "invalidEmail": "Enter a valid email address.",
+    "shareOwnProject": "This is your own project, so you already have access.",
+    "shareNoAccount": "No AppxPrompt account uses this email yet. Ask them to sign up, then share again.",
+    "describeApp": "Describe the app you want to build.",
+    "promptTooLong": "Keep your prompt under {max} characters.",
+    "choosePlatform": "Choose a platform.",
+    "attachLimit": "You can attach up to {max} files.",
+    "fileTooLarge": "\"{name}\" is larger than 10 MB.",
+    "fileUnsupported": "\"{name}\" isn't a supported file type.",
+    "uploadFailed": "We couldn't upload your files. Please try again.",
+    "createFailed": "We couldn't create your project. Please try again.",
+    "duplicateFailed": "We couldn't duplicate this project. Please try again.",
+    "copyFilesFailed": "We couldn't copy this project's files. Please try again.",
+    "nameRequired": "Give your project a name.",
+    "nameTooLong": "Keep the name under {max} characters.",
+    "buildBeforePublic": "Build the app before making it public.",
+    "agentBusy": "The agent is still working. Wait for it to finish first.",
+    "agentBusyRename": "The agent is still working. You can rename this once it's done.",
+    "agentBusyDelete": "The agent is still working. You can delete this once it's done.",
+    "agentBusyDuplicate": "The agent is still working. You can duplicate this once it's done.",
+    "agentBusyEdit": "The agent is working on the app. Your edit saves once it's done.",
+    "agentRunFailed": "Something went wrong while the agent was working. Please try again.",
+    "writeMessageFirst": "Write a message first.",
+    "messageTooLong": "Keep your message under {max} characters.",
+    "noPlanWaiting": "There's no plan waiting for confirmation.",
+    "creditsShort": "This needs {needed, plural, one {# credit} other {# credits}}, and you don't have enough left.",
+    "projectLimit": "The Free plan includes {max, plural, one {# project} other {# projects}}. Upgrade to Pro for unlimited projects, or delete one to make room.",
+    "screenLimit": "The {plan, select, pro {Pro} other {Free}} plan allows {max, plural, one {# screen} other {# screens}} per project.",
+    "screenLimitUpgrade": "{limit} Upgrade to Pro to build this one, or remove some screens.",
+    "fileTooBigToSave": "This file is too large to save.",
+    "saveEditFailed": "The server couldn't save your edit. Please try again.",
+    "editRejected": "This edit can't be saved. {problem}",
+    "fileChanged": "This file changed since you started editing. Reload the page to get the latest version.",
+    "exportBusy": "The agent is still working on the app. You can export it once it's done.",
+    "exportEmpty": "There's nothing to export yet. Build the app's screens first.",
+    "exportFailed": "We couldn't package your project. Please try again.",
+    "imageToolsOff": "Image tools aren't turned on for this app.",
+    "imageSlow": "The AI is taking longer than usual. Please try again in a minute.",
+    "imageFailed": "The AI couldn't make this image. Try describing it differently, or try again in a few minutes.",
+    "describeImage": "Describe the image in words.",
+    "imageUrlInvalid": "This image's url isn't valid, so it can't be changed.",
+    "imageLoadFailed": "Couldn't load this image. Check that its url opens in a browser, or replace it first.",
+    "imageTypeInvalid": "Choose a JPG, PNG, WebP, or GIF image.",
+    "imageTooLarge": "Choose an image under 10 MB.",
+    "describeFirst": "Describe what you'd like first.",
+    "descriptionTooLong": "Keep your description under {max} characters.",
+    "imageFinishFailed": "Couldn't finish this image. Please try again.",
+    "billingUnavailable": "Payments aren't set up on this AppxPrompt server yet.",
+    "alreadyPro": "You're already on Pro.",
+    "checkoutFailed": "We couldn't open the checkout. Please try again.",
+    "noBillingDetails": "You don't have any billing details yet.",
+    "noSubscription": "You don't have a subscription to change.",
+    "paymentProviderFailed": "We couldn't reach our payment provider. Please try again.",
+    "connectCloudHikeFirst": "Connect your CloudHike account first.",
+    "backendBusy": "The backend is being set up. Wait for that to finish first.",
+    "backendSetupAbandoned": "The last setup stopped before it finished. Please try again.",
+    "githubConnectFirst": "Connect your GitHub account first.",
+    "githubReauth": "GitHub no longer accepts this connection. Connect your account again.",
+    "githubRateLimit": "GitHub's rate limit was reached. Please try again in a few minutes.",
+    "githubSaid": "GitHub said: {detail}",
+    "githubAnswered": "GitHub answered {status}.",
+    "repoNotFound": "We couldn't find that repository on your GitHub account.",
+    "repoNoPermission": "You don't have permission to push to that repository.",
+    "repoArchived": "That repository is archived, so it can't be pushed to.",
+    "repoNameTaken": "You already have a repository called {name}, or GitHub doesn't accept that name. Try another.",
+    "repoChooseFirst": "Choose a repository first.",
+    "repoGone": "{repo} no longer exists, or you've lost access to it. Choose another repository.",
+    "repoPushDenied": "You can't push to {repo} anymore. Choose another repository.",
+    "repoChooseFromList": "Choose a repository from the list.",
+    "repoNameInvalid": "Repository names can only use letters, numbers, hyphens, underscores, and periods.",
+    "githubStatusFailed": "We couldn't check your GitHub connection. Please try again.",
+    "repoSetupFailed": "We couldn't set up that repository. Please try again.",
+    "pushFailed": "We couldn't push your project. Please try again.",
+    "reposLoadFailed": "We couldn't load your repositories. Please try again.",
+    "githubDisconnectFailed": "We couldn't disconnect GitHub. Please try again.",
+    "pushPackaging": "Packaging your project…",
+    "pushChecking": "Checking the repository…",
+    "pushEmptyRepo": "Setting up the empty repository…",
+    "pushUploading": "Uploading files ({done} of {total})…",
+    "pushCommit": "Creating the commit…",
+    "pushUpdating": "Updating {branch}…",
+    "pushBranch": "Creating branch {branch}…",
+    "expoTokenMissing": "Paste the access token from your Expo account.",
+    "expoTokenRejected": "Expo didn't accept that token. Check it and try again.",
+    "expoConnectFailed": "We couldn't connect to Expo. Please try again.",
+    "expoDisconnectFailed": "We couldn't disconnect Expo. Please try again.",
+    "expoReauth": "Expo no longer accepts this token. Connect your account again.",
+    "expoNoAccount": "This token doesn't belong to an Expo account.",
+    "expoAnswered": "Expo answered {status}.",
+    "expoKeystoreFailed": "Expo couldn't create a signing key for this app. Please try again.",
+    "expoCredentialsNoDefault": "This app has Android credentials on EAS, but none is the default. Choose one with: eas credentials --platform android",
+    "expoUploadFailed": "Uploading the project to Expo failed ({status}). Please try again.",
+    "expoNoWebAccess": "This Expo token can't set up a website for the app. Connect a personal access token from an admin of the account.",
+    "expoNoDomain": "Expo couldn't find a free web address for this app. Please try again.",
+    "publishUnavailable": "Publishing isn't set up on this AppxPrompt server yet.",
+    "expoConnectFirst": "Connect your Expo account first.",
+    "platformOnly": "This project was made for {platform, select, ios {iOS} other {Android}} only.",
+    "buildRunning": "A build of this app is already running. Wait for it to finish first.",
+    "publishRunning": "This app is already being published. Wait for it to finish first.",
+    "nativePublishLocked": "Exporting for iOS and Android is part of Pro. On Free, you can publish as a website.",
+    "chooseFileType": "Choose a file type to export.",
+    "versionFormat": "Enter the version as three numbers, like 1.0.0.",
+    "buildsCheckFailed": "We couldn't check on your builds. Please try again.",
+    "buildStartFailed": "We couldn't start the build. Please try again.",
+    "websiteCheckFailed": "We couldn't check on your website. Please try again.",
+    "publishStartFailed": "We couldn't start publishing. Please try again.",
+    "publishCancelled": "The publish was cancelled on Expo.",
+    "publishFailed": "EAS couldn't publish the website.",
+    "publishNeverReached": "This publish never reached Expo. Please try again.",
+    "publishExpoDisconnected": "Expo was disconnected, so AppxPrompt can't follow this publish. It may still finish on expo.dev.",
+    "publishTokenRejected": "Expo stopped accepting your token, so AppxPrompt can't follow this publish. It may still finish on expo.dev.",
+    "buildNoFile": "EAS finished the build, but it has no file to download.",
+    "buildCancelled": "The build was cancelled on Expo.",
+    "buildErrored": "EAS couldn't finish the build.",
+    "buildNeverReached": "This build never reached Expo. Please try again.",
+    "buildExpoDisconnected": "Expo was disconnected, so AppxPrompt can't follow this build. It may still finish on expo.dev.",
+    "buildTokenRejected": "Expo stopped accepting your token, so AppxPrompt can't follow this build. It may still finish on expo.dev.",
+    "backendSetupBusy": "This app's backend is already being set up, or isn't connected.",
+    "backendDeployFailed": "CloudHike couldn't deploy {service}. Open the project in CloudHike for details.",
+    "backendSlowStart": "{services} is taking longer than expected to start. Try again in a minute.",
+    "backendDatabaseState": "Your CloudHike database is {state}. Start it again from the CloudHike dashboard, then try again.",
+    "backendSetupFailed": "Something went wrong while setting up the backend. Please try again.",
+    "cloudhikeAuthLost": "CloudHike no longer accepts this connection. Connect your account again."
+  },
+  "status": {
+    "readingMessage": "Reading your message…",
+    "readingRequest": "Reading your request…",
+    "thinking": "Thinking…",
+    "summarizingPlan": "Summarizing the plan…",
+    "startingBuild": "Starting the build…",
+    "startingChanges": "Starting your changes…",
+    "draftingPlan": "Drafting the screen plan…",
+    "confirmingPlan": "Confirming the plan…",
+    "workingOutChanges": "Working out the changes…",
+    "changingTheme": "Changing the theme…",
+    "settingUpBackend": "Setting up your backend…",
+    "creatingBackendProject": "Creating your CloudHike project…",
+    "deployingBackend": "Deploying your backend services…",
+    "connectingApp": "Connecting your app…",
+    "designingFoundation": "Designing your themes and sample data…",
+    "generatingAppImages": "Generating your app's images…",
+    "updatingData": "Updating your app's data…",
+    "buildingComponents": "Building your reusable components…",
+    "updatingComponent": "Updating {name}…",
+    "preparingChanges": "Preparing your changes…",
+    "preparingBuild": "{count, plural, one {Preparing to build # screen…} other {Preparing to build # screens…}}",
+    "designingScreen": "Designing {name} ({position, number, integer} of {total, number, integer})…",
+    "writingScreen": "Writing {name} ({position, number, integer} of {total, number, integer})…",
+    "rewritingScreen": "Rewriting {name} ({position, number, integer} of {total, number, integer})…",
+    "polishingScreen": "Polishing {name}…",
+    "generatingScreenImages": "Generating images for {name}…"
+  },
+  "agentMessages": {
+    "confirm": "Looks good, build it!",
+    "onIt": "On it! I'll build the {count, plural, one {# screen} other {# screens}} one at a time, starting with {name}.",
+    "planStarting": "Starting the build now.",
+    "changesStarting": "On it! I'm making those changes now.",
+    "planProposed": "Here's the plan. Confirm it to start building, or tell me what to change.",
+    "noReply": "Sorry, I couldn't come up with a reply. Could you say that again?",
+    "ready": "{appName} is ready! I built all {count, plural, one {# screen} other {# screens}}: {names}.\n\nTap through the app in the preview, and try other looks from the Theme menu at the top of the canvas.{backendNote}",
+    "backendCloud": "Everything people add is saved to your CloudHike backend.",
+    "backendLocal": "Everything you add is saved on the device for now. Click Connect Backend at the top when you'd like it in the cloud.",
+    "backendSynced": "Everything people add is saved to your CloudHike backend and syncs live.",
+    "backendFailed": "I couldn't set up your CloudHike backend, so nothing moved to the cloud: {message}",
+    "refund": "I returned the {credits, plural, one {# credit} other {# credits}} for what didn't finish.",
+    "failedNone": "I couldn't build the screens this time.{refundNote} Say \"try again\" and I'll have another go.",
+    "failedSome": "I built {built, number, integer} of {total, number, integer} screens. {names} didn't come out right.{refundNote} Say \"try again\" and I'll retry {count, plural, one {it} other {them}}, keeping the finished screens.",
+    "listLast": "{rest} and {last}",
+    "changesAdded": "added {names}",
+    "changesUpdated": "updated {names}",
+    "changesRemoved": "removed {names}",
+    "changesDone": "I {parts}.",
+    "changesNone": "Your changes are in.",
+    "changesMissed": "I couldn't change {names}, so {count, plural, one {it's} other {they're}} still as before. Ask me again if you'd still like that.",
+    "changesSummary": "All done! {what}{missed} Have a look in the preview, and tell me if you'd like anything else changed.",
+    "buildStopped": "The build stopped before it finished. Say \"try again\" and I'll pick up where it left off.",
+    "buildStartFailed": "Couldn't start the build. Please try again."
+  }
+}

@@ -8,8 +8,38 @@ export type AuthFields = {
   password: string
 }
 
-export type FieldErrors = Partial<Record<keyof AuthFields, string>>
+/** Keys of `auth.errors.*` in the message files, so each language words them itself. */
+export type AuthErrorKey =
+  | "enterName"
+  | "nameTooLong"
+  | "enterEmail"
+  | "invalidEmail"
+  | "enterPassword"
+  | "passwordTooShort"
+  | "passwordTooLong"
+  | "fixFields"
+  | "invalidRequest"
+  | "incorrectCredentials"
+  | "accountExists"
+  | "passwordShort"
+  | "passwordLong"
+  | "tooManyAttempts"
+  | "serverError"
+  | "generic"
+  | "network"
+  | "linkExpired"
+  | "notVerified"
+  | "cancelled"
+  | "unsupportedProvider"
+  | "incomplete"
+  | "failed"
 
+/** An error to show, as a message key and the numbers it mentions. */
+export type AuthFieldError = { key: AuthErrorKey; values?: Record<string, number> }
+
+export type FieldErrors = Partial<Record<keyof AuthFields, AuthFieldError>>
+
+export const NAME_MAX = 100
 export const PASSWORD_MIN = 8
 export const PASSWORD_MAX = 128
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -26,19 +56,19 @@ export function validateAuthFields(mode: AuthMode, fields: AuthFields): FieldErr
   const errors: FieldErrors = {}
 
   if (mode === "sign-up") {
-    if (!fields.name) errors.name = "Enter your name."
-    else if (fields.name.length > 100) errors.name = "Name must be 100 characters or fewer."
+    if (!fields.name) errors.name = { key: "enterName" }
+    else if (fields.name.length > NAME_MAX) errors.name = { key: "nameTooLong", values: { max: NAME_MAX } }
   }
 
-  if (!fields.email) errors.email = "Enter your email address."
+  if (!fields.email) errors.email = { key: "enterEmail" }
   else if (!EMAIL_PATTERN.test(fields.email) || fields.email.length > 254)
-    errors.email = "Enter a valid email address."
+    errors.email = { key: "invalidEmail" }
 
-  if (!fields.password) errors.password = "Enter your password."
+  if (!fields.password) errors.password = { key: "enterPassword" }
   else if (mode === "sign-up" && fields.password.length < PASSWORD_MIN)
-    errors.password = `Password must be at least ${PASSWORD_MIN} characters.`
+    errors.password = { key: "passwordTooShort", values: { min: PASSWORD_MIN } }
   else if (fields.password.length > PASSWORD_MAX)
-    errors.password = `Password must be ${PASSWORD_MAX} characters or fewer.`
+    errors.password = { key: "passwordTooLong", values: { max: PASSWORD_MAX } }
 
   return errors
 }

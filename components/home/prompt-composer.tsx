@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   ArrowUpIcon,
   CheckIcon,
@@ -23,7 +24,6 @@ import {
   MAX_ASSET_SIZE,
   MAX_ASSETS,
   MAX_PROMPT_LENGTH,
-  PLATFORM_LABELS,
   PROJECT_PLATFORMS,
   type ProjectPlatform,
 } from "@/lib/projects"
@@ -65,22 +65,24 @@ type SubmitStatus =
   | { phase: "creating" }
   | { phase: "redirecting" }
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+type ComposerT = ReturnType<typeof useTranslations<"composer">>
+
+function formatBytes(t: ComposerT, bytes: number) {
+  if (bytes < 1024) return t("fileSize.bytes", { value: String(bytes) })
+  if (bytes < 1024 * 1024) return t("fileSize.kilobytes", { value: (bytes / 1024).toFixed(0) })
+  return t("fileSize.megabytes", { value: (bytes / (1024 * 1024)).toFixed(1) })
 }
 
-function statusText(status: SubmitStatus, fileCount: number) {
+function statusText(t: ComposerT, status: SubmitStatus, fileCount: number) {
   switch (status.phase) {
     case "uploading":
       return fileCount > 0
-        ? `Uploading ${fileCount} ${fileCount === 1 ? "asset" : "assets"}… ${Math.round(status.progress * 100)}%`
-        : "Sending your prompt…"
+        ? t("status.uploading", { count: fileCount, percent: Math.round(status.progress * 100) })
+        : t("status.sending")
     case "creating":
-      return "Creating your project…"
+      return t("status.creating")
     case "redirecting":
-      return "Opening your workspace…"
+      return t("status.redirecting")
     default:
       return null
   }
@@ -111,6 +113,9 @@ function postProject(
 }
 
 export function PromptComposer() {
+  const t = useTranslations("composer")
+  const tPlatforms = useTranslations("platforms")
+  const tQuick = useTranslations("quickPrompts")
   const { user, isPending: isSessionPending } = useAuth()
   const { openSignIn } = useSignInDialog()
   const openUpgrade = useUpgradeDialog()
@@ -155,11 +160,11 @@ export function PromptComposer() {
     const accepted = valid.slice(0, Math.max(room, 0))
 
     if (unsupported.length > 0) {
-      setError("Attach images, PDFs, or text files (.txt, .md, .json, .csv).")
+      setError(t("errors.unsupported"))
     } else if (tooLarge.length > 0) {
-      setError(`Files must be under ${formatBytes(MAX_ASSET_SIZE)}.`)
+      setError(t("errors.tooLarge", { size: formatBytes(t, MAX_ASSET_SIZE) }))
     } else if (valid.length > accepted.length) {
-      setError(`You can attach up to ${MAX_ASSETS} files.`)
+      setError(t("errors.tooMany", { count: MAX_ASSETS }))
     } else {
       setError(null)
     }
@@ -218,7 +223,7 @@ export function PromptComposer() {
         submittingRef.current = false
         setSubmitStatus({ phase: "idle" })
         openSignIn("sign-in", {
-          reason: "Your session has expired. Sign in again to create your app.",
+          reason: t("errors.sessionExpired"),
           onSuccess: createApp,
           onSocialRedirect: parkDraft,
         })
@@ -226,7 +231,7 @@ export function PromptComposer() {
       }
       if (status !== 201 || !data.project) {
         if (isUpgradeReason(data.code)) openUpgrade(data.code)
-        throw new Error(data.error || "We couldn't create your project. Please try again.")
+        throw new Error(data.error || t("errors.createFailed"))
       }
 
       setSubmitStatus({ phase: "redirecting" })
@@ -237,7 +242,7 @@ export function PromptComposer() {
       setError(
         err instanceof Error && err.message !== "Network error"
           ? err.message
-          : "Couldn't reach the server. Check your connection and try again."
+          : t("errors.network")
       )
     }
   }
@@ -282,7 +287,7 @@ export function PromptComposer() {
     if (!user) {
       // The prompt stays in the composer; continue as soon as auth succeeds.
       openSignIn("sign-up", {
-        reason: "Create a free account to generate your app — your prompt is saved.",
+        reason: t("signUpReason"),
         onSuccess: createApp,
         onSocialRedirect: parkDraft,
       })
@@ -373,7 +378,7 @@ export function PromptComposer() {
             {isDragging && (
               <div className="pointer-events-none absolute inset-1.5 z-10 flex flex-col items-center justify-center gap-2 rounded-[2rem] border-2 border-dashed border-violet-300 bg-violet-50/90 text-violet-700">
                 <UploadCloudIcon className="size-7" />
-                <p className="text-sm font-medium">Drop files to attach</p>
+                <p className="text-sm font-medium">{t("dropFiles")}</p>
               </div>
             )}
 
@@ -391,10 +396,11 @@ export function PromptComposer() {
             )}
 
             <label htmlFor="prompt" className="sr-only">
-              Describe the app you want to build
+              {t("label")}
             </label>
             <textarea
               id="prompt"
+              dir="auto"
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -403,7 +409,7 @@ export function PromptComposer() {
               readOnly={isSubmitting}
               maxLength={MAX_PROMPT_LENGTH}
               rows={3}
-              placeholder="Describe your app idea… e.g. A recipe app that suggests meals from what's in my fridge"
+              placeholder={t("placeholder")}
               className="field-sizing-content block max-h-64 min-h-24 w-full resize-none bg-transparent px-3 pt-3 pb-2 text-base leading-relaxed outline-none placeholder:text-muted-foreground/70"
             />
 
@@ -429,7 +435,7 @@ export function PromptComposer() {
                   disabled={files.length >= MAX_ASSETS || isSubmitting}
                 >
                   <PaperclipIcon />
-                  <span className="hidden sm:inline">Attach</span>
+                  <span className="hidden sm:inline">{t("attach")}</span>
                 </Button>
 
                 <DropdownMenu>
@@ -445,7 +451,7 @@ export function PromptComposer() {
                     }
                   >
                     <SmartphoneIcon />
-                    <span className="hidden sm:inline">{PLATFORM_LABELS[platform]}</span>
+                    <span className="hidden sm:inline">{tPlatforms(platform)}</span>
                     <ChevronDownIcon className="size-3.5 opacity-60" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-44 rounded-2xl">
@@ -455,9 +461,9 @@ export function PromptComposer() {
                         className="rounded-xl py-2"
                         onClick={() => setPlatform(option)}
                       >
-                        {PLATFORM_LABELS[option]}
+                        {tPlatforms(option)}
                         {option === platform && (
-                          <CheckIcon className="ml-auto text-violet-600" />
+                          <CheckIcon className="ms-auto text-violet-600" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -468,18 +474,22 @@ export function PromptComposer() {
               <div className="flex items-center gap-3">
                 {isSubmitting ? (
                   <span role="status" className="text-xs font-medium text-violet-700">
-                    {statusText(submitStatus, files.length)}
+                    {statusText(t, submitStatus, files.length)}
                   </span>
                 ) : (
                   <span className="hidden text-xs text-muted-foreground sm:inline">
-                    <kbd className="rounded-md border border-border bg-muted/60 px-1.5 py-0.5 font-sans text-[10px]">Shift + Enter</kbd> for new line
+                    {t.rich("newLine", {
+                      kbd: (chunks) => (
+                        <kbd className="rounded-md border border-border bg-muted/60 px-1.5 py-0.5 font-sans text-[10px]">{chunks}</kbd>
+                      ),
+                    })}
                   </span>
                 )}
                 <Button
                   type="submit"
                   size="icon-lg"
                   disabled={!canSubmit || isSessionPending}
-                  aria-label={isSubmitting ? "Creating project" : "Generate app"}
+                  aria-label={isSubmitting ? t("creatingLabel") : t("generate")}
                   className="size-11 rounded-full bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40 transition-transform hover:scale-105 hover:opacity-95 disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none"
                 >
                   {isSubmitting ? <Spinner className="size-5" /> : <ArrowUpIcon className="size-5" />}
@@ -491,7 +501,7 @@ export function PromptComposer() {
       </div>
 
       {error && (
-        <p role="alert" className="mt-2 px-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="mt-2 px-2 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -499,10 +509,10 @@ export function PromptComposer() {
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         {QUICK_PROMPTS.map((item) => (
           <button
-            key={item.label}
+            key={item.id}
             type="button"
-            onClick={() => applySuggestion(item.prompt)}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1.5 pr-4 pl-1.5 text-sm text-muted-foreground shadow-[0_4px_16px_-8px_rgba(76,29,149,0.3)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:text-violet-700 hover:shadow-[0_8px_24px_-8px_rgba(124,58,237,0.4)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            onClick={() => applySuggestion(tQuick(`${item.id}.prompt`))}
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1.5 pe-4 ps-1.5 text-sm text-muted-foreground shadow-[0_4px_16px_-8px_rgba(76,29,149,0.3)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:text-violet-700 hover:shadow-[0_8px_24px_-8px_rgba(124,58,237,0.4)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <span
               aria-hidden
@@ -510,7 +520,7 @@ export function PromptComposer() {
             >
               {item.emoji}
             </span>
-            {item.label}
+            {tQuick(`${item.id}.label`)}
           </button>
         ))}
       </div>
@@ -520,7 +530,7 @@ export function PromptComposer() {
         onOpenChange={(open) => !open && setPreviewFile(null)}
       >
         <DialogContent className="gap-3 rounded-[1.75rem] p-3 sm:max-w-2xl">
-          <DialogTitle className="truncate px-1 pr-8 text-sm font-medium">
+          <DialogTitle className="truncate px-1 pe-8 text-sm font-medium">
             {previewFile?.file.name}
           </DialogTitle>
           {previewFile?.previewUrl && (
@@ -547,13 +557,14 @@ function PromptAttachment({
   onRemove?: () => void
   onPreview: () => void
 }) {
+  const t = useTranslations("composer")
   const { file, previewUrl } = item
   const extension = file.name.split(".").pop()?.toUpperCase() ?? "FILE"
 
   return (
     <Attachment size="sm" className="max-w-56 rounded-2xl bg-muted/40">
       {previewUrl && (
-        <AttachmentTrigger aria-label={`Preview ${file.name}`} onClick={onPreview} />
+        <AttachmentTrigger aria-label={t("previewFile", { name: file.name })} onClick={onPreview} />
       )}
       <AttachmentMedia variant={previewUrl ? "image" : "icon"}>
         {previewUrl ? (
@@ -568,12 +579,12 @@ function PromptAttachment({
       <AttachmentContent>
         <AttachmentTitle>{file.name}</AttachmentTitle>
         <AttachmentDescription>
-          {extension} · {formatBytes(file.size)}
+          {extension} · {formatBytes(t, file.size)}
         </AttachmentDescription>
       </AttachmentContent>
       {onRemove && (
         <AttachmentActions>
-          <AttachmentAction aria-label={`Remove ${file.name}`} onClick={onRemove}>
+          <AttachmentAction aria-label={t("removeFile", { name: file.name })} onClick={onRemove}>
             <XIcon />
           </AttachmentAction>
         </AttachmentActions>

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { LayoutGridIcon, MessageSquareIcon, SmartphoneIcon } from "lucide-react"
 
 import { useInlineEditor } from "@/hooks/use-inline-editor"
@@ -37,12 +38,10 @@ function subscribe(onChange: () => void) {
   return () => mql.removeEventListener("change", onChange)
 }
 
-const SET_UP_BACKEND_MESSAGE = "I connected my CloudHike account. Please set up the backend for this app."
-
 const MOBILE_VIEWS = [
-  { id: "chat", label: "Chat", icon: MessageSquareIcon },
-  { id: "canvas", label: "Canvas", icon: LayoutGridIcon },
-  { id: "preview", label: "Preview", icon: SmartphoneIcon },
+  { id: "chat", icon: MessageSquareIcon },
+  { id: "canvas", icon: LayoutGridIcon },
+  { id: "preview", icon: SmartphoneIcon },
 ] as const
 
 type MobileView = (typeof MOBILE_VIEWS)[number]["id"]
@@ -80,6 +79,7 @@ export function WorkspaceLayout({
   /** Whether ImageKit is on, for replacing and generating images in edit mode. */
   imageTools: boolean
 }) {
+  const t = useTranslations("workspace")
   const agent = useProjectAgent(project.id, {
     messages,
     status: project.status,
@@ -112,8 +112,8 @@ export function WorkspaceLayout({
   /** A built app gets its backend now. One still being built gets it when the build finishes. */
   const { send } = agent
   const setUpBackendIfBuilt = React.useCallback(() => {
-    if (agent.status === "ready") void send({ action: "message", content: SET_UP_BACKEND_MESSAGE })
-  }, [agent.status, send])
+    if (agent.status === "ready") void send({ action: "message", content: t("setUpBackendMessage") })
+  }, [agent.status, send, t])
 
   // Only once per trip to CloudHike: reloading the page mustn't deploy or ask again.
   const handledConnect = React.useRef(false)
@@ -276,10 +276,10 @@ export function WorkspaceLayout({
           {mobileView === "preview" && preview}
         </div>
         <nav
-          aria-label="Workspace sections"
+          aria-label={t("sections.label")}
           className="grid shrink-0 grid-cols-3 gap-1 border-t border-border/60 bg-white p-1.5"
         >
-          {MOBILE_VIEWS.map(({ id, label, icon: Icon }) => (
+          {MOBILE_VIEWS.map(({ id, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -293,7 +293,7 @@ export function WorkspaceLayout({
               )}
             >
               <Icon className="size-4" />
-              {label}
+              {t(`sections.${id}`)}
             </button>
           ))}
         </nav>

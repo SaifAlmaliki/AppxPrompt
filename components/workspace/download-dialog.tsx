@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { CheckCircle2Icon, DownloadIcon, Loader2Icon, RotateCwIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,20 +28,22 @@ export function DownloadDialog({
   /** Saves edits still on their way, so the download has them. */
   beforeExport: () => Promise<boolean>
 }) {
+  const t = useTranslations("download")
+  const tw = useTranslations("workspace.errors")
   const [state, setState] = React.useState<DownloadState>({ step: "packaging" })
 
   const start = React.useCallback(async () => {
     setState({ step: "packaging" })
     if (!(await beforeExport())) {
-      return setState({ step: "failed", message: "We couldn't save your latest edits, so we stopped the download. Please try again." })
+      return setState({ step: "failed", message: t("errors.notSaved") })
     }
     const response = await fetch(`/api/projects/${projectId}/export`).catch(() => null)
     if (!response) {
-      return setState({ step: "failed", message: "Couldn't reach the server. Check your connection and try again." })
+      return setState({ step: "failed", message: tw("network") })
     }
     if (!response.ok) {
       const body = await response.json().catch(() => null)
-      return setState({ step: "failed", message: body?.error ?? "We couldn't package your project. Please try again." })
+      return setState({ step: "failed", message: body?.error ?? t("errors.packageFailed") })
     }
     const fileName = fileNameFrom(response)
     const url = URL.createObjectURL(await response.blob())
@@ -50,7 +53,7 @@ export function DownloadDialog({
     link.click()
     URL.revokeObjectURL(url)
     setState({ step: "done", fileName })
-  }, [beforeExport, projectId])
+  }, [beforeExport, projectId, t, tw])
 
   // Choosing "Download as ZIP" is the whole request, so this starts as soon as it opens.
   React.useEffect(() => {
@@ -67,26 +70,26 @@ export function DownloadDialog({
             <DownloadIcon className="size-5" />
           </span>
           <div className="min-w-0 space-y-0.5">
-            <DialogTitle className="text-base font-semibold tracking-tight">Download as ZIP</DialogTitle>
-            <DialogDescription>The complete Expo project, ready to run on your computer.</DialogDescription>
+            <DialogTitle className="text-base font-semibold tracking-tight">{t("title")}</DialogTitle>
+            <DialogDescription>{t("description")}</DialogDescription>
           </div>
         </DialogHeader>
 
         {state.step === "packaging" && (
           <p role="status" className="flex items-center gap-2 rounded-2xl bg-violet-500/10 px-3 py-2.5 text-sm font-medium text-violet-800">
             <Loader2Icon className="size-4 shrink-0 animate-spin" />
-            Packaging your project…
+            {t("packaging")}
           </p>
         )}
 
         {state.step === "failed" && (
           <>
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.message}
             </p>
             <Button className="h-10 rounded-full" onClick={() => void start()}>
               <RotateCwIcon />
-              Try again
+              {t("tryAgain")}
             </Button>
           </>
         )}
@@ -95,15 +98,20 @@ export function DownloadDialog({
           <>
             <p role="status" className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 px-3 py-2.5 text-sm font-medium text-emerald-800">
               <CheckCircle2Icon className="size-4 shrink-0" />
-              <span className="min-w-0 truncate">{state.fileName} is downloading.</span>
+              <span className="min-w-0 truncate">
+                {t.rich("downloading", {
+                  fileName: state.fileName,
+                  file: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
+                })}
+              </span>
             </p>
             <div className="space-y-1.5">
-              <p className="text-xs leading-relaxed text-muted-foreground">Unzip it, open a terminal in the folder, and run:</p>
-              <pre className="overflow-x-auto rounded-2xl bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed">{SETUP_COMMANDS}</pre>
-              <p className="text-xs leading-relaxed text-muted-foreground">Then scan the QR code with Expo Go. The README has the details.</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">{t("unzip")}</p>
+              <pre dir="ltr" className="overflow-x-auto rounded-2xl bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed">{SETUP_COMMANDS}</pre>
+              <p className="text-xs leading-relaxed text-muted-foreground">{t("scan")}</p>
             </div>
             <Button variant="outline" className="h-10 rounded-full" onClick={() => onOpenChange(false)}>
-              Done
+              {t("done")}
             </Button>
           </>
         )}

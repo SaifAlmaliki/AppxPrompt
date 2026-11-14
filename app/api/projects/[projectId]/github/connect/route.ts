@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { GITHUB_STATE_COOKIE, GITHUB_STATE_MAX_AGE } from "@/lib/github/connect-state"
 import { githubAuthorizeUrl, githubCallbackUrl, isGitHubAvailable } from "@/lib/github/client"
 import { getProjectAccess } from "@/lib/project-access"
+import { serverT } from "@/lib/i18n/server"
 import { getCurrentUser } from "@/lib/session"
 
 /** Sends the browser to GitHub to allow access. It comes back at the callback route. */
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.redirect(new URL("/", request.url))
 
   const access = await getProjectAccess(projectId, user.id)
-  if (access?.role !== "owner") return new NextResponse("Project not found.", { status: 404 })
+  if (access?.role !== "owner") return new NextResponse((await serverT("errors"))("projectNotFound"), { status: 404 })
   if (!isGitHubAvailable()) return NextResponse.redirect(new URL(`/workspace/${projectId}?github=error`, request.url))
 
   // Ties the callback to this browser and project, so nobody can plant their own GitHub account here.

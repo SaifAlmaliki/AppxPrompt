@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import {
   CheckCircle2Icon,
   ExternalLinkIcon,
@@ -30,10 +31,9 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 
-const CONNECT_MESSAGES: Partial<Record<GitHubConnectResult, string>> = {
-  denied: "You cancelled on GitHub, so nothing was connected.",
-  error: "We couldn't connect your GitHub account. Please try again.",
-}
+const CONNECT_RESULT_KEYS = ["denied", "error"] as const
+const isConnectResultKey = (result: GitHubConnectResult): result is (typeof CONNECT_RESULT_KEYS)[number] =>
+  (CONNECT_RESULT_KEYS as readonly string[]).includes(result)
 
 type View =
   | { name: "loading" }
@@ -82,18 +82,20 @@ export function GitHubDialog({
   /** Saves edits still on their way, so the push has them. */
   beforeExport: () => Promise<boolean>
 }) {
+  const t = useTranslations("github")
+  const tw = useTranslations("workspace.errors")
   const [status, setStatus] = React.useState<GitHubStatus | null>(null)
   const [view, setView] = React.useState<View>({ name: "loading" })
 
   const push = React.useCallback(async () => {
-    setView({ name: "pushing", label: "Saving your latest edits…", percent: 1 })
+    setView({ name: "pushing", label: t("progress.saving"), percent: 1 })
     if (!(await beforeExport())) {
-      return setView({ name: "failed", message: "We couldn't save your latest edits, so we stopped the push. Please try again." })
+      return setView({ name: "failed", message: t("errors.notSaved") })
     }
     const response = await fetch(`/api/projects/${projectId}/github`, { method: "POST" }).catch(() => null)
     if (!response?.ok || !response.body) {
       const body = await response?.json().catch(() => null)
-      return setView({ name: "failed", message: body?.error ?? "Couldn't reach the server. Check your connection and try again." })
+      return setView({ name: "failed", message: body?.error ?? tw("network") })
     }
 
     let failure: { message: string; code?: GitHubErrorCode } | null = null
@@ -110,7 +112,7 @@ export function GitHubDialog({
     }).catch(() => false)
 
     if (!finished) {
-      return setView({ name: "failed", message: "We lost the connection during the push. Check your repository on GitHub before trying again." })
+      return setView({ name: "failed", message: t("errors.connectionLost") })
     }
     if (failure) {
       const { message, code } = failure as { message: string; code?: GitHubErrorCode }
@@ -121,11 +123,14 @@ export function GitHubDialog({
       }
       setView(code === "reauth" ? { name: "picker", notice: message } : { name: "failed", message })
     }
-  }, [beforeExport, projectId])
+  }, [beforeExport, projectId, t, tw])
 
   const pushRef = React.useRef(push)
+  // Switching language mustn't reload the dialog, which would push again.
+  const tRef = React.useRef(t)
   React.useEffect(() => {
     pushRef.current = push
+    tRef.current = t
   })
 
   // Opening this is the request: a project that's been pushed before goes straight to a new branch.
@@ -135,7 +140,7 @@ export function GitHubDialog({
       const response = await fetch(`/api/projects/${projectId}/github`).catch(() => null)
       const body = await response?.json().catch(() => null)
       if (!response?.ok) {
-        return setView({ name: "failed", message: body?.error ?? "We couldn't check your GitHub connection. Please try again." })
+        return setView({ name: "failed", message: body?.error ?? tRef.current("errors.loadFailed") })
       }
       const next = body as GitHubStatus
       setStatus(next)
@@ -156,7 +161,7 @@ export function GitHubDialog({
 
   async function disconnect() {
     const response = await fetch("/api/github/connection", { method: "DELETE" }).catch(() => null)
-    if (!response?.ok) return setView({ name: "failed", message: "We couldn't disconnect GitHub. Please try again." })
+    if (!response?.ok) return setView({ name: "failed", message: t("errors.disconnectFailed") })
     setStatus((current) => current && { ...current, account: null })
     setView({ name: "picker" })
   }
@@ -175,22 +180,29 @@ export function GitHubDialog({
             <GithubIcon className="size-5" />
           </span>
           <div className="min-w-0 space-y-0.5">
-            <DialogTitle className="text-base font-semibold tracking-tight">Push to GitHub</DialogTitle>
+            <DialogTitle className="text-base font-semibold tracking-tight">{t("title")}</DialogTitle>
             <DialogDescription>
               {account ? (
                 <>
-                  Connected as <span className="font-medium text-foreground">{account.login}</span>
+                  {t.rich("connectedAs", {
+                    login: account.login,
+                    account: (chunks) => (
+                      <span className="font-medium text-foreground">
+                        <bdi dir="ltr">{chunks}</bdi>
+                      </span>
+                    ),
+                  })}
                   {!pushing && (
                     <>
                       {" · "}
                       <button type="button" onClick={() => void disconnect()} className="hover:text-foreground hover:underline">
-                        Disconnect
+                        {t("disconnect")}
                       </button>
                     </>
                   )}
                 </>
               ) : (
-                "Keep your project's code in your own repository."
+                t("tagline")
               )}
             </DialogDescription>
           </div>
@@ -199,16 +211,16 @@ export function GitHubDialog({
         {view.name === "loading" ? (
           <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2Icon className="size-4 animate-spin" />
-            Checking your GitHub connection…
+            {t("checking")}
           </p>
         ) : status && !status.available ? (
           <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-            GitHub isn't set up on this AppxPrompt server yet.
+            {t("notAvailable")}
           </p>
         ) : showConnect ? (
           <ConnectView
             projectId={projectId}
-            notice={("notice" in view ? view.notice : null) ?? (connectResult ? (CONNECT_MESSAGES[connectResult] ?? null) : null)}
+            notice={("notice" in view ? view.notice : null) ?? (connectResult && isConnectResultKey(connectResult) ? t(`connectResult.${connectResult}`) : null)}
           />
         ) : view.name === "picker" ? (
           <RepositoryPicker
@@ -238,19 +250,19 @@ export function GitHubDialog({
               <Loader2Icon className="size-4 shrink-0 animate-spin text-violet-600" />
               <span className="min-w-0 truncate">{view.label}</span>
             </p>
-            <Progress value={view.percent} aria-label="Push progress" />
-            <p className="text-xs text-muted-foreground">This usually takes a few seconds. Keep this window open.</p>
+            <Progress value={view.percent} aria-label={t("progress.label")} />
+            <p className="text-xs text-muted-foreground">{t("progress.hint")}</p>
           </div>
         ) : view.name === "done" ? (
           <DoneView result={view.result} onClose={() => onOpenChange(false)} onChange={() => setView({ name: "picker" })} />
         ) : view.name === "failed" ? (
           <>
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {view.message}
             </p>
             <Button className="h-10 rounded-full" onClick={() => void load(false)}>
               <RotateCwIcon />
-              Try again
+              {t("tryAgain")}
             </Button>
           </>
         ) : null}
@@ -260,15 +272,16 @@ export function GitHubDialog({
 }
 
 function ConnectView({ projectId, notice }: { projectId: string; notice: string | null }) {
+  const t = useTranslations("github")
   const [pending, setPending] = React.useState(false)
   return (
     <>
       <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheckIcon className="mt-px size-3.5 shrink-0 text-emerald-600" />
-        You sign in on GitHub, and AppxPrompt never sees your password. GitHub asks for access to your repositories, which AppxPrompt only uses to list them and to push when you ask.
+        {t("connect.privacy")}
       </p>
       {notice && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {notice}
         </p>
       )}
@@ -281,7 +294,7 @@ function ConnectView({ projectId, notice }: { projectId: string; notice: string 
         }}
       >
         {pending ? <Loader2Icon className="animate-spin" /> : <GithubIcon />}
-        Connect GitHub
+        {t("connect.button")}
       </Button>
     </>
   )
@@ -300,6 +313,8 @@ function RepositoryPicker({
   onChosen: (status: GitHubStatus) => void
   onNeedsConnection: (message: string) => void
 }) {
+  const t = useTranslations("github")
+  const tw = useTranslations("workspace.errors")
   const [mode, setMode] = React.useState<"create" | "existing">("create")
   const [name, setName] = React.useState(defaultRepoName)
   const [isPrivate, setIsPrivate] = React.useState(true)
@@ -316,13 +331,13 @@ function RepositoryPicker({
       const body = await response?.json().catch(() => null)
       if (!active) return
       if (body?.code === "reauth") return onNeedsConnection(body.error)
-      if (!response?.ok) return setError(body?.error ?? "We couldn't load your repositories. Please try again.")
+      if (!response?.ok) return setError(body?.error ?? t("errors.reposFailed"))
       setRepositories(body.repositories)
     })()
     return () => {
       active = false
     }
-  }, [mode, onNeedsConnection, repositories])
+  }, [mode, onNeedsConnection, repositories, t])
 
   async function choose(payload: object, key: string) {
     setPending(key)
@@ -335,7 +350,7 @@ function RepositoryPicker({
     const body = await response?.json().catch(() => null)
     setPending(null)
     if (body?.code === "reauth") return onNeedsConnection(body.error)
-    if (!response?.ok) return setError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
+    if (!response?.ok) return setError(body?.error ?? tw("network"))
     onChosen(body as GitHubStatus)
   }
 
@@ -343,13 +358,8 @@ function RepositoryPicker({
 
   return (
     <>
-      <div role="tablist" aria-label="Repository" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
-        {(
-          [
-            ["create", "New repository"],
-            ["existing", "Existing repository"],
-          ] as const
-        ).map(([id, label]) => (
+      <div role="tablist" aria-label={t("picker.label")} className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+        {(["create", "existing"] as const).map((id) => (
           <button
             key={id}
             type="button"
@@ -364,13 +374,13 @@ function RepositoryPicker({
               mode === id ? "bg-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {label}
+            {t(`picker.${id}`)}
           </button>
         ))}
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -385,58 +395,61 @@ function RepositoryPicker({
         >
           <div className="space-y-1.5">
             <label htmlFor="github-repo-name" className="text-sm font-medium">
-              Repository name
+              {t("picker.name")}
             </label>
-            <Input id="github-repo-name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} className="h-10 rounded-full px-4" />
+            <Input id="github-repo-name" dir="ltr" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} className="h-10 rounded-full px-4" />
           </div>
           <label className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 px-3 py-2.5">
             <span className="min-w-0">
-              <span className="block text-sm font-medium">Private</span>
-              <span className="block text-xs text-muted-foreground">Only you and people you invite on GitHub can see it.</span>
+              <span className="block text-sm font-medium">{t("picker.private")}</span>
+              <span className="block text-xs text-muted-foreground">{t("picker.privateHint")}</span>
             </span>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </label>
           <Button type="submit" className="h-10 w-full rounded-full" disabled={pending !== null || !name.trim()}>
             {pending === "create" && <Loader2Icon className="animate-spin" />}
-            {pending === "create" ? "Creating repository…" : "Create repository"}
+            {pending === "create" ? t("picker.creating") : t("picker.createButton")}
           </Button>
         </form>
       ) : repositories === null ? (
         !error && (
           <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2Icon className="size-4 animate-spin" />
-            Loading your repositories…
+            {t("picker.loading")}
           </p>
         )
       ) : repositories.length === 0 ? (
-        <p className="rounded-2xl bg-muted/60 px-3 py-2.5 text-sm text-muted-foreground">No repositories you can push to yet. Create a new one instead.</p>
+        <p className="rounded-2xl bg-muted/60 px-3 py-2.5 text-sm text-muted-foreground">{t("picker.none")}</p>
       ) : (
         <div className="space-y-2">
           <div className="relative">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <label htmlFor="github-repo-search" className="sr-only">
-              Search repositories
+              {t("picker.search")}
             </label>
             <Input
               id="github-repo-search"
-              placeholder="Search repositories"
+              dir="auto"
+              placeholder={t("picker.search")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-10 rounded-full pr-4 pl-9"
+              className="h-10 rounded-full pe-4 ps-9"
             />
           </div>
           <ul className="max-h-56 divide-y divide-border/60 overflow-y-auto rounded-2xl border border-border/60">
-            {matches.length === 0 && <li className="px-3 py-2.5 text-sm text-muted-foreground">No repositories match that search.</li>}
+            {matches.length === 0 && <li className="px-3 py-2.5 text-sm text-muted-foreground">{t("picker.noMatch")}</li>}
             {matches.map((repo) => (
               <li key={repo.fullName}>
                 <button
                   type="button"
                   disabled={pending !== null}
                   onClick={() => void choose({ repository: repo.fullName }, repo.fullName)}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-violet-500/10 disabled:opacity-60"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-start text-sm transition-colors hover:bg-violet-500/10 disabled:opacity-60"
                 >
-                  <span className="min-w-0 flex-1 truncate">{repo.fullName}</span>
-                  {repo.private && <LockIcon aria-label="Private" className="size-3.5 shrink-0 text-muted-foreground" />}
+                  <span className="min-w-0 flex-1 truncate">
+                    <bdi dir="ltr">{repo.fullName}</bdi>
+                  </span>
+                  {repo.private && <LockIcon aria-label={t("picker.private")} className="size-3.5 shrink-0 text-muted-foreground" />}
                   {pending === repo.fullName && <Loader2Icon className="size-4 shrink-0 animate-spin text-violet-600" />}
                 </button>
               </li>
@@ -461,91 +474,99 @@ function ConfirmView({
   onPush: () => void
   onChange: () => void
 }) {
+  const t = useTranslations("github")
+  const value = (chunks: React.ReactNode) => (
+    <span className="font-medium text-foreground">
+      <bdi dir="ltr">{chunks}</bdi>
+    </span>
+  )
+
   return (
     <>
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 px-3 py-2.5">
         <a href={repository.url} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-2 text-sm font-medium hover:underline">
           <GithubIcon className="size-4 shrink-0" />
-          <span className="truncate">{repository.fullName}</span>
+          <span className="truncate">
+            <bdi dir="ltr">{repository.fullName}</bdi>
+          </span>
         </a>
         <button type="button" onClick={onChange} className="shrink-0 text-xs font-medium text-violet-700 hover:underline">
-          Change
+          {t("confirm.change")}
         </button>
       </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
-        {repository.empty === false ? (
-          <>
-            This repository already has code, so {projectName} goes to a new branch. <span className="font-medium text-foreground">{repository.defaultBranch}</span> stays as it is.
-          </>
-        ) : repository.empty ? (
-          <>
-            This commits the complete project to <span className="font-medium text-foreground">{repository.defaultBranch}</span>.
-          </>
-        ) : (
-          "This commits the complete project. Existing code is never overwritten: a repository that already has code gets a new branch."
-        )}
+        {repository.empty === false
+          ? t.rich("confirm.hasCode", { projectName, branch: repository.defaultBranch ?? "", value, bdi: (chunks) => <bdi>{chunks}</bdi> })
+          : repository.empty
+            ? t.rich("confirm.empty", { branch: repository.defaultBranch ?? "", value })
+            : t("confirm.unknown")}
       </p>
 
       {notice && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {notice}
         </p>
       )}
 
       <Button className="h-10 rounded-full" onClick={onPush}>
         <GithubIcon />
-        Commit and push
+        {t("confirm.push")}
       </Button>
     </>
   )
 }
 
 function DoneView({ result, onClose, onChange }: { result: GitHubPushResult; onClose: () => void; onChange: () => void }) {
+  const t = useTranslations("github")
   const subject = result.commitMessage?.split("\n")[0]
   return (
     <>
       <p role="status" className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 px-3 py-2.5 text-sm font-medium text-emerald-800">
         <CheckCircle2Icon className="size-4 shrink-0" />
-        {result.outcome === "up-to-date" ? "Already up to date. There's nothing new to push." : `Pushed ${result.filesChanged} ${result.filesChanged === 1 ? "file" : "files"} to GitHub.`}
+        {result.outcome === "up-to-date" ? t("done.upToDate") : t("done.pushed", { count: result.filesChanged })}
       </p>
 
       <dl className="space-y-2 rounded-2xl border border-border/60 px-3 py-2.5 text-sm">
         <div className="flex items-center gap-2">
-          <dt className="sr-only">Repository</dt>
+          <dt className="sr-only">{t("picker.label")}</dt>
           <GithubIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <dd className="min-w-0 truncate">{result.repository}</dd>
+          <dd className="min-w-0 truncate">
+            <bdi dir="ltr">{result.repository}</bdi>
+          </dd>
         </div>
         <div className="flex items-center gap-2">
-          <dt className="sr-only">Branch</dt>
+          <dt className="sr-only">{t("done.branch")}</dt>
           <GitBranchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <dd className="min-w-0 truncate font-mono text-xs">{result.branch}</dd>
+          <dd className="min-w-0 truncate font-mono text-xs">
+            <bdi dir="ltr">{result.branch}</bdi>
+          </dd>
         </div>
         {subject && (
           <div>
-            <dt className="sr-only">Commit message</dt>
-            <dd className="text-xs leading-relaxed text-muted-foreground">{subject}</dd>
+            <dt className="sr-only">{t("done.commitMessage")}</dt>
+            <dd dir="auto" className="text-xs leading-relaxed text-muted-foreground">{subject}</dd>
           </div>
         )}
       </dl>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" className="mr-auto rounded-full text-muted-foreground" onClick={onChange}>
-          Change repository
+        <Button variant="ghost" className="me-auto rounded-full text-muted-foreground" onClick={onChange}>
+          {t("done.changeRepository")}
         </Button>
         {result.compareUrl ? (
           <Button className="rounded-full" render={<a href={result.compareUrl} target="_blank" rel="noreferrer" />} nativeButton={false}>
             <GitPullRequestIcon />
-            Open pull request
+            {t("done.openPullRequest")}
           </Button>
         ) : (
           <Button className="rounded-full" render={<a href={result.url} target="_blank" rel="noreferrer" />} nativeButton={false}>
-            View on GitHub
+            {t("done.view")}
             <ExternalLinkIcon />
           </Button>
         )}
         <Button variant="outline" className="rounded-full" onClick={onClose}>
-          Done
+          {t("done.done")}
         </Button>
       </div>
     </>

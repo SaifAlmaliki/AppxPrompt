@@ -20,6 +20,7 @@ import {
   type AgentEvent,
   type AppPlan,
 } from "@/lib/agent-protocol";
+import type { Locale } from "@/i18n/config";
 import { BACKEND_STATES, type BackendServiceStatus } from "@/lib/backend-protocol";
 import { CREDIT_REASONS, FREE_SIGNUP_CREDITS, PLAN_IDS } from "@/lib/plans";
 import { PROJECT_PLATFORMS, PROJECT_STATUSES } from "@/lib/projects";
@@ -85,6 +86,8 @@ export const projects = pgTable(
     title: text("title").notNull(),
     prompt: text("prompt").notNull(),
     platform: projectPlatform("platform").notNull(),
+    /** The language of the person's latest message, which the agent's fixed chat messages are written in. Null on projects from before it was kept. */
+    chatLanguage: text("chat_language").$type<Locale>(),
     status: projectStatus("status").default("planning").notNull(),
     /** The latest screen plan from the agent; null until it proposes one. */
     plan: jsonb("plan").$type<AppPlan>(),

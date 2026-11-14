@@ -1,4 +1,5 @@
 import { SparklesIcon } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
 import { FaqSection } from "@/components/home/faq-section"
 import { Logo } from "@/components/home/logo"
@@ -8,7 +9,9 @@ import { SignInDialogProvider } from "@/components/home/sign-in-dialog"
 import { SiteHeader } from "@/components/home/site-header"
 import { TemplatesSection } from "@/components/home/templates-section"
 
-export default function Home() {
+export default async function Home() {
+  const t = await getTranslations("home")
+
   return (
     <SignInDialogProvider>
       <div className="relative min-h-screen overflow-x-hidden bg-background">
@@ -17,38 +20,40 @@ export default function Home() {
 
         <main className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <section className="mx-auto flex max-w-3xl flex-col items-center pt-14 pb-20 text-center sm:pt-20">
-            <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1 pr-4 pl-1 text-xs font-medium text-violet-700 shadow-[0_4px_20px_-6px_rgba(124,58,237,0.35)] backdrop-blur-md">
+            <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 py-1 pe-4 ps-1 text-xs font-medium text-violet-700 shadow-[0_4px_20px_-6px_rgba(124,58,237,0.35)] backdrop-blur-md">
               <span className="inline-flex items-center gap-1 rounded-full bg-linear-to-r from-indigo-500 to-fuchsia-500 px-2.5 py-1 text-[11px] font-semibold text-white">
                 <SparklesIcon className="size-3" />
-                New
+                {t("badge")}
               </span>
-              AI agent for mobile apps
+              {t("tagline")}
             </span>
             <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
-              Turn your idea into a{" "}
-              <span className="relative inline-block">
-                <span className="animate-shimmer bg-linear-to-r from-indigo-500 via-fuchsia-500 to-indigo-500 bg-size-[200%_auto] bg-clip-text text-transparent">
-                  mobile app
-                </span>
-                <svg
-                  aria-hidden
-                  viewBox="0 0 300 20"
-                  preserveAspectRatio="none"
-                  className="absolute -bottom-2 left-0 h-3 w-full text-fuchsia-400/70 sm:-bottom-3 sm:h-4"
-                >
-                  <path
-                    d="M4 14 C 60 4, 120 4, 160 10 S 260 18, 296 6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
+              {t.rich("heroTitle", {
+                highlight: (chunks) => (
+                  <span className="relative inline-block">
+                    <span className="animate-shimmer bg-linear-to-r from-indigo-500 via-fuchsia-500 to-indigo-500 bg-size-[200%_auto] bg-clip-text text-transparent">
+                      {chunks}
+                    </span>
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 300 20"
+                      preserveAspectRatio="none"
+                      className="absolute -bottom-2 start-0 h-3 w-full text-fuchsia-400/70 sm:-bottom-3 sm:h-4"
+                    >
+                      <path
+                        d="M4 14 C 60 4, 120 4, 160 10 S 260 18, 296 6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>
+                ),
+              })}
             </h1>
             <p className="mt-7 max-w-xl text-base text-pretty text-muted-foreground sm:text-lg">
-              Describe what you want to build. AppxPrompt designs the screens,
-              writes the code, and gets it ready for iOS and Android.
+              {t("heroSubtitle")}
             </p>
 
             <div className="mt-10 w-full">
@@ -66,7 +71,7 @@ export default function Home() {
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
+            <p>{t("footer", { year: new Date().getFullYear() })}</p>
           </div>
         </footer>
       </div>

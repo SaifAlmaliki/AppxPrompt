@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { ArrowRightIcon, Loader2Icon, PlusIcon, RotateCwIcon, SparklesIcon } from "lucide-react"
 
 import { useProjectPreview } from "@/hooks/use-project-preview"
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUpgradeDialog } from "@/components/billing/upgrade-dialog"
 import { ProjectCard, useNearScreen } from "@/components/home/project-card"
-import { ProjectDialogs, ProjectMenu, sendChange, type ProjectDialogKind } from "@/components/home/project-actions"
+import { ProjectDialogs, ProjectMenu, useSendChange, type ProjectDialogKind } from "@/components/home/project-actions"
 import { PublicAppDialog } from "@/components/home/public-app-dialog"
 import { useSignInDialog } from "@/components/home/sign-in-dialog"
 
@@ -76,14 +77,15 @@ function SectionHeading({
 }
 
 function PublicApps() {
+  const t = useTranslations("projects.public")
   const { openSignIn } = useSignInDialog()
   const { projects, failed, reload } = useProjectList("/api/projects/public")
 
   return (
     <section id="explore" className="scroll-mt-24">
       <SectionHeading
-        title="Built with AppxPrompt"
-        description="Real apps from the community. Open one and try it."
+        title={t("title")}
+        description={t("description")}
         action={
           <Button
             variant="ghost"
@@ -91,14 +93,14 @@ function PublicApps() {
             className="h-10 rounded-full px-4 text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700"
             onClick={() => openSignIn("sign-in")}
           >
-            Sign in to see your projects
-            <ArrowRightIcon />
+            {t("signInToSee")}
+            <ArrowRightIcon className="rtl:-scale-x-100" />
           </Button>
         }
       />
 
       {failed ? (
-        <LoadFailed what="these apps" onRetry={reload} />
+        <LoadFailed what="publicApps" onRetry={reload} />
       ) : !projects ? (
         <CardSkeletons />
       ) : projects.length === 0 ? (
@@ -106,10 +108,10 @@ function PublicApps() {
           <span className="flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
             <SparklesIcon className="size-5" />
           </span>
-          <p className="font-medium">No public apps yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">Be the first: build an app and share it with everyone here.</p>
+          <p className="font-medium">{t("emptyTitle")}</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{t("emptyBody")}</p>
           <Button className="mt-1 h-10 rounded-full px-5" onClick={() => openSignIn("sign-up")}>
-            Get started
+            {t("getStarted")}
           </Button>
         </div>
       ) : (
@@ -206,6 +208,8 @@ function WorkspaceCards({
   const [error, setError] = React.useState<string | null>(null)
   // A dialog stays on its project while it animates closed.
   const [lastProject, setLastProject] = React.useState<ProjectSummary | null>(null)
+  const t = useTranslations("projects")
+  const sendChange = useSendChange()
   const openUpgrade = useUpgradeDialog()
   const activeProject = projects.find((project) => project.id === active?.id) ?? lastProject
 
@@ -234,14 +238,14 @@ function WorkspaceCards({
   return (
     <>
       {error && (
-        <p role="alert" className="mb-4 rounded-2xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+        <p role="alert" dir="auto" className="mb-4 rounded-2xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           {error}
         </p>
       )}
       {duplicating && (
         <p role="status" className="mb-4 flex items-center gap-2 rounded-2xl bg-violet-500/10 px-4 py-2.5 text-sm font-medium text-violet-800">
           <Loader2Icon className="size-4 animate-spin" />
-          Duplicating your project…
+          {t("duplicating")}
         </p>
       )}
       <div className={GRID_CLASS}>
@@ -274,14 +278,15 @@ function WorkspaceCards({
 }
 
 function UserProjects() {
+  const t = useTranslations("projects.yours")
   const { projects, setProjects, failed, reload } = useProjectList("/api/projects")
 
   return (
     <section id="projects" className="scroll-mt-24">
-      <SectionHeading title="Your projects" description="Pick up where you left off, or start something new." />
+      <SectionHeading title={t("title")} description={t("description")} />
 
       {failed && !projects ? (
-        <LoadFailed what="your projects" onRetry={reload} />
+        <LoadFailed what="projects" onRetry={reload} />
       ) : !projects ? (
         <CardSkeletons />
       ) : (
@@ -294,6 +299,7 @@ function UserProjects() {
 }
 
 function SharedProjects() {
+  const t = useTranslations("projects.shared")
   const { projects, setProjects, reload } = useProjectList("/api/projects/shared")
 
   // The rest of the page is fine without this section.
@@ -301,13 +307,15 @@ function SharedProjects() {
 
   return (
     <section id="shared" className="scroll-mt-24">
-      <SectionHeading title="Shared with you" description="Projects other people have given you access to view." />
+      <SectionHeading title={t("title")} description={t("description")} />
       <WorkspaceCards projects={projects} setProjects={setProjects} reload={reload} />
     </section>
   )
 }
 
 function NewProjectCard() {
+  const t = useTranslations("projects")
+
   return (
     <button
       type="button"
@@ -320,18 +328,20 @@ function NewProjectCard() {
       <span className="flex size-14 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
         <PlusIcon className="size-5" />
       </span>
-      <span className="text-sm font-medium">New project</span>
+      <span className="text-sm font-medium">{t("newProject")}</span>
     </button>
   )
 }
 
-export function LoadFailed({ what, onRetry }: { what: string; onRetry: () => void }) {
+export function LoadFailed({ what, onRetry }: { what: "publicApps" | "projects" | "usage"; onRetry: () => void }) {
+  const t = useTranslations("projects.loadFailed")
+
   return (
     <div role="alert" className="flex flex-col items-center gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-14 text-center">
-      <p className="text-sm text-muted-foreground">We couldn't load {what}.</p>
+      <p className="text-sm text-muted-foreground">{t(what)}</p>
       <Button variant="outline" className="h-10 rounded-full px-4" onClick={onRetry}>
         <RotateCwIcon />
-        Try again
+        {t("retry")}
       </Button>
     </div>
   )

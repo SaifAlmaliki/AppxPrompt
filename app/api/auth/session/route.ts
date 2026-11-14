@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { serverT } from "@/lib/i18n/server"
 import { clearSessionCookie, getCurrentUser, getSessionToken } from "@/lib/session"
 
 export async function GET() {
@@ -10,6 +11,6 @@ export async function GET() {
     return NextResponse.json({ user }, { headers: { "cache-control": "no-store" } })
   } catch (error) {
     console.error("Session lookup failed", error)
-    return NextResponse.json({ user: null, error: "Session lookup failed." }, { status: 500 })
+    return NextResponse.json({ user: null, error: (await serverT("errors"))("sessionLookupFailed") }, { status: 500 })
   }
 }

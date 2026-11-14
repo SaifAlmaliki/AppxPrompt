@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useLocale, useTranslations } from "next-intl"
 import {
   CheckIcon,
   CopyIcon,
@@ -15,8 +16,10 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
+import { useActivityText } from "@/hooks/use-activity-text"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
-import { isRunnable, screenRoute, type AppPlan, type ProjectScreen, type ScreenStatus } from "@/lib/agent-protocol"
+import { localeDirection } from "@/i18n/config"
+import { isRunnable, screenRoute, type Activity, type AppPlan, type ProjectScreen, type ScreenStatus } from "@/lib/agent-protocol"
 import { DEVICE_WIDTH, type PreviewProject } from "@/lib/preview-protocol"
 import { activeTheme, type AppTheme } from "@/lib/themes"
 import { SCREEN_GAP, SCREEN_HEIGHT, SCREEN_WIDTH, type CanvasScreen } from "@/lib/workspace-data"
@@ -109,12 +112,14 @@ export function CanvasPanel({
   /** The app as built so far, which the finished screens run from. */
   app: PreviewProject
   /** The agent's current activity, shown while there's nothing to draw yet. */
-  activity: string | null
+  activity: Activity | null
   /** True while the agent is working on the screens. */
   syncing: boolean
   onThemeChange: (themeId: string) => void
   editor: InlineEditor
 }) {
+  const t = useTranslations("canvas")
+  const rtl = localeDirection(useLocale()) === "rtl"
   const sectionRef = React.useRef<HTMLElement>(null)
   const viewportRef = React.useRef<HTMLDivElement>(null)
   const editingFrameRef = React.useRef<HTMLDivElement>(null)
@@ -285,8 +290,13 @@ export function CanvasPanel({
     const section = sectionRef.current
     const frame = editingFrameRef.current
     if (!advancedOpen || !section || !frame) return
-    const overlap = frame.getBoundingClientRect().right + POPOVER_GAP - (section.getBoundingClientRect().right - ADVANCED_PANEL_SPACE)
-    if (overlap > 0) setView((v) => ({ ...v, x: v.x - overlap }))
+    const box = frame.getBoundingClientRect()
+    const bounds = section.getBoundingClientRect()
+    // The panel sits at the end of the canvas: on the left in a right-to-left layout.
+    const overlap = rtl
+      ? bounds.left + ADVANCED_PANEL_SPACE - (box.left - POPOVER_GAP)
+      : box.right + POPOVER_GAP - (bounds.right - ADVANCED_PANEL_SPACE)
+    if (overlap > 0) setView((v) => ({ ...v, x: rtl ? v.x + overlap : v.x - overlap }))
     // Only when it opens: after that, the screen stays wherever the person pans it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advancedOpen])
@@ -318,12 +328,12 @@ export function CanvasPanel({
   }, [elementRect, view, moved, editor.advanced])
 
   return (
-    <section ref={sectionRef} aria-label="Canvas" className="relative flex h-full min-h-0 flex-col bg-neutral-50">
+    <section ref={sectionRef} aria-label={t("label")} className="relative flex h-full min-h-0 flex-col bg-neutral-50">
       <div
         ref={viewportRef}
         role="application"
-        aria-roledescription="canvas"
-        aria-label="App screens canvas. Drag to pan, Ctrl or Command and scroll to zoom."
+        aria-roledescription={t("roleDescription")}
+        aria-label={t("viewport")}
         onPointerDown={handleViewportPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
@@ -378,7 +388,7 @@ export function CanvasPanel({
         )}
       </div>
 
-      {editingScreen && <EditModeBar editor={editor} screenName={editingScreen.name} besidePanel={advancedOpen} />}
+      {editingScreen && <EditModeBar editor={editor} screenName={editingScreen.name} besidePanel={advancedOpen} rtl={rtl} />}
 
       {editingScreen && selection && !editor.advanced && popoverPosition && (
         <ElementPopover
@@ -400,26 +410,26 @@ export function CanvasPanel({
 
       <div
         role="toolbar"
-        aria-label="Canvas tools"
+        aria-label={t("toolbar")}
         className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/70 bg-white/90 p-1 shadow-[0_8px_32px_-12px_rgba(76,29,149,0.35)] ring-1 ring-black/[0.03] backdrop-blur-xl"
       >
-        <ToolButton label="Select (move screens)" active={tool === "select"} onClick={() => setTool("select")}>
+        <ToolButton label={t("tools.select")} active={tool === "select"} onClick={() => setTool("select")}>
           <MousePointer2Icon />
         </ToolButton>
-        <ToolButton label="Hand (pan canvas)" active={tool === "hand"} onClick={() => setTool("hand")}>
+        <ToolButton label={t("tools.hand")} active={tool === "hand"} onClick={() => setTool("hand")}>
           <HandIcon />
         </ToolButton>
         <span aria-hidden className="mx-1 h-5 w-px bg-border" />
-        <ToolButton label="Zoom out" onClick={() => zoomFromCenter(1 / 1.2)} disabled={view.zoom <= MIN_ZOOM}>
+        <ToolButton label={t("tools.zoomOut")} onClick={() => zoomFromCenter(1 / 1.2)} disabled={view.zoom <= MIN_ZOOM}>
           <MinusIcon />
         </ToolButton>
-        <span className="w-12 text-center text-xs font-medium tabular-nums text-muted-foreground" aria-live="polite">
+        <span dir="ltr" className="w-12 text-center text-xs font-medium tabular-nums text-muted-foreground" aria-live="polite">
           {Math.round(view.zoom * 100)}%
         </span>
-        <ToolButton label="Zoom in" onClick={() => zoomFromCenter(1.2)} disabled={view.zoom >= MAX_ZOOM}>
+        <ToolButton label={t("tools.zoomIn")} onClick={() => zoomFromCenter(1.2)} disabled={view.zoom >= MAX_ZOOM}>
           <PlusIcon />
         </ToolButton>
-        <ToolButton label="Fit to screen" onClick={fitToScreen}>
+        <ToolButton label={t("tools.fit")} onClick={fitToScreen}>
           <MaximizeIcon />
         </ToolButton>
       </div>
@@ -457,29 +467,47 @@ function ToolButton({
   )
 }
 
-function EditModeBar({ editor, screenName, besidePanel }: { editor: InlineEditor; screenName: string; besidePanel: boolean }) {
+function EditModeBar({
+  editor,
+  screenName,
+  besidePanel,
+  rtl,
+}: {
+  editor: InlineEditor
+  screenName: string
+  besidePanel: boolean
+  rtl: boolean
+}) {
+  const t = useTranslations("canvas")
   return (
     <div
       role="status"
-      style={besidePanel ? { left: `calc((100% - ${ADVANCED_PANEL_SPACE}px) / 2)`, maxWidth: `calc(100% - ${ADVANCED_PANEL_SPACE + 12}px)` } : undefined}
-      className="absolute top-11 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/70 bg-white/95 py-1 pr-1 pl-3 text-xs shadow-lg shadow-violet-500/15 ring-1 ring-black/[0.04] backdrop-blur"
+      style={
+        besidePanel
+          ? {
+              left: `calc((100% ${rtl ? "+" : "-"} ${ADVANCED_PANEL_SPACE}px) / 2)`,
+              maxWidth: `calc(100% - ${ADVANCED_PANEL_SPACE + 12}px)`,
+            }
+          : undefined
+      }
+      className="absolute top-11 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/70 bg-white/95 py-1 pe-1 ps-3 text-xs shadow-lg shadow-violet-500/15 ring-1 ring-black/[0.04] backdrop-blur"
     >
       <span className="flex items-center gap-1.5 truncate font-medium text-violet-700">
         <PencilIcon className="size-3.5 shrink-0" />
-        <span className="truncate">Editing {screenName}</span>
+        <span className="truncate">{t.rich("editing", { name: screenName, bdi: (chunks) => <bdi>{chunks}</bdi> })}</span>
       </span>
       <span className="hidden truncate text-muted-foreground sm:inline">
         {editor.saveError ? (
-          <span className="text-red-700">Not saved</span>
+          <span className="text-red-700">{t("notSaved")}</span>
         ) : editor.saving ? (
           <span className="inline-flex items-center gap-1">
             <Loader2Icon className="size-3 animate-spin" />
-            Saving
+            {t("saving")}
           </span>
         ) : editor.selection ? (
-          "Changes save as you go"
+          t("autosave")
         ) : (
-          "Click any element to edit it"
+          t("clickToEdit")
         )}
       </span>
       <Button
@@ -488,22 +516,23 @@ function EditModeBar({ editor, screenName, besidePanel }: { editor: InlineEditor
         onClick={editor.exit}
         className="h-6 shrink-0 rounded-full bg-violet-600 px-2.5 text-[11px] text-white hover:bg-violet-700"
       >
-        Done
+        {t("done")}
       </Button>
     </div>
   )
 }
 
 function SelectionToolbar({ style, canEdit, onEdit }: { style: React.CSSProperties; canEdit: boolean; onEdit: () => void }) {
+  const t = useTranslations("canvas")
   const actions = [
-    { label: "Edit screen", icon: PencilIcon, disabled: !canEdit, onClick: onEdit },
-    { label: "Duplicate", icon: CopyIcon },
-    { label: "Delete", icon: Trash2Icon },
+    { label: t("actions.edit"), icon: PencilIcon, disabled: !canEdit, onClick: onEdit },
+    { label: t("actions.duplicate"), icon: CopyIcon },
+    { label: t("actions.delete"), icon: Trash2Icon },
   ]
   return (
     <div
       role="toolbar"
-      aria-label="Screen actions"
+      aria-label={t("screenActions")}
       onPointerDown={(e) => e.stopPropagation()}
       style={style}
       className="absolute z-10 flex -translate-x-1/2 -translate-y-full items-center gap-0.5 rounded-full border border-white/70 bg-white p-1 shadow-lg shadow-violet-500/15 ring-1 ring-black/[0.04]"
@@ -517,7 +546,9 @@ function SelectionToolbar({ style, canEdit, onEdit }: { style: React.CSSProperti
   )
 }
 
-function CanvasEmptyState({ activity }: { activity: string | null }) {
+function CanvasEmptyState({ activity }: { activity: Activity | null }) {
+  const t = useTranslations("canvas.empty")
+  const activityText = useActivityText()
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
       <div className="max-w-xs rounded-3xl border border-white/70 bg-white/80 p-6 text-center shadow-[0_12px_40px_-20px_rgba(76,29,149,0.35)] backdrop-blur">
@@ -525,10 +556,10 @@ function CanvasEmptyState({ activity }: { activity: string | null }) {
           {activity ? <Spinner className="size-5" aria-hidden /> : <LayoutGridIcon className="size-5" />}
         </span>
         <p className="mt-3 text-sm font-medium">
-          {activity ? "The agent is planning your app" : "Your screens will appear here"}
+          {activity ? t("planningTitle") : t("title")}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground" role={activity ? "status" : undefined}>
-          {activity ?? "Once the agent plans your app, each screen shows up on this canvas."}
+        <p dir={activity ? "auto" : undefined} className="mt-1 text-xs text-muted-foreground" role={activity ? "status" : undefined}>
+          {activity ? activityText(activity) : t("body")}
         </p>
       </div>
     </div>
@@ -536,11 +567,12 @@ function CanvasEmptyState({ activity }: { activity: string | null }) {
 }
 
 function ScreenStatusChip({ status }: { status: CanvasItem["status"] }) {
+  const t = useTranslations("canvas.status")
   if (status === "generating") {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700">
         <Spinner className="size-3" aria-hidden />
-        Building
+        {t("building")}
       </span>
     )
   }
@@ -548,16 +580,16 @@ function ScreenStatusChip({ status }: { status: CanvasItem["status"] }) {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
         <CheckIcon className="size-3" />
-        Built
+        {t("built")}
       </span>
     )
   }
   if (status === "failed") {
-    return <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-700">Failed</span>
+    return <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-700">{t("failed")}</span>
   }
   return (
     <span className="shrink-0 rounded-full bg-neutral-200/70 px-2 py-0.5 text-[11px] text-muted-foreground">
-      {status === "planned" ? "Planned" : "Queued"}
+      {status === "planned" ? t("planned") : t("queued")}
     </span>
   )
 }
@@ -596,13 +628,14 @@ function ScreenFrame({
   onToggleEditing: () => void
   onEditEscape: () => void
 }) {
+  const t = useTranslations("canvas")
   return (
     <div
       className={cn("absolute transition-opacity", dimmed && "opacity-40")}
       style={{ left: screen.x, top: screen.y - LABEL_SPACE, width: SCREEN_WIDTH }}
     >
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
-        <p className={cn("truncate text-sm font-medium", selected ? "text-violet-700" : "text-muted-foreground")}>
+        <p dir="auto" className={cn("truncate text-sm font-medium", selected ? "text-violet-700" : "text-muted-foreground")}>
           {screen.name}
         </p>
         <div className="flex shrink-0 items-center gap-1">
@@ -613,7 +646,7 @@ function ScreenFrame({
                 render={
                   <button
                     type="button"
-                    aria-label={editing ? `Stop editing ${screen.name}` : `Edit ${screen.name}`}
+                    aria-label={editing ? t("stopEditingLabel", { name: screen.name }) : t("editLabel", { name: screen.name })}
                     aria-pressed={editing}
                     disabled={editor.locked}
                     // On the canvas, a press would start panning and take the click with it.
@@ -628,12 +661,21 @@ function ScreenFrame({
               >
                 <PencilIcon className="size-3" />
               </TooltipTrigger>
-              <TooltipContent>{editor.readOnly ? "You have view-only access" : editor.locked ? "Wait for the agent to finish" : editing ? "Stop editing" : "Edit this screen"}</TooltipContent>
+              <TooltipContent>
+                {editor.readOnly
+                  ? t("tooltip.viewOnly")
+                  : editor.locked
+                    ? t("tooltip.waitForAgent")
+                    : editing
+                      ? t("tooltip.stopEditing")
+                      : t("tooltip.edit")}
+              </TooltipContent>
             </Tooltip>
           )}
         </div>
       </div>
       <div
+        dir="ltr"
         onPointerDown={onPointerDown}
         className={cn(
           "overflow-hidden rounded-[2rem] border-[6px] border-neutral-900 bg-white shadow-[0_24px_48px_-24px_rgba(76,29,149,0.35)] transition-shadow",

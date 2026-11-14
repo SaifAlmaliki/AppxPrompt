@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { BillingError, createCheckoutUrl, createPortalUrl, setDowngrade } from "@/lib/billing/stripe"
+import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { getCurrentUser } from "@/lib/session"
 
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status })
+function error(key: ErrorKey, status: number) {
+  return errorResponse(key, status)
 }
 
 /**
@@ -13,7 +14,7 @@ function error(message: string, status: number) {
  */
 export async function POST(request: Request) {
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return error("Please sign in to continue.", 401)
+  if (!user) return error("signInRequired", 401)
 
   const body = (await request.json().catch(() => null)) as { action?: unknown } | null
   try {
@@ -29,11 +30,11 @@ export async function POST(request: Request) {
         await setDowngrade(user.id, false)
         return NextResponse.json({ ok: true })
       default:
-        return error("Invalid request.", 400)
+        return error("invalidRequest", 400)
     }
   } catch (cause) {
-    if (cause instanceof BillingError) return error(cause.message, cause.status)
+    if (cause instanceof BillingError) return NextResponse.json({ error: cause.translate(await serverT("errors")) }, { status: cause.status })
     console.error("Changing a plan failed", cause)
-    return error("We couldn't reach our payment provider. Please try again.", 502)
+    return error("paymentProviderFailed", 502)
   }
 }

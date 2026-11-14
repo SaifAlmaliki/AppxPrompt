@@ -7,6 +7,7 @@ import { toProjectScreen } from "@/lib/agent-protocol"
 import { activeBuild } from "@/lib/agent/builds"
 import { getRun } from "@/lib/agent/runs"
 import { exportedProjectFiles, projectSlug, type ExportedFile } from "@/lib/generated-app/export-project"
+import { LocalizedError } from "@/lib/i18n/server"
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -34,16 +35,16 @@ export type LoadedExport = {
 }
 
 /** Thrown when the project can't be exported right now, with a reason the person can act on. */
-export class ExportUnavailableError extends Error {}
+export class ExportUnavailableError extends LocalizedError {}
 
 export async function loadProjectExport(project: Project): Promise<LoadedExport> {
   if (project.status === "building" || getRun(project.id) || (await activeBuild(project.id))) {
-    throw new ExportUnavailableError("The agent is still working on the app. You can export it once it's done.")
+    throw new ExportUnavailableError("exportBusy")
   }
   const rows = await db.select().from(screens).where(eq(screens.projectId, project.id)).orderBy(asc(screens.position))
   const projectScreens = rows.map(toProjectScreen)
   if (!projectScreens.some((screen) => screen.code !== null)) {
-    throw new ExportUnavailableError("There's nothing to export yet. Build the app's screens first.")
+    throw new ExportUnavailableError("exportEmpty")
   }
   const name = project.plan?.appName || project.title
   const [publishing] = await db.select().from(projectPublishing).where(eq(projectPublishing.projectId, project.id))

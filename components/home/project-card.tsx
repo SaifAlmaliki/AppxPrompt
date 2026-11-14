@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { formatDistanceToNowStrict } from "date-fns"
+import { ar } from "date-fns/locale/ar"
+import { useLocale, useTranslations } from "next-intl"
 import { ClockIcon, GlobeIcon, ImageOffIcon, SparklesIcon } from "lucide-react"
 
 import { demoStorageId, type useProjectPreview } from "@/hooks/use-project-preview"
@@ -59,6 +61,9 @@ export const ProjectCard = React.forwardRef<
     menu?: React.ReactNode
   }
 >(function ProjectCard({ project, state, running, action, menu }, ref) {
+  const t = useTranslations("projects")
+  const locale = useLocale()
+
   return (
     <article
       ref={ref}
@@ -67,24 +72,24 @@ export const ProjectCard = React.forwardRef<
       <div className="relative flex h-72 items-start justify-center overflow-hidden rounded-[1.6rem] bg-linear-to-br from-violet-100 to-indigo-50">
         <div
           aria-hidden
-          className="absolute -top-10 -right-10 size-36 rounded-full bg-violet-400 opacity-30 blur-2xl"
+          className="absolute -top-10 -end-10 size-36 rounded-full bg-violet-400 opacity-30 blur-2xl"
           style={project.accentColor ? { backgroundColor: project.accentColor } : undefined}
         />
-        <div aria-hidden className="absolute -bottom-12 -left-8 size-32 rounded-full bg-white/60 blur-xl" />
+        <div aria-hidden className="absolute -bottom-12 -start-8 size-32 rounded-full bg-white/60 blur-xl" />
         <div className="relative mt-7 aspect-[9/19] w-40 shrink-0 overflow-hidden rounded-[1.75rem] border-[5px] border-neutral-900 bg-white shadow-xl shadow-black/15 transition-transform duration-500 group-hover:-translate-y-2">
           <CardScreen project={project} state={state} running={running} />
         </div>
-        <div className="pointer-events-none absolute top-2.5 left-2.5 flex flex-col items-start gap-1">
+        <div className="pointer-events-none absolute top-2.5 start-2.5 flex flex-col items-start gap-1">
           {project.isPublic && project.role === "owner" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700 backdrop-blur-md">
               <GlobeIcon className="size-3" />
-              Public
+              {t("card.public")}
             </span>
           )}
           {project.status !== "ready" && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-foreground/70 backdrop-blur-md">
               <span aria-hidden className={cn("size-1.5 rounded-full", STATUS_STYLES[project.status].dot)} />
-              {STATUS_STYLES[project.status].label}
+              {t(`status.${project.status}`)}
             </span>
           )}
         </div>
@@ -93,7 +98,7 @@ export const ProjectCard = React.forwardRef<
       <div className="flex flex-1 flex-col gap-1 px-3 pt-3.5 pb-2">
         <h3 className="truncate font-semibold tracking-tight" title={project.name}>
           {action(
-            "rounded-sm text-left outline-none after:absolute after:inset-0 after:rounded-[2rem] after:content-['']"
+            "rounded-sm text-start outline-none after:absolute after:inset-0 after:rounded-[2rem] after:content-['']"
           )}
         </h3>
         <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description}</p>
@@ -102,7 +107,14 @@ export const ProjectCard = React.forwardRef<
           {project.role === "owner" ? (
             <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
               <ClockIcon className="size-3.5 shrink-0" />
-              <span className="truncate">Edited {formatDistanceToNowStrict(new Date(project.updatedAt), { addSuffix: true })}</span>
+              <span className="truncate">
+                {t("card.edited", {
+                  time: formatDistanceToNowStrict(new Date(project.updatedAt), {
+                    addSuffix: true,
+                    locale: locale === "ar" ? ar : undefined,
+                  }),
+                })}
+              </span>
             </span>
           ) : (
             <span className="flex min-w-0 items-center gap-2">
@@ -115,7 +127,7 @@ export const ProjectCard = React.forwardRef<
         </div>
       </div>
 
-      {menu && <div className="absolute top-4 right-4 z-10">{menu}</div>}
+      {menu && <div className="absolute top-4 end-4 z-10">{menu}</div>}
     </article>
   )
 })
@@ -129,13 +141,15 @@ function CardScreen({
   state: ReturnType<typeof useProjectPreview>
   running: boolean
 }) {
+  const t = useTranslations("projects.card")
+
   if (!project.hasPreview) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center">
         <span className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
           <SparklesIcon className="size-4" />
         </span>
-        <p className="text-[11px] leading-snug text-muted-foreground">Your app appears here once it's built</p>
+        <p className="text-[11px] leading-snug text-muted-foreground">{t("noPreview")}</p>
       </div>
     )
   }
@@ -143,7 +157,7 @@ function CardScreen({
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-muted-foreground">
         <ImageOffIcon className="size-5" />
-        <p className="text-[11px] leading-snug">Preview unavailable</p>
+        <p className="text-[11px] leading-snug">{t("previewUnavailable")}</p>
       </div>
     )
   }
@@ -156,7 +170,7 @@ function CardScreen({
       theme={state.preview.theme}
       route="/"
       interactive={false}
-      title={`${project.name} preview`}
+      title={t("preview", { name: project.name })}
       syncing={false}
       edits={NO_EDITS}
     />

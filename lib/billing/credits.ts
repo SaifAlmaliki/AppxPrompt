@@ -4,6 +4,7 @@ import { and, count, eq, sql } from "drizzle-orm"
 
 import { builds, creditTransactions, db, projects, screens, users, type Project } from "@/db"
 import type { AppPlan } from "@/lib/agent-protocol"
+import { translatorFor, type Translator } from "@/lib/i18n/server"
 import { EDIT_CREDITS, PLANS, PRO_MONTHLY_CREDITS, buildCost, type CreditReason, type PlanId, type UpgradeReason } from "@/lib/plans"
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -23,28 +24,32 @@ export function planLimitResponse(error: PlanLimitError) {
   return NextResponse.json({ error: error.message, code: error.reason }, { status: error.status })
 }
 
-function notEnoughCredits(needed: number) {
-  return new PlanLimitError("credits", `This needs ${needed} credits, and you don't have enough left.`, 402)
+type ErrorsT = Translator<"errors">
+
+function notEnoughCredits(needed: number, t: ErrorsT) {
+  return new PlanLimitError("credits", t("creditsShort", { needed }), 402)
 }
 
-function projectLimitReached(maxProjects: number) {
-  return new PlanLimitError("projects", `The Free plan includes ${maxProjects} projects. Upgrade to Pro for unlimited projects, or delete one to make room.`)
+function projectLimitReached(maxProjects: number, t: ErrorsT) {
+  return new PlanLimitError("projects", t("projectLimit", { max: maxProjects }))
 }
 
-export function screenLimitMessage(plan: PlanId) {
-  return `The ${PLANS[plan].name} plan allows ${PLANS[plan].maxScreens} screens per project.`
+/** English unless `t` says otherwise, since the agent's tool results, which the model reads, use it too. */
+export function screenLimitMessage(plan: PlanId, t: ErrorsT = translatorFor("en", "errors")) {
+  return t("screenLimit", { plan, max: PLANS[plan].maxScreens })
 }
 
 /** Stops a chat with the agent, or a new project, that no change could come out of. */
-export function assertCanUseAgent(credits: number) {
-  if (credits < EDIT_CREDITS) throw notEnoughCredits(EDIT_CREDITS)
+export function assertCanUseAgent(credits: number, t: ErrorsT) {
+  if (credits < EDIT_CREDITS) throw notEnoughCredits(EDIT_CREDITS, t)
 }
 
 /** Takes `amount`, this month's credits first, or throws without taking any. */
 export async function spendCredits(
   userId: number,
   amount: number,
-  entry: { reason: CreditReason; projectId: string; reference: string }
+  entry: { reason: CreditReason; projectId: string; reference: string },
+  t: ErrorsT
 ) {
   await db.transaction(async (tx) => {
     // The row is checked and changed in one statement, so spending at once from two tabs can't go below zero.
@@ -56,7 +61,7 @@ export async function spendCredits(
       })
       .where(and(eq(users.id, userId), sql`${users.credits} + ${users.monthlyCredits} >= ${amount}::int`))
       .returning({ credits: users.credits, monthlyCredits: users.monthlyCredits })
-    if (!user) throw notEnoughCredits(amount)
+    if (!user) throw notEnoughCredits(amount, t)
     await tx.insert(creditTransactions).values({
       ...entry,
       userId,
@@ -88,12 +93,12 @@ export async function refundCredits(userId: number, amount: number, entry: { pro
 export type BuildCharge = { id: string; credits: number }
 
 /** Charges for what a build of `plan` still has to do, before anything about the build is saved. */
-export async function chargeForBuild(project: Pick<Project, "id" | "userId">, plan: AppPlan, userPlan: PlanId): Promise<BuildCharge> {
+export async function chargeForBuild(project: Pick<Project, "id" | "userId">, plan: AppPlan, userPlan: PlanId, t: ErrorsT): Promise<BuildCharge> {
   const rows = await db.select({ slug: screens.slug, code: screens.code }).from(screens).where(eq(screens.projectId, project.id))
   // Someone who has downgraded keeps a bigger app they've built, but can't build more of it.
   const hasUnbuilt = plan.screens.some((screen) => !rows.some((row) => row.slug === screen.id && row.code))
   if (hasUnbuilt && plan.screens.length > PLANS[userPlan].maxScreens) {
-    throw new PlanLimitError("screens", `${screenLimitMessage(userPlan)} Upgrade to Pro to build this one, or remove some screens.`)
+    throw new PlanLimitError("screens", t("screenLimitUpgrade", { limit: screenLimitMessage(userPlan, t) }))
   }
 
   const id = randomUUID()
@@ -103,7 +108,7 @@ export async function chargeForBuild(project: Pick<Project, "id" | "userId">, pl
       reason: plan.pendingChanges ? "edit" : "build",
       projectId: project.id,
       reference: `build:${id}`,
-    })
+    }, t)
   }
   return { id, credits }
 }
@@ -138,18 +143,18 @@ export async function hasProjectSlot(userId: number, plan: PlanId) {
   return owned < maxProjects
 }
 
-export function assertProjectSlot(hasSlot: boolean, plan: PlanId) {
+export function assertProjectSlot(hasSlot: boolean, plan: PlanId, t: ErrorsT) {
   const maxProjects = PLANS[plan].maxProjects
-  if (!hasSlot && maxProjects !== null) throw projectLimitReached(maxProjects)
+  if (!hasSlot && maxProjects !== null) throw projectLimitReached(maxProjects, t)
 }
 
 /** Checks for room again inside the transaction creating a project. The lock makes two requests at once take turns. */
-export async function claimProjectSlot(tx: Transaction, userId: number) {
+export async function claimProjectSlot(tx: Transaction, userId: number, t: ErrorsT) {
   const [owner] = await tx.select({ plan: users.plan }).from(users).where(eq(users.id, userId)).for("update")
   const maxProjects = PLANS[owner.plan].maxProjects
   if (maxProjects === null) return
   const [{ owned }] = await tx.select({ owned: count() }).from(projects).where(eq(projects.userId, userId))
-  if (owned >= maxProjects) throw projectLimitReached(maxProjects)
+  if (owned >= maxProjects) throw projectLimitReached(maxProjects, t)
 }
 
 /** Replaces what's left of the last period's credits with a new month's. Once per `reference`, the paid invoice. */

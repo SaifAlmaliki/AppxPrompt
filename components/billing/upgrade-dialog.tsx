@@ -3,45 +3,24 @@
 import Link from "next/link"
 import * as React from "react"
 import { CheckIcon, CoinsIcon, FolderPlusIcon, LayersIcon, Loader2Icon, SmartphoneIcon, SparklesIcon, type LucideIcon } from "lucide-react"
-import { format } from "date-fns"
+import { useFormatter, useTranslations } from "next-intl"
 
+import { useBrowserTimeZone } from "@/hooks/use-browser-time-zone"
 import { useAuth } from "@/lib/auth-client"
 import { PLANS, PRO_MONTHLY_CREDITS, PRO_PRICE_LABEL, type UpgradeReason } from "@/lib/plans"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-const REASONS: Record<UpgradeReason, { icon: LucideIcon; title: string; description: string }> = {
-  projects: {
-    icon: FolderPlusIcon,
-    title: "You've used your free projects",
-    description: `The Free plan includes ${PLANS.free.maxProjects} projects. Join Pro to build as many as you like.`,
-  },
-  screens: {
-    icon: LayersIcon,
-    title: "This app needs more screens",
-    description: `The Free plan allows ${PLANS.free.maxScreens} screens per project. Join Pro to build up to ${PLANS.pro.maxScreens}.`,
-  },
-  credits: {
-    icon: CoinsIcon,
-    title: "You're out of credits",
-    description: "You don't have enough credits for this. Join Pro to get a fresh set every month.",
-  },
-  "native-publish": {
-    icon: SmartphoneIcon,
-    title: "Publish to the app stores with Pro",
-    description: "Exporting for iOS and Android is part of Pro. On Free, you can still publish your app as a website.",
-  },
+const REASON_ICONS: Record<UpgradeReason, LucideIcon> = {
+  projects: FolderPlusIcon,
+  screens: LayersIcon,
+  credits: CoinsIcon,
+  "native-publish": SmartphoneIcon,
 }
-
-const PRO_HIGHLIGHTS = [
-  `${PRO_MONTHLY_CREDITS.toLocaleString()} credits every month`,
-  "Unlimited projects",
-  `Up to ${PLANS.pro.maxScreens} screens per project`,
-  "Export for iOS and Android",
-]
 
 /** Sends the browser to a billing page from `/api/billing`. */
 export function useBillingRedirect() {
+  const t = useTranslations("billing")
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -60,8 +39,8 @@ export function useBillingRedirect() {
       return
     }
     setPending(false)
-    setError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
-  }, [])
+    setError(body?.error ?? t("errors.network"))
+  }, [t])
 
   return { redirect, pending, error }
 }
@@ -95,8 +74,22 @@ export function UpgradeDialogProvider({ children }: { children: React.ReactNode 
 function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; open: boolean; onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth()
   const { redirect, pending, error } = useBillingRedirect()
-  const { icon: Icon, title, description } = REASONS[reason]
+  const t = useTranslations()
+  const format = useFormatter()
+  const timeZone = useBrowserTimeZone()
+  const Icon = REASON_ICONS[reason]
+  const reasonValues = {
+    max: PLANS.free.maxProjects ?? 0,
+    free: PLANS.free.maxScreens,
+    pro: PLANS.pro.maxScreens,
+  }
   const alreadyPro = user?.plan === "pro"
+  const highlights = [
+    t("upgrade.highlightCredits", { credits: t("common.credits", { count: PRO_MONTHLY_CREDITS }) }),
+    t("pricing.features.projects.unlimited"),
+    t("pricing.features.screens", { count: PLANS.pro.maxScreens }),
+    t("pricing.features.stores.pro"),
+  ]
 
   if (alreadyPro) {
     return (
@@ -106,15 +99,18 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
             <span className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
               <CoinsIcon className="size-5" />
             </span>
-            <DialogTitle className="text-lg font-semibold tracking-tight">You've used this month's credits</DialogTitle>
+            <DialogTitle className="text-lg font-semibold tracking-tight">{t("upgrade.alreadyPro.title")}</DialogTitle>
             <DialogDescription>
               {user.currentPeriodEnd && !user.cancelAtPeriodEnd
-                ? `You'll get ${PRO_MONTHLY_CREDITS.toLocaleString()} more when Pro renews on ${format(new Date(user.currentPeriodEnd), "MMMM d")}.`
-                : "You don't have enough credits left for this."}
+                ? t("upgrade.alreadyPro.renews", {
+                    count: PRO_MONTHLY_CREDITS,
+                    date: format.dateTime(new Date(user.currentPeriodEnd), "monthDay", { timeZone }),
+                  })
+                : t("upgrade.alreadyPro.noneLeft")}
             </DialogDescription>
           </DialogHeader>
           <Button variant="outline" className="h-10 rounded-full" onClick={() => onOpenChange(false)}>
-            Got it
+            {t("upgrade.gotIt")}
           </Button>
         </DialogContent>
       </Dialog>
@@ -128,15 +124,15 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
           <span className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
             <Icon className="size-5" />
           </span>
-          <DialogHeader className="gap-1 text-left">
-            <DialogTitle className="text-xl font-semibold tracking-tight text-white">{title}</DialogTitle>
-            <DialogDescription className="text-white/85">{description}</DialogDescription>
+          <DialogHeader className="gap-1 text-start">
+            <DialogTitle className="text-xl font-semibold tracking-tight text-white">{t(`upgrade.${reason}.title`)}</DialogTitle>
+            <DialogDescription className="text-white/85">{t(`upgrade.${reason}.description`, reasonValues)}</DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="space-y-4 px-6 pb-6">
           <ul className="space-y-2">
-            {PRO_HIGHLIGHTS.map((item) => (
+            {highlights.map((item) => (
               <li key={item} className="flex items-center gap-2.5 text-sm">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-700">
                   <CheckIcon className="size-3" />
@@ -147,7 +143,7 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
           </ul>
 
           {error && (
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" dir="auto" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </p>
           )}
@@ -159,10 +155,13 @@ function UpgradeDialog({ reason, open, onOpenChange }: { reason: UpgradeReason; 
               onClick={() => void redirect("upgrade")}
             >
               {pending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-              Join Pro for {PRO_PRICE_LABEL}/month
+              {t.rich("upgrade.join", {
+                price: PRO_PRICE_LABEL,
+                amount: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
+              })}
             </Button>
             <Button variant="ghost" className="h-10 w-full rounded-full text-muted-foreground" render={<Link href="/pricing" />} nativeButton={false} onClick={() => onOpenChange(false)}>
-              Compare plans
+              {t("upgrade.comparePlans")}
             </Button>
           </div>
         </div>

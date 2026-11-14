@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { PricingPlans } from "@/components/billing/pricing-plans"
 import { Logo } from "@/components/home/logo"
@@ -7,39 +8,35 @@ import { SiteHeader } from "@/components/home/site-header"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { EDIT_CREDITS, IMAGE_CREDITS, PLANS, PRO_MONTHLY_CREDITS, SCREEN_CREDITS, SMALL_APP_CREDITS } from "@/lib/plans"
 
-export const metadata: Metadata = {
-  title: "Pricing — AppxPrompt",
-  description: "Start free and build your first apps with AI. Upgrade to Pro for unlimited projects and iOS and Android exports.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta.pricing")
+  return {
+    title: t("title"),
+    description: t("description"),
+  }
 }
 
 const CREDIT_COSTS = [
-  { value: SMALL_APP_CREDITS, label: "A small app", detail: `4 screens, at ${SCREEN_CREDITS} credits each` },
-  { value: EDIT_CREDITS, label: "An edit", detail: "One round of changes by chat" },
-  { value: IMAGE_CREDITS, label: "An AI image", detail: "Made or changed in edit mode" },
-  { value: 0, label: "Planning", detail: "Chatting, plans, and theme switches" },
-]
+  { id: "smallApp", value: SMALL_APP_CREDITS },
+  { id: "edit", value: EDIT_CREDITS },
+  { id: "image", value: IMAGE_CREDITS },
+  { id: "planning", value: 0 },
+] as const
 
-const QUESTIONS = [
-  {
-    question: "When are credits used?",
-    answer: `When a build starts. A new screen costs ${SCREEN_CREDITS} credits and a round of changes costs ${EDIT_CREDITS}, and a new screen added in that round costs ${SCREEN_CREDITS} on top. If a build fails, you get back the credits for what it didn't finish.`,
-  },
-  {
-    question: "Do my credits roll over?",
-    answer: `Free credits never expire. Pro's monthly credits expire at each renewal and are replaced with a new ${PRO_MONTHLY_CREDITS.toLocaleString()}. Free credits you still have when you join Pro stay yours, and are used after the monthly ones.`,
-  },
-  {
-    question: "Can I downgrade at any time?",
-    answer: `Yes. You keep Pro until the end of the period you've paid for, and then move to Free. Your projects stay yours, even if you have more than ${PLANS.free.maxProjects}, but you can't start new ones beyond that.`,
-  },
-  {
-    question: "Can I publish on the Free plan?",
-    answer: "Yes, as a website with its own address. Building .aab, .apk, and .ipa files for the app stores is part of Pro.",
-  },
-]
+const QUESTIONS = ["used", "rollover", "downgrade", "publish"] as const
 
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
   const { checkout } = await searchParams
+  const t = await getTranslations()
+
+  const answerValues = {
+    screenCredits: t("common.credits", { count: SCREEN_CREDITS }),
+    editCredits: t("common.credits", { count: EDIT_CREDITS }),
+    screen: SCREEN_CREDITS,
+    edit: EDIT_CREDITS,
+    monthly: PRO_MONTHLY_CREDITS,
+    max: PLANS.free.maxProjects ?? 0,
+  }
 
   return (
     <SignInDialogProvider>
@@ -54,26 +51,31 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
 
         <main className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6">
           <section className="mx-auto max-w-2xl pt-14 pb-10 text-center sm:pt-20">
-            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Simple pricing for building apps</h1>
-            <p className="mt-5 text-base text-pretty text-muted-foreground sm:text-lg">
-              Start free, and upgrade when you're ready to ship to the app stores.
-            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t("pricing.title")}</h1>
+            <p className="mt-5 text-base text-pretty text-muted-foreground sm:text-lg">{t("pricing.subtitle")}</p>
           </section>
 
           <PricingPlans checkout={checkout === "success"} />
 
           <section aria-labelledby="credit-costs" className="mx-auto mt-20 max-w-4xl">
             <h2 id="credit-costs" className="text-center text-2xl font-semibold tracking-tight">
-              How credits work
+              {t("pricing.costs.heading")}
             </h2>
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {CREDIT_COSTS.map(({ value, label, detail }) => (
-                <li key={label} className="rounded-3xl border border-border/60 bg-white/70 p-5">
+              {CREDIT_COSTS.map(({ id, value }) => (
+                <li key={id} className="rounded-3xl border border-border/60 bg-white/70 p-5">
                   <p className="text-3xl font-semibold tracking-tight text-violet-700">
-                    {value === 0 ? "Free" : `${value} ${value === 1 ? "credit" : "credits"}`}
+                    {value === 0 ? t("pricing.costs.free") : t("common.credits", { count: value })}
                   </p>
-                  <p className="mt-2 text-sm font-medium">{label}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+                  <p className="mt-2 text-sm font-medium">{t(`pricing.costs.${id}.label`)}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {id === "smallApp"
+                      ? t("pricing.costs.smallApp.detail", {
+                          screens: SMALL_APP_CREDITS / SCREEN_CREDITS,
+                          credits: t("common.credits", { count: SCREEN_CREDITS }),
+                        })
+                      : t(`pricing.costs.${id}.detail`)}
+                  </p>
                 </li>
               ))}
             </ul>
@@ -81,13 +83,13 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
 
           <section aria-labelledby="questions" className="mx-auto mt-20 max-w-2xl">
             <h2 id="questions" className="text-center text-2xl font-semibold tracking-tight">
-              Questions
+              {t("pricing.questions.heading")}
             </h2>
             <Accordion className="mt-6">
-              {QUESTIONS.map(({ question, answer }) => (
-                <AccordionItem key={question} value={question}>
-                  <AccordionTrigger>{question}</AccordionTrigger>
-                  <AccordionContent>{answer}</AccordionContent>
+              {QUESTIONS.map((id) => (
+                <AccordionItem key={id} value={id}>
+                  <AccordionTrigger>{t(`pricing.questions.${id}.question`)}</AccordionTrigger>
+                  <AccordionContent>{t(`pricing.questions.${id}.answer`, answerValues)}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
@@ -97,7 +99,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <footer className="relative px-4 pb-4 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
             <Logo className="size-7 rounded-xl" />
-            <p>© {new Date().getFullYear()} AppxPrompt. All rights reserved.</p>
+            <p>{t("home.footer", { year: new Date().getFullYear() })}</p>
           </div>
         </footer>
       </div>

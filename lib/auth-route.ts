@@ -4,18 +4,18 @@ import { AuthError } from "@/lib/cloudhike-auth"
 import {
   normalizeAuthFields,
   validateAuthFields,
+  type AuthErrorKey,
   type AuthFields,
   type AuthMode,
 } from "@/lib/auth-validation"
 
-const FRIENDLY_ERRORS: Record<string, string> = {
-  INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password.",
-  USER_ALREADY_EXISTS: "An account with this email already exists. Try signing in.",
-  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
-    "An account with this email already exists. Try signing in.",
-  PASSWORD_TOO_SHORT: "Password is too short.",
-  PASSWORD_TOO_LONG: "Password is too long.",
-  INVALID_EMAIL: "Enter a valid email address.",
+const FRIENDLY_ERRORS: Record<string, AuthErrorKey> = {
+  INVALID_EMAIL_OR_PASSWORD: "incorrectCredentials",
+  USER_ALREADY_EXISTS: "accountExists",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "accountExists",
+  PASSWORD_TOO_SHORT: "passwordShort",
+  PASSWORD_TOO_LONG: "passwordLong",
+  INVALID_EMAIL: "invalidEmail",
 }
 
 export async function readAuthBody(
@@ -24,7 +24,7 @@ export async function readAuthBody(
 ): Promise<{ fields: AuthFields } | { response: NextResponse }> {
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== "object") {
-    return { response: NextResponse.json({ error: "Invalid request." }, { status: 400 }) }
+    return { response: NextResponse.json({ errorKey: "invalidRequest" satisfies AuthErrorKey }, { status: 400 }) }
   }
 
   const fields = normalizeAuthFields(body)
@@ -32,7 +32,7 @@ export async function readAuthBody(
   if (Object.keys(fieldErrors).length > 0) {
     return {
       response: NextResponse.json(
-        { error: "Please fix the highlighted fields.", fieldErrors },
+        { errorKey: "fixFields" satisfies AuthErrorKey, fieldErrors },
         { status: 400 }
       ),
     }
@@ -42,17 +42,16 @@ export async function readAuthBody(
 
 export function authErrorResponse(error: unknown) {
   if (error instanceof AuthError && error.status < 500) {
-    const message =
+    // Known problems answer with a message key, which the page words in its own language.
+    // Anything else is the auth service's own text.
+    const errorKey: AuthErrorKey | undefined =
       (error.code && FRIENDLY_ERRORS[error.code]) ||
-      (error.status === 429
-        ? "Too many attempts. Please wait a moment and try again."
-        : error.message)
-    return NextResponse.json({ error: message }, { status: error.status })
+      (error.status === 429 ? "tooManyAttempts" : undefined)
+    return NextResponse.json(errorKey ? { errorKey } : { error: error.message }, {
+      status: error.status,
+    })
   }
 
   console.error("Auth request failed", error)
-  return NextResponse.json(
-    { error: "Something went wrong on our side. Please try again." },
-    { status: 500 }
-  )
+  return NextResponse.json({ errorKey: "serverError" satisfies AuthErrorKey }, { status: 500 })
 }

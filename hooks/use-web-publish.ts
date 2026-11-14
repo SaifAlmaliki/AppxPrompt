@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 
 import { isWebPublishActive, type WebPublishSummary } from "@/lib/publish-protocol"
 
@@ -14,6 +15,7 @@ export function useWebPublish(projectId: string, enabled: boolean, beforePublish
   const [web, setWeb] = React.useState<WebPublishSummary | null>(null)
   const [starting, setStarting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const t = useTranslations("workspace.errors")
 
   const refresh = React.useCallback(async () => {
     const response = await fetch(`/api/projects/${projectId}/publish/web`).catch(() => null)
@@ -38,13 +40,13 @@ export function useWebPublish(projectId: string, enabled: boolean, beforePublish
     setError(null)
     try {
       if (!(await beforePublish())) {
-        setError("We couldn't save your latest edits, so we didn't publish. Please try again.")
+        setError(t("publishNotSaved"))
         return
       }
       const response = await fetch(`/api/projects/${projectId}/publish/web`, { method: "POST" }).catch(() => null)
       const body = await response?.json().catch(() => null)
       if (!response?.ok) {
-        setError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
+        setError(body?.error ?? t("network"))
         // A publish already running is one this tab should be following.
         void refresh()
         return body?.code
@@ -53,7 +55,7 @@ export function useWebPublish(projectId: string, enabled: boolean, beforePublish
     } finally {
       setStarting(false)
     }
-  }, [beforePublish, projectId, refresh])
+  }, [beforePublish, projectId, refresh, t])
 
   return { web, starting, error, publish, active: starting || (web !== null && isWebPublishActive(web.status)) }
 }

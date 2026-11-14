@@ -8,6 +8,7 @@ import { componentLabel } from "@/lib/agent-protocol"
 import type { ExportedFile } from "@/lib/generated-app/export-project"
 import { GitHubError, branchPath, type GitHubClient, type GitHubRepo } from "@/lib/github/client"
 import type { GitHubPushResult } from "@/lib/github-protocol"
+import type { Translator } from "@/lib/i18n/server"
 
 const UPLOADS_AT_ONCE = 6
 
@@ -126,7 +127,8 @@ export type PushOutcome = GitHubPushResult & { commitSha: string | null; pushedF
 export async function pushFiles(
   github: GitHubClient,
   { repo, appName, files, screenNames, previous, lastBranch }: PushInput,
-  onProgress: (label: string, percent: number) => void
+  onProgress: (label: string, percent: number) => void,
+  t: Translator<"errors">
 ): Promise<PushOutcome> {
   const repository = repo.full_name
   const branchUrl = (branch: string) => `${repo.html_url}/tree/${branchPath(branch)}`
@@ -147,7 +149,7 @@ export async function pushFiles(
     pushedFiles,
   })
 
-  onProgress("Checking the repository…", 5)
+  onProgress(t("pushChecking"), 5)
   let head = await github.branchHead(repository, repo.default_branch)
 
   // Nothing new since the last push, and that push is still there. If its branch was
@@ -159,7 +161,7 @@ export async function pushFiles(
   const empty = !head
   if (!head) {
     // Git's other write APIs refuse an empty repository. This one starts its history.
-    onProgress("Setting up the empty repository…", 10)
+    onProgress(t("pushEmptyRepo"), 10)
     const readme = files.find((file) => file.path === "README.md")!
     const seeded = await github.request<{ commit: { sha: string } }>(`/repos/${repository}/contents/README.md`, {
       method: "PUT",
@@ -185,12 +187,12 @@ export async function pushFiles(
   const toRemove = removedPaths.filter((path) => path in existing)
   if (toUpload.length === 0 && toRemove.length === 0) return upToDate(repo.default_branch, head)
 
-  onProgress(`Uploading files (0 of ${toUpload.length})…`, 15)
+  onProgress(t("pushUploading", { done: 0, total: toUpload.length }), 15)
   const blobs = await uploadBlobs(github, repository, toUpload, (done) => {
-    onProgress(`Uploading files (${done} of ${toUpload.length})…`, 15 + Math.round((done / toUpload.length) * 65))
+    onProgress(t("pushUploading", { done, total: toUpload.length }), 15 + Math.round((done / toUpload.length) * 65))
   })
 
-  onProgress("Creating the commit…", 85)
+  onProgress(t("pushCommit"), 85)
   const tree = await github.request<{ sha: string }>(`/repos/${repository}/git/trees`, {
     method: "POST",
     body: {
@@ -220,7 +222,7 @@ export async function pushFiles(
   }
 
   if (empty) {
-    onProgress(`Updating ${repo.default_branch}…`, 95)
+    onProgress(t("pushUpdating", { branch: repo.default_branch }), 95)
     await github.request(`/repos/${repository}/git/refs/heads/${branchPath(repo.default_branch)}`, {
       method: "PATCH",
       body: { sha: commit.sha, force: false },
@@ -231,7 +233,7 @@ export async function pushFiles(
   const kind = previous ? "update" : "initial"
   for (let attempt = 0; ; attempt++) {
     const branch = branchName(kind, attempt)
-    onProgress(`Creating branch ${branch}…`, 95)
+    onProgress(t("pushBranch", { branch }), 95)
     try {
       await github.request(`/repos/${repository}/git/refs`, {
         method: "POST",

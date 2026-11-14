@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { db, messages, projects, screens, type Project, type Screen } from "@/db"
-import { MAX_TABS, MIN_TABS, SCREEN_LAYOUTS, type AppPlan, type ChatMessage } from "@/lib/agent-protocol"
+import { MAX_TABS, MIN_TABS, SCREEN_LAYOUTS, statusEvent, type AppPlan, type ChatMessage, type StatusKey } from "@/lib/agent-protocol"
 import { mergePlan, planAppChanges, slugify, type AppChanges } from "@/lib/agent/changes"
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
@@ -11,6 +11,7 @@ import type { ProjectRun } from "@/lib/agent/runs"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
 import { getBackendStatus, setUpBackend } from "@/lib/cloudhike/backend"
+import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { buildCost, PLANS } from "@/lib/plans"
 import { expandNumberReply } from "@/lib/interview-choices"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
@@ -330,12 +331,12 @@ const plannerAgent = new Agent<PlannerContext>({
   tools: [proposePlan, confirmPlan, updateApp, setTheme, setupBackend],
 })
 
-const TOOL_STATUS: Record<string, string> = {
-  propose_plan: "Drafting the screen plan…",
-  confirm_plan: "Confirming the plan…",
-  update_app: "Working out the changes…",
-  set_theme: "Changing the theme…",
-  setup_backend: "Setting up your backend…",
+const TOOL_STATUS: Record<string, StatusKey> = {
+  propose_plan: "draftingPlan",
+  confirm_plan: "confirmingPlan",
+  update_app: "workingOutChanges",
+  set_theme: "changingTheme",
+  setup_backend: "settingUpBackend",
 }
 
 function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {
@@ -393,7 +394,7 @@ export async function runPlannerTurn(
     interviewBlocked: false,
   }
 
-  projectRun.emit({ type: "status", label: thread.length > 1 ? "Reading your message…" : "Reading your request…" })
+  projectRun.emit(statusEvent(thread.length > 1 ? "readingMessage" : "readingRequest"))
   const result = await run(plannerAgent, toInputItems(thread), { stream: true, context })
 
   let text = ""
@@ -405,7 +406,7 @@ export async function runPlannerTurn(
       const data = event.data
       if (data.type === "response_started") {
         responseHasText = false
-        projectRun.emit({ type: "status", label: context.confirmed ? "Starting the build…" : context.changes ? "Starting your changes…" : context.proposedPlan ? "Summarizing the plan…" : "Thinking…" })
+        projectRun.emit(statusEvent(context.confirmed ? "startingBuild" : context.changes ? "startingChanges" : context.proposedPlan ? "summarizingPlan" : "thinking"))
       } else if (data.type === "output_text_delta") {
         // Text from separate model calls (before and after a tool call) becomes paragraphs.
         const delta = !responseHasText && text ? `\n\n${data.delta}` : data.delta
@@ -423,7 +424,7 @@ export async function runPlannerTurn(
           const name = call.function?.name
           if (name && TOOL_STATUS[name] && !announcedTools.has(name)) {
             announcedTools.add(name)
-            projectRun.emit({ type: "status", label: TOOL_STATUS[name] })
+            projectRun.emit(statusEvent(TOOL_STATUS[name]))
           }
         }
       }
@@ -434,15 +435,17 @@ export async function runPlannerTurn(
   await result.completed
 
   projectRun.emit({ type: "status", label: null })
+  // The route has already set the project's chat language to the language of this message.
+  const fixed = translatorFor(chatLocale(project), "agentMessages")
   const content =
     text.trim() ||
     (context.confirmed
-      ? "Starting the build now."
+      ? fixed("planStarting")
       : context.changes
-        ? "On it! I'm making those changes now."
+        ? fixed("changesStarting")
         : context.proposedPlan
-          ? "Here's the plan. Confirm it to start building, or tell me what to change."
-          : "Sorry, I couldn't come up with a reply. Could you say that again?")
+          ? fixed("planProposed")
+          : fixed("noReply"))
 
   const [saved] = await db
     .insert(messages)

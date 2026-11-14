@@ -1,16 +1,19 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react"
 
-import { useAuth, type SessionUser } from "@/lib/auth-client"
+import { useAuth, type AuthFailure, type SessionUser } from "@/lib/auth-client"
 import {
   PASSWORD_MIN,
   normalizeAuthFields,
   validateAuthFields,
+  type AuthFieldError,
   type AuthMode,
   type FieldErrors,
 } from "@/lib/auth-validation"
+import { FREE_SIGNUP_CREDITS } from "@/lib/plans"
 import { type SocialProvider } from "@/lib/social-auth"
 import { Button } from "@/components/ui/button"
 import {
@@ -129,9 +132,10 @@ function SignInForm({
   onSuccess: (user: SessionUser) => void
   onSocialRedirect: () => void
 }) {
+  const t = useTranslations("auth")
   const { authenticate } = useAuth()
   const [pending, setPending] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<AuthFailure | null>(null)
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({})
   const [showPassword, setShowPassword] = React.useState(false)
   const [socialPending, setSocialPending] = React.useState<SocialProvider | null>(null)
@@ -169,7 +173,7 @@ function SignInForm({
       return
     }
     setPending(false)
-    setError(result.error)
+    setError(result.errorKey ? { errorKey: result.errorKey } : { error: result.error })
     if (result.fieldErrors) {
       setFieldErrors(result.fieldErrors)
       focusFirstInvalid(result.fieldErrors)
@@ -182,6 +186,10 @@ function SignInForm({
     setError(null)
     onSocialRedirect()
     window.location.assign(`/api/auth/social/${provider}`)
+  }
+
+  function fieldMessage(fieldError: AuthFieldError | undefined) {
+    return fieldError ? t(`errors.${fieldError.key}`, fieldError.values) : undefined
   }
 
   function clearFieldError(field: keyof FieldErrors) {
@@ -200,13 +208,13 @@ function SignInForm({
         <Logo showText={false} className="size-10" />
         <div className="space-y-1">
           <DialogTitle className="text-xl font-semibold tracking-tight">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? t("title.signUp") : t("title.signIn")}
           </DialogTitle>
           <DialogDescription>
             {reason ??
               (isSignUp
-                ? "Start turning your ideas into mobile apps — with 100 free credits."
-                : "Sign in to continue building with AppxPrompt.")}
+                ? t("description.signUp", { credits: FREE_SIGNUP_CREDITS })
+                : t("description.signIn"))}
           </DialogDescription>
         </div>
       </DialogHeader>
@@ -230,18 +238,19 @@ function SignInForm({
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <span className="h-px flex-1 bg-border" />
-        or continue with email
+        {t("orEmail")}
         <span className="h-px flex-1 bg-border" />
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} noValidate className="grid gap-4">
         <fieldset disabled={pending || socialPending !== null} className="grid gap-4">
           {isSignUp && (
-            <FormField id="name" label="Name" error={fieldErrors.name}>
+            <FormField id="name" label={t("fields.name")} error={fieldMessage(fieldErrors.name)}>
               <Input
                 id="name"
                 name="name"
-                placeholder="Jane Doe"
+                dir="auto"
+                placeholder={t("fields.namePlaceholder")}
                 autoComplete="name"
                 maxLength={100}
                 aria-invalid={!!fieldErrors.name}
@@ -251,12 +260,13 @@ function SignInForm({
               />
             </FormField>
           )}
-          <FormField id="email" label="Email" error={fieldErrors.email}>
+          <FormField id="email" label={t("fields.email")} error={fieldMessage(fieldErrors.email)}>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="you@example.com"
+              dir="ltr"
+              placeholder={t("fields.emailPlaceholder")}
               autoComplete="email"
               aria-invalid={!!fieldErrors.email}
               aria-describedby={fieldErrors.email ? "email-error" : undefined}
@@ -266,9 +276,9 @@ function SignInForm({
           </FormField>
           <FormField
             id="password"
-            label="Password"
-            error={fieldErrors.password}
-            hint={isSignUp ? `At least ${PASSWORD_MIN} characters.` : undefined}
+            label={t("fields.password")}
+            error={fieldMessage(fieldErrors.password)}
+            hint={isSignUp ? t("fields.passwordHint", { min: PASSWORD_MIN }) : undefined}
           >
             <div className="relative">
               <Input
@@ -286,14 +296,14 @@ function SignInForm({
                       : undefined
                 }
                 onChange={() => clearFieldError("password")}
-                className="h-10 pr-10"
+                className="h-10 pe-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("fields.hidePassword") : t("fields.showPassword")}
                 aria-pressed={showPassword}
-                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="absolute inset-y-0 end-0 flex w-10 items-center justify-center rounded-e-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
               </button>
@@ -304,9 +314,10 @@ function SignInForm({
         {error && (
           <p
             role="alert"
+            dir="auto"
             className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
-            {error}
+            {error.errorKey ? t(`errors.${error.errorKey}`) : error.error}
           </p>
         )}
 
@@ -319,23 +330,23 @@ function SignInForm({
           {pending && <Loader2Icon className="animate-spin" />}
           {pending
             ? isSignUp
-              ? "Creating account…"
-              : "Signing in…"
+              ? t("submit.signingUp")
+              : t("submit.signingIn")
             : isSignUp
-              ? "Create account"
-              : "Sign in"}
+              ? t("submit.signUp")
+              : t("submit.signIn")}
         </Button>
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        {isSignUp ? "Already have an account?" : "New to AppxPrompt?"}{" "}
+        {isSignUp ? t("switch.haveAccount") : t("switch.newHere")}{" "}
         <button
           type="button"
           onClick={switchMode}
           disabled={pending || socialPending !== null}
           className="font-medium text-foreground underline-offset-4 hover:underline disabled:opacity-50"
         >
-          {isSignUp ? "Sign in" : "Create an account"}
+          {isSignUp ? t("switch.toSignIn") : t("switch.toSignUp")}
         </button>
       </p>
     </>

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import {
   AlertCircleIcon,
   ArrowUpIcon,
@@ -16,11 +17,12 @@ import {
   XIcon,
 } from "lucide-react"
 
+import { useActivityText } from "@/hooks/use-activity-text"
+import { useElementLabel } from "@/hooks/use-element-label"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
 import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
 import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
-import { ELEMENT_LABELS } from "@/lib/preview-protocol"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { cn } from "@/lib/utils"
 import {
@@ -53,6 +55,9 @@ export type ChatAsset = {
 const FOLLOW_THRESHOLD = 120
 
 export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: ChatAsset[]; editor: InlineEditor }) {
+  const t = useTranslations("chat")
+  const elementLabel = useElementLabel()
+  const activityText = useActivityText()
   const [draft, setDraft] = React.useState("")
   const [newSessionOpen, setNewSessionOpen] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -74,7 +79,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
   const showBuild = screens.length > 0 && status === "building"
   const inputLocked = busy || status === "building"
   const attachment = editor.attached ? editor.selection : null
-  const attachmentLabel = attachment && (ELEMENT_LABELS[attachment.type] ?? attachment.type)
+  const attachmentLabel = attachment && elementLabel(attachment.type)
   const interviewOpen = !editor.readOnly && !agent.plan && (status === "planning" || status === "failed")
   const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant")
   const choiceReply =
@@ -116,17 +121,17 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
   }
 
   return (
-    <section aria-label="Chat" className="flex h-full min-h-0 flex-col bg-white">
+    <section aria-label={t("label")} className="flex h-full min-h-0 flex-col bg-white">
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/60 px-4">
         <span className="flex size-6 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white">
           <SparklesIcon className="size-3.5" />
         </span>
-        <h2 className="text-sm font-semibold">AppxPrompt Agent</h2>
-        <div className="ml-auto flex items-center gap-2">
+        <h2 className="text-sm font-semibold">{t("agentName")}</h2>
+        <div className="ms-auto flex items-center gap-2">
           {busy && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-violet-700">
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-violet-700">
               <span className="size-1.5 animate-pulse rounded-full bg-violet-500" />
-              Working
+              {t("working")}
             </span>
           )}
           {!editor.readOnly && <AlertDialog open={newSessionOpen} onOpenChange={setNewSessionOpen}>
@@ -141,17 +146,15 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               }
             >
               <MessageSquarePlusIcon />
-              New session
+              {t("newSession")}
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Start a new session?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This clears the chat, and the agent forgets the conversation. Your app, screens, and plan stay as they are.
-                </AlertDialogDescription>
+                <AlertDialogTitle>{t("newSessionTitle")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("newSessionDescription")}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
                     following.current = true
@@ -159,7 +162,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                     void startNewSession()
                   }}
                 >
-                  Start new session
+                  {t("startNewSession")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -178,7 +181,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
         <ol aria-live="polite" aria-busy={busy} className="space-y-5 px-4 py-5">
           {messages.length === 0 && !busy && (
             <li className="text-center text-sm text-muted-foreground">
-              New session. Tell the agent what to do next.
+              {t("empty")}
             </li>
           )}
 
@@ -204,7 +207,9 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 <UserMessage content={message.content} />
               ) : (
                 <div className="min-w-0 flex-1 space-y-3 pt-1">
-                  <span className="sr-only">Agent: </span>
+                  <span className="sr-only" dir="auto">
+                    {t("agentSaid")}{" "}
+                  </span>
                   <MessageText
                     text={message.content}
                     numberBullets={!message.plan}
@@ -223,14 +228,14 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 </div>
               )}
               {message.id === firstUserId && assets.length > 0 && (
-                <ul aria-label="Attached files" className="flex w-full flex-wrap justify-end gap-1.5">
+                <ul aria-label={t("attachedFiles")} className="flex w-full flex-wrap justify-end gap-1.5">
                   {assets.map((asset) => (
                     <li key={asset.id}>
                       <a
                         href={asset.url ?? undefined}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex max-w-44 items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 p-1 pr-2.5 text-xs text-muted-foreground transition-colors hover:border-violet-200 hover:text-violet-700"
+                        className="flex max-w-44 items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 p-1 pe-2.5 text-xs text-muted-foreground transition-colors hover:border-violet-200 hover:text-violet-700"
                       >
                         {asset.url && asset.contentType.startsWith("image/") ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -257,7 +262,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 {streamingText && <MessageText text={streamingText} streaming={busy} />}
                 {showBuild && <BuildProgress screens={screens} />}
                 {busy && (activity || !streamingText) && (
-                  <ActivityLine label={activity ?? "Working…"} />
+                  <ActivityLine label={activity ? activityText(activity) : t("activity")} />
                 )}
               </div>
             </li>
@@ -267,7 +272,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
             <li role="alert" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800">
               <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
               <div className="min-w-0 flex-1 space-y-2">
-                <p>{error}</p>
+                <p dir="auto">{error}</p>
                 {canRetry && !busy && (
                   <Button
                     size="sm"
@@ -276,7 +281,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                     className="h-7 rounded-full border-red-200 bg-white text-red-800 hover:bg-red-100"
                   >
                     <RotateCwIcon />
-                    Try again
+                    {t("tryAgain")}
                   </Button>
                 )}
               </div>
@@ -288,7 +293,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
       {editor.readOnly ? (
         <p className="m-3 flex shrink-0 items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
           <EyeIcon className="size-3.5 shrink-0" />
-          This project was shared with you to view, so only its owner can ask the agent for changes.
+          {t("readOnly")}
         </p>
       ) : (
       <form onSubmit={handleSubmit} className="shrink-0 p-3">
@@ -296,13 +301,13 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
           <div className="rounded-[calc(1.5rem-1px)] bg-white p-2">
             {attachment && (
               <div className="mb-1 flex max-w-full items-center gap-1.5 self-start">
-                <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 py-0.5 pr-0.5 pl-2 text-xs text-violet-800">
+                <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 py-0.5 pe-0.5 ps-2 text-xs text-violet-800">
                   <SquareDashedMousePointerIcon className="size-3.5 shrink-0" />
                   <span className="font-medium">{attachmentLabel}</span>
                   {attachment.label && <span className="max-w-32 truncate text-violet-700/70">{attachment.label}</span>}
                   <button
                     type="button"
-                    aria-label={`Remove ${attachmentLabel} from this message`}
+                    aria-label={t("removeElement", { element: attachmentLabel ?? "" })}
                     onClick={editor.detach}
                     className="flex size-5 shrink-0 items-center justify-center rounded-full hover:bg-violet-500/15"
                   >
@@ -312,11 +317,12 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               </div>
             )}
             <label htmlFor="chat-prompt" className="sr-only">
-              Message the AppxPrompt agent
+              {t("inputLabel")}
             </label>
             <textarea
               ref={inputRef}
               id="chat-prompt"
+              dir="auto"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -330,14 +336,14 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               disabled={status === "building"}
               placeholder={
                 status === "building"
-                  ? "Building your screens…"
+                  ? t("placeholder.building")
                   : attachment
-                    ? `Ask for a change to this ${attachmentLabel?.toLowerCase()}…`
+                    ? t("placeholder.element", { element: attachmentLabel?.toLowerCase() ?? "" })
                     : choiceReply
-                      ? "Reply with a number, like 1"
+                      ? t("placeholder.choices")
                       : agent.plan
-                        ? "Ask for changes… e.g. Add a settings screen"
-                        : "Message the agent…"
+                        ? t("placeholder.plan")
+                        : t("placeholder.default")
               }
               className="field-sizing-content block max-h-40 min-h-12 w-full resize-none bg-transparent px-2 pt-1.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed"
             />
@@ -346,7 +352,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Attach file"
+                aria-label={t("attach")}
                 className="rounded-full text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700"
               >
                 <PaperclipIcon />
@@ -355,7 +361,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 type="submit"
                 size="icon"
                 disabled={!draft.trim() || inputLocked}
-                aria-label={busy ? "The agent is working" : "Send message"}
+                aria-label={busy ? t("agentWorking") : t("send")}
                 className="rounded-full bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-md shadow-violet-500/30 hover:opacity-95 disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none"
               >
                 {busy ? <Spinner className="text-current" /> : <ArrowUpIcon />}
@@ -370,6 +376,8 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
 }
 
 function UserMessage({ content }: { content: string }) {
+  const t = useTranslations("chat")
+  const elementLabel = useElementLabel()
   const { text, element } = splitElementMessage(content)
   return (
     <div className="flex max-w-[85%] flex-col items-end gap-1">
@@ -377,12 +385,17 @@ function UserMessage({ content }: { content: string }) {
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] text-violet-800">
           <SquareDashedMousePointerIcon className="size-3 shrink-0" />
           <span className="truncate">
-            {element.label} in {element.screen}
+            {t("elementIn", { label: elementLabel(element.label), screen: element.screen })}
           </span>
         </span>
       )}
-      <p className="rounded-2xl rounded-br-md bg-linear-to-br from-indigo-500 to-violet-500 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-white shadow-sm shadow-violet-500/20">
-        <span className="sr-only">You: </span>
+      <p
+        dir="auto"
+        className="rounded-2xl rounded-ee-md bg-linear-to-br from-indigo-500 to-violet-500 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-white shadow-sm shadow-violet-500/20"
+      >
+        <span className="sr-only" dir="auto">
+          {t("youSaid")}{" "}
+        </span>
         {text}
       </p>
     </div>
@@ -414,6 +427,7 @@ function ActivityLine({ label }: { label: string }) {
 
 /** The model's thinking, when it shares it. Open while it thinks, collapsible afterwards. */
 function Reasoning({ text, active }: { text: string; active: boolean }) {
+  const t = useTranslations("chat")
   const [open, setOpen] = React.useState(true)
   return (
     <div className="text-xs text-muted-foreground">
@@ -424,11 +438,11 @@ function Reasoning({ text, active }: { text: string; active: boolean }) {
         className="inline-flex items-center gap-1 font-medium hover:text-foreground"
       >
         <BrainIcon className="size-3.5" />
-        {active ? "Thinking…" : "Thought process"}
-        <ChevronRightIcon className={cn("size-3 transition-transform", open && "rotate-90")} />
+        {active ? t("thinking") : t("thoughtProcess")}
+        <ChevronRightIcon className={cn("size-3 transition-transform", open ? "rotate-90" : "rtl:-scale-x-100")} />
       </button>
       {open && (
-        <p className="mt-1.5 max-h-40 overflow-y-auto border-l-2 border-violet-200 pl-2.5 leading-relaxed whitespace-pre-wrap">
+        <p dir="auto" className="mt-1.5 max-h-40 overflow-y-auto border-s-2 border-violet-200 ps-2.5 leading-relaxed whitespace-pre-wrap">
           {text}
         </p>
       )}
@@ -450,6 +464,7 @@ function MessageText({
   onPick?: (n: number) => void
   picked?: number[]
 }) {
+  const t = useTranslations("chat")
   const pieces = chatPieces(text, numberBullets)
   const selected = new Set(picked)
   return (
@@ -463,7 +478,7 @@ function MessageText({
           return (
             <ul key={i} className="space-y-1">
               {piece.items.map((item, j) => (
-                <li key={j} className="flex gap-2">
+                <li key={j} dir="auto" className="flex gap-2">
                   <span aria-hidden className="mt-2 size-1 shrink-0 rounded-full bg-violet-400" />
                   <span>
                     <InlineText text={item} />
@@ -475,14 +490,14 @@ function MessageText({
           )
         }
         return (
-          <p key={i} className="whitespace-pre-wrap">
+          <p key={i} dir="auto" className="whitespace-pre-wrap">
             <InlineText text={piece.text} />
             {caret}
           </p>
         )
       })}
       {onPick && !/reply with a number/i.test(text) && (
-        <p className="text-xs text-muted-foreground">Tap a number, or type it below.</p>
+        <p className="text-xs text-muted-foreground">{t("tapNumber")}</p>
       )}
     </div>
   )
@@ -499,8 +514,9 @@ function ChoiceList({
   onPick?: (n: number) => void
   selected: Set<number>
 }) {
+  const t = useTranslations("chat")
   return (
-    <ul aria-label="Choices" className="space-y-1.5">
+    <ul aria-label={t("choices")} className="space-y-1.5">
       {items.map((item, index) => {
         const on = selected.has(item.n)
         const body = (
@@ -520,18 +536,20 @@ function ChoiceList({
           </>
         )
         const className = cn(
-          "flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-left text-sm leading-relaxed",
+          "flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-start text-sm leading-relaxed",
           on ? "border-violet-400 bg-violet-50" : "border-border/70 bg-white",
           onPick && "cursor-pointer hover:border-violet-300 hover:bg-violet-50/80"
         )
         return (
           <li key={item.n}>
             {onPick ? (
-              <button type="button" aria-pressed={on} onClick={() => onPick(item.n)} className={cn(className, "min-h-11")}>
+              <button type="button" dir="auto" aria-pressed={on} onClick={() => onPick(item.n)} className={cn(className, "min-h-11")}>
                 {body}
               </button>
             ) : (
-              <div className={className}>{body}</div>
+              <div dir="auto" className={className}>
+                {body}
+              </div>
             )}
           </li>
         )
@@ -553,5 +571,5 @@ function InlineText({ text }: { text: string }) {
 }
 
 function StreamingCaret() {
-  return <span aria-hidden className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-violet-500 align-text-bottom" />
+  return <span aria-hidden className="ms-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-violet-500 align-text-bottom" />
 }

@@ -2,21 +2,22 @@ import { NextResponse } from "next/server"
 import { strToU8, zipSync } from "fflate"
 
 import { ExportUnavailableError, getProjectAccess, loadProjectExport } from "@/lib/project-access"
+import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { getCurrentUser } from "@/lib/session"
 
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status })
+function error(key: ErrorKey, status: number) {
+  return errorResponse(key, status)
 }
 
 /** Downloads the complete Expo project as a ZIP. Everyone the project is shared with can do this. */
 export async function GET(_request: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return error("Please sign in to continue.", 401)
+  if (!user) return error("signInRequired", 401)
 
   try {
     const access = await getProjectAccess(projectId, user.id)
-    if (!access) return error("Project not found.", 404)
+    if (!access) return error("projectNotFound", 404)
 
     const { slug, files } = await loadProjectExport(access.project)
     const archive = zipSync(Object.fromEntries(files.map((file) => [`${slug}/${file.path}`, strToU8(file.content)])))
@@ -28,8 +29,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
       },
     })
   } catch (cause) {
-    if (cause instanceof ExportUnavailableError) return error(cause.message, 409)
+    if (cause instanceof ExportUnavailableError) return NextResponse.json({ error: cause.translate(await serverT("errors")) }, { status: 409 })
     console.error("Exporting a project failed", cause)
-    return error("We couldn't package your project. Please try again.", 500)
+    return error("exportFailed", 500)
   }
 }

@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { formatDistanceToNow } from "date-fns"
+import { ar } from "date-fns/locale/ar"
+import { useLocale, useTranslations } from "next-intl"
 import {
   AppleIcon,
   CheckIcon,
@@ -24,7 +26,6 @@ import type { ProjectPlatform } from "@/lib/projects"
 import {
   FORMAT_PLATFORM,
   VERSION_PATTERN,
-  WEB_PUBLISH_LABELS,
   isWebPublishActive,
   type AppBuildFormat,
   type AppBuildStatus,
@@ -45,17 +46,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const POLL_MS = 5000
 
-const FORMATS: { id: AppBuildFormat; title: string; detail: string }[] = [
-  { id: "aab", title: "Android .aab", detail: "For uploading to Google Play." },
-  { id: "apk", title: "Android .apk", detail: "Installs directly on a phone, for testing." },
-  { id: "ipa", title: "iOS .ipa", detail: "For the App Store. Needs an Apple Developer account." },
-]
+const FORMATS: AppBuildFormat[] = ["aab", "apk", "ipa"]
 
-const STATUS_STYLES: Record<AppBuildStatus, { label: string; className: string }> = {
-  queued: { label: "Queued", className: "bg-muted text-muted-foreground" },
-  building: { label: "Building", className: "bg-amber-500/10 text-amber-700" },
-  ready: { label: "Ready", className: "bg-emerald-500/10 text-emerald-700" },
-  failed: { label: "Failed", className: "bg-destructive/10 text-destructive" },
+const STATUS_STYLES: Record<AppBuildStatus, string> = {
+  queued: "bg-muted text-muted-foreground",
+  building: "bg-amber-500/10 text-amber-700",
+  ready: "bg-emerald-500/10 text-emerald-700",
+  failed: "bg-destructive/10 text-destructive",
 }
 
 /** The steps of a website publish, in the order they happen. Waiting for a server is part of building. */
@@ -79,6 +76,8 @@ export function PublishDialog({
   beforeExport: () => Promise<boolean>
   webPublish: WebPublishState
 }) {
+  const t = useTranslations("publish")
+  const tw = useTranslations("workspace.errors")
   const [status, setStatus] = React.useState<PublishStatus | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -93,9 +92,9 @@ export function PublishDialog({
     setLoadError(null)
     const response = await fetch(`/api/projects/${projectId}/publish`).catch(() => null)
     const body = await response?.json().catch(() => null)
-    if (!response?.ok) return setLoadError(body?.error ?? "We couldn't check on your builds. Please try again.")
+    if (!response?.ok) return setLoadError(body?.error ?? t("errors.loadFailed"))
     setStatus(body as PublishStatus)
-  }, [projectId])
+  }, [projectId, t])
 
   React.useEffect(() => {
     if (!open) return
@@ -122,7 +121,7 @@ export function PublishDialog({
     setError(null)
     setIosSetup(null)
     try {
-      if (!(await beforeExport())) return setError("We couldn't save your latest edits, so we didn't start the build. Please try again.")
+      if (!(await beforeExport())) return setError(t("errors.notSaved"))
       const response = await fetch(`/api/projects/${projectId}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,7 +132,7 @@ export function PublishDialog({
         // What it asks for has changed under the dialog, such as a token Expo stopped accepting.
         if (isUpgradeReason(body?.code)) openUpgrade(body.code)
         else if (body?.code) void load()
-        return setError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
+        return setError(body?.error ?? tw("network"))
       }
       const result = body as PublishResult
       if ("iosSetup" in result) return setIosSetup(result.iosSetup)
@@ -163,27 +162,27 @@ export function PublishDialog({
             <RocketIcon className="size-5" />
           </span>
           <div className="min-w-0 space-y-0.5">
-            <DialogTitle className="text-base font-semibold tracking-tight">Publish</DialogTitle>
-            <DialogDescription>Put your app on the web, or build it for the app stores. You can close this while it runs.</DialogDescription>
+            <DialogTitle className="text-base font-semibold tracking-tight">{t("title")}</DialogTitle>
+            <DialogDescription>{t("description")}</DialogDescription>
           </div>
         </DialogHeader>
 
         {loadError ? (
           <>
-            <ErrorDetails summary="Couldn't check your builds">{loadError}</ErrorDetails>
+            <ErrorDetails summary={t("loadErrorSummary")}>{loadError}</ErrorDetails>
             <Button className="h-10 rounded-full" onClick={() => void load()}>
               <RotateCwIcon />
-              Try again
+              {t("tryAgain")}
             </Button>
           </>
         ) : !status ? (
           <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2Icon className="size-4 animate-spin" />
-            Checking your connections…
+            {t("checking")}
           </p>
         ) : !status.available ? (
           <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-            Publishing isn't set up on this AppxPrompt server yet.
+            {t("notAvailable")}
           </p>
         ) : !status.expo ? (
           <ConnectExpo onConnected={() => void load()} />
@@ -192,11 +191,11 @@ export function PublishDialog({
             <TabsList className="h-9 w-full rounded-full bg-muted/70 p-0.5">
               <TabsTrigger value="web" className="rounded-full px-3 data-active:text-violet-700">
                 <GlobeIcon />
-                Web
+                {t("tabs.web")}
               </TabsTrigger>
               <TabsTrigger value="stores" className="rounded-full px-3 data-active:text-violet-700">
                 <SmartphoneIcon />
-                App stores
+                {t("tabs.stores")}
               </TabsTrigger>
             </TabsList>
 
@@ -226,8 +225,8 @@ export function PublishDialog({
               )}
 
               {status.builds.length > 0 && !iosSetup && (
-                <section aria-label="Builds" className="space-y-2">
-                  <h3 className="text-sm font-medium">Builds</h3>
+                <section aria-label={t("builds.title")} className="space-y-2">
+                  <h3 className="text-sm font-medium">{t("builds.title")}</h3>
                   <ul className="space-y-2">
                     {status.builds.map((build) => (
                       <BuildRow
@@ -256,18 +255,20 @@ export function PublishDialog({
 function ErrorDetails({ summary, children }: { summary: string; children: React.ReactNode }) {
   return (
     <Collapsible role="alert">
-      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-left text-xs font-medium text-destructive">
+      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-start text-xs font-medium text-destructive">
         {summary}
         <ChevronDownIcon className="size-3.5 shrink-0 transition-transform group-data-panel-open:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <p className="mt-1 max-h-32 overflow-y-auto rounded-lg bg-destructive/10 px-3 py-2 text-xs wrap-break-word whitespace-pre-wrap text-destructive">{children}</p>
+        <p dir="auto" className="mt-1 max-h-32 overflow-y-auto rounded-lg bg-destructive/10 px-3 py-2 text-xs wrap-break-word whitespace-pre-wrap text-destructive">{children}</p>
       </CollapsibleContent>
     </Collapsible>
   )
 }
 
 function AppStoresLocked({ onUpgrade }: { onUpgrade: () => void }) {
+  const t = useTranslations("publish.locked")
+
   return (
     <div className="space-y-4">
       <div className="flex gap-3 rounded-2xl border border-violet-200 bg-violet-500/5 px-3 py-3">
@@ -275,21 +276,25 @@ function AppStoresLocked({ onUpgrade }: { onUpgrade: () => void }) {
           <SmartphoneIcon className="size-4" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-medium">Export for iOS and Android with Pro</p>
+          <p className="text-sm font-medium">{t("title")}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Build .aab, .apk, and .ipa files for Google Play and the App Store. On Free, you can publish your app from the Web tab.
+            {t.rich("description", {
+              file: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
+            })}
           </p>
         </div>
       </div>
       <Button className="h-10 w-full rounded-full bg-linear-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-md shadow-violet-500/30 hover:opacity-95" onClick={onUpgrade}>
         <SparklesIcon />
-        Upgrade to Pro
+        {t("upgrade")}
       </Button>
     </div>
   )
 }
 
 function ConnectExpo({ onConnected }: { onConnected: () => void }) {
+  const t = useTranslations("publish")
+  const tw = useTranslations("workspace.errors")
   const [token, setToken] = React.useState("")
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -305,7 +310,7 @@ function ConnectExpo({ onConnected }: { onConnected: () => void }) {
     }).catch(() => null)
     const body = await response?.json().catch(() => null)
     setPending(false)
-    if (!response?.ok) return setError(body?.error ?? "Couldn't reach the server. Check your connection and try again.")
+    if (!response?.ok) return setError(body?.error ?? tw("network"))
     setToken("")
     onConnected()
   }
@@ -314,15 +319,16 @@ function ConnectExpo({ onConnected }: { onConnected: () => void }) {
     <form className="space-y-3" onSubmit={(event) => void submit(event)}>
       <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheckIcon className="mt-px size-3.5 shrink-0 text-emerald-600" />
-        Websites and builds run on your own Expo account. AppxPrompt encrypts your token, and only uses it to publish your app and follow its progress.
+        {t("connect.privacy")}
       </p>
       <div className="space-y-1.5">
         <label htmlFor="expo-token" className="text-sm font-medium">
-          Expo access token
+          {t("connect.tokenLabel")}
         </label>
         <Input
           id="expo-token"
           type="password"
+          dir="ltr"
           autoComplete="off"
           value={token}
           onChange={(event) => setToken(event.target.value)}
@@ -334,43 +340,54 @@ function ConnectExpo({ onConnected }: { onConnected: () => void }) {
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium text-violet-700 hover:underline"
         >
-          Create a token on Expo
+          {t("connect.create")}
           <ExternalLinkIcon className="size-3" />
         </a>
       </div>
-      {error && <ErrorDetails summary="Couldn't connect Expo">{error}</ErrorDetails>}
+      {error && <ErrorDetails summary={t("connect.errorSummary")}>{error}</ErrorDetails>}
       <Button type="submit" className="h-10 w-full rounded-full" disabled={pending || !token.trim()}>
         {pending && <Loader2Icon className="animate-spin" />}
-        {pending ? "Checking token…" : "Connect Expo"}
+        {pending ? t("connect.checking") : t("connect.submit")}
       </Button>
     </form>
   )
 }
 
 function ExpoAccount({ account, onDisconnected }: { account: string; onDisconnected: () => void }) {
+  const t = useTranslations("publish")
   const [error, setError] = React.useState<string | null>(null)
 
   async function disconnect() {
     setError(null)
     const response = await fetch("/api/expo/connection", { method: "DELETE" }).catch(() => null)
-    if (!response?.ok) return setError("We couldn't disconnect Expo. Please try again.")
+    if (!response?.ok) return setError(t("errors.disconnectFailed"))
     onDisconnected()
   }
 
   return (
     <>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        This runs on the <span className="font-medium text-foreground">{account}</span> Expo account ·{" "}
+        {t.rich("account.runsOn", {
+          account,
+          value: (chunks) => (
+            <span className="font-medium text-foreground">
+              <bdi dir="ltr">{chunks}</bdi>
+            </span>
+          ),
+        })}{" "}
+        ·{" "}
         <button type="button" onClick={() => void disconnect()} className="hover:text-foreground hover:underline">
-          Disconnect Expo
+          {t("account.disconnect")}
         </button>
       </p>
-      {error && <ErrorDetails summary="Couldn't disconnect Expo">{error}</ErrorDetails>}
+      {error && <ErrorDetails summary={t("account.errorSummary")}>{error}</ErrorDetails>}
     </>
   )
 }
 
 function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishState; onBlocked: () => void }) {
+  const t = useTranslations("publish")
+  const locale = useLocale()
   const { web, starting, active, error, publish } = webPublish
   // A failed update leaves the last version online, which the card above the error says.
   const url = web?.url ?? null
@@ -382,9 +399,13 @@ function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishStat
         <div className="space-y-1 rounded-2xl border border-border/60 px-3 py-2.5">
           <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
             <span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />
-            {!active && !failed ? "Your website is live" : "Live now"}
+            {!active && !failed ? t("web.live") : t("web.liveNow")}
             {web?.publishedAt && (
-              <span className="font-normal text-muted-foreground">· updated {formatDistanceToNow(new Date(web.publishedAt), { addSuffix: true })}</span>
+              <span className="font-normal text-muted-foreground">
+                {t("web.updated", {
+                  time: formatDistanceToNow(new Date(web.publishedAt), { addSuffix: true, locale: locale === "ar" ? ar : undefined }),
+                })}
+              </span>
             )}
           </p>
           <div className="flex items-center justify-between gap-2">
@@ -394,7 +415,9 @@ function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishStat
               rel="noreferrer"
               className="inline-flex min-w-0 items-center gap-1 text-sm font-medium hover:text-violet-700 hover:underline"
             >
-              <span className="truncate">{url.replace(/^https:\/\//, "").replace(/\/$/, "")}</span>
+              <span dir="ltr" className="truncate">
+                {url.replace(/^https:\/\//, "").replace(/\/$/, "")}
+              </span>
               <ExternalLinkIcon className="size-3 shrink-0" />
             </a>
             <CopyLinkButton url={url} />
@@ -403,7 +426,7 @@ function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishStat
       ) : (
         !active && (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Publish your app as a website on your Expo account, with its own address anyone can open. When you make changes, publish again to update the same site.
+            {t("web.intro")}
           </p>
         )
       )}
@@ -411,11 +434,11 @@ function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishStat
       {active && <WebPublishSteps status={starting || !web || !isWebPublishActive(web.status) ? "uploading" : web.status} />}
 
       {error ? (
-        <ErrorDetails summary="Couldn't publish">{error}</ErrorDetails>
+        <ErrorDetails summary={t("web.errorSummary")}>{error}</ErrorDetails>
       ) : (
         failed && (
-          <ErrorDetails summary={url ? "The update failed. Your last version is still live." : "Publishing failed"}>
-            {web?.error ?? "EAS couldn't publish the website."}
+          <ErrorDetails summary={url ? t("web.updateFailed") : t("web.failed")}>
+            {web?.error ?? t("errors.siteFailed")}
           </ErrorDetails>
         )
       )}
@@ -430,13 +453,14 @@ function WebPublishPanel({ webPublish, onBlocked }: { webPublish: WebPublishStat
         }}
       >
         {active ? <Loader2Icon className="animate-spin" /> : failed ? <RotateCwIcon /> : <GlobeIcon />}
-        {active ? "Publishing…" : failed ? "Try again" : url ? "Publish update" : "Publish as Web"}
+        {active ? t("web.publishing") : failed ? t("tryAgain") : url ? t("web.publishUpdate") : t("web.publishWeb")}
       </Button>
     </div>
   )
 }
 
 function WebPublishSteps({ status }: { status: ActiveWebPublishStatus }) {
+  const t = useTranslations("preview.publishStep")
   const currentIndex = status === "queued" ? WEB_STEPS.indexOf("building") : WEB_STEPS.indexOf(status)
 
   return (
@@ -450,7 +474,7 @@ function WebPublishSteps({ status }: { status: ActiveWebPublishStatus }) {
           ) : (
             <span aria-hidden className="mx-[3px] size-2 shrink-0 rounded-full bg-border" />
           )}
-          {index === currentIndex ? WEB_PUBLISH_LABELS[status] : WEB_PUBLISH_LABELS[step]}
+          {index === currentIndex ? t(status) : t(step)}
         </li>
       ))}
     </ol>
@@ -476,8 +500,9 @@ function ExportForm({
   onExport: (format: AppBuildFormat, version: string) => void
   onDisconnected: () => void
 }) {
-  const choices = FORMATS.filter(({ id }) => platform === "ios-android" || FORMAT_PLATFORM[id] === platform)
-  const [format, setFormat] = React.useState<AppBuildFormat>(choices[0].id)
+  const t = useTranslations("publish")
+  const choices = FORMATS.filter((id) => platform === "ios-android" || FORMAT_PLATFORM[id] === platform)
+  const [format, setFormat] = React.useState<AppBuildFormat>(choices[0])
   const [version, setVersion] = React.useState(initialVersion)
   const versionValid = VERSION_PATTERN.test(version.trim())
 
@@ -490,8 +515,8 @@ function ExportForm({
       }}
     >
       <fieldset className="space-y-1.5">
-        <legend className="mb-1.5 text-sm font-medium">File type</legend>
-        {choices.map(({ id, title, detail }) => (
+        <legend className="mb-1.5 text-sm font-medium">{t("export.fileType")}</legend>
+        {choices.map((id) => (
           <label
             key={id}
             className={cn(
@@ -502,8 +527,8 @@ function ExportForm({
             <input type="radio" name="publish-format" value={id} checked={format === id} onChange={() => setFormat(id)} className="accent-violet-600" />
             {FORMAT_PLATFORM[id] === "ios" ? <AppleIcon className="size-4 shrink-0 text-muted-foreground" /> : <SmartphoneIcon className="size-4 shrink-0 text-muted-foreground" />}
             <span className="min-w-0">
-              <span className="block text-sm font-medium">{title}</span>
-              <span className="block text-xs text-muted-foreground">{detail}</span>
+              <span className="block text-sm font-medium">{t(`formats.${id}.title`)}</span>
+              <span className="block text-xs text-muted-foreground">{t(`formats.${id}.detail`)}</span>
             </span>
           </label>
         ))}
@@ -511,11 +536,12 @@ function ExportForm({
 
       <div className="space-y-1.5">
         <label htmlFor="publish-version" className="text-sm font-medium">
-          Version
+          {t("export.version")}
         </label>
         <Input
           id="publish-version"
           value={version}
+          dir="ltr"
           inputMode="decimal"
           placeholder="1.0.0"
           aria-invalid={!versionValid}
@@ -524,23 +550,30 @@ function ExportForm({
           className="h-10 rounded-full px-4"
         />
         <p id="publish-version-hint" className={cn("text-xs", versionValid ? "text-muted-foreground" : "text-destructive")}>
-          {versionValid ? "The version people see in the store. The build number goes up by itself." : "Use three numbers, like 1.0.0."}
+          {versionValid ? t("export.versionHint") : t("export.versionInvalid")}
         </p>
       </div>
 
       <ExpoAccount account={account} onDisconnected={onDisconnected} />
 
-      {error && <ErrorDetails summary="Couldn't start the build">{error}</ErrorDetails>}
+      {error && <ErrorDetails summary={t("export.errorSummary")}>{error}</ErrorDetails>}
 
       <Button type="submit" className="h-10 w-full rounded-full" disabled={busy || running || !versionValid}>
         {busy ? <Loader2Icon className="animate-spin" /> : <RocketIcon />}
-        {busy ? "Starting build…" : running ? "A build is running" : "Export"}
+        {busy ? t("export.starting") : running ? t("export.running") : t("export.submit")}
       </Button>
     </form>
   )
 }
 
 function IosSetupView({ setup, onBack }: { setup: IosSetup; onBack: () => void }) {
+  const t = useTranslations("publish.iosSetup")
+  const tHeader = useTranslations("workspace.header")
+  const value = (chunks: React.ReactNode) => (
+    <span className="font-medium text-foreground">
+      <bdi dir="ltr">{chunks}</bdi>
+    </span>
+  )
   const commands = [
     "npm install",
     "npm install --global eas-cli",
@@ -552,48 +585,57 @@ function IosSetupView({ setup, onBack }: { setup: IosSetup; onBack: () => void }
   return (
     <div className="space-y-3">
       <p role="status" className="rounded-2xl bg-amber-500/10 px-3 py-2.5 text-sm text-amber-800">
-        No build was started: EAS has no Apple credentials for this app yet.
+        {t("notStarted")}
       </p>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        You need a paid Apple Developer account. Choose Download as ZIP from the Export menu and unzip it. Then, in that folder, log in to Expo as <span className="font-medium text-foreground">{setup.account}</span> and run these once:
+        {t.rich("intro", { zip: tHeader("downloadZip"), menu: tHeader("export"), account: setup.account, value })}
       </p>
-      <pre className="overflow-x-auto rounded-2xl bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed">{commands}</pre>
+      <pre dir="ltr" className="overflow-x-auto rounded-2xl bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed">{commands}</pre>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        When asked, choose the <span className="font-medium text-foreground">ipa</span> profile, then Build Credentials, and let it set up everything using your Apple account. The app's bundle id is{" "}
-        <span className="font-mono text-xs text-foreground">{setup.bundleIdentifier}</span>.
+        {t.rich("profile", {
+          bundleId: setup.bundleIdentifier,
+          profile: value,
+          bundle: (chunks) => (
+            <span dir="ltr" className="font-mono text-xs text-foreground">
+              {chunks}
+            </span>
+          ),
+        })}
       </p>
       <Button variant="outline" className="h-10 w-full rounded-full" onClick={onBack}>
-        Done, back to export
+        {t("back")}
       </Button>
     </div>
   )
 }
 
 function BuildRow({ build, retrying, retryDisabled, onRetry }: { build: AppBuildSummary; retrying: boolean; retryDisabled: boolean; onRetry: () => void }) {
-  const style = retrying ? { ...STATUS_STYLES.queued, label: "Retrying" } : STATUS_STYLES[build.status]
+  const t = useTranslations("publish")
+  const className = retrying ? STATUS_STYLES.queued : STATUS_STYLES[build.status]
+  const label = retrying ? t("status.retrying") : t(`status.${build.status}`)
   return (
     <li className="space-y-2 rounded-2xl border border-border/60 px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-sm font-medium">
+        <span dir="ltr" className="min-w-0 truncate text-sm font-medium">
           .{build.format} · {build.version}
         </span>
-        <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", style.className)}>
+        <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", className)}>
           {(retrying || isActive(build)) && <Loader2Icon className="size-3 animate-spin" />}
-          {style.label}
+          {label}
         </span>
       </div>
       {build.status === "ready" && build.artifactUrl && (
         <Button className="h-8 w-full rounded-full" render={<a href={build.artifactUrl} target="_blank" rel="noreferrer" />} nativeButton={false}>
           <DownloadIcon />
-          Download .{build.format}
+          <span>{t.rich("builds.download", { format: `.${build.format}`, bdi: (chunks) => <bdi>{chunks}</bdi> })}</span>
         </Button>
       )}
       {build.status === "failed" && !retrying && (
         <>
-          <ErrorDetails summary="View error">{build.error ?? "The build failed."}</ErrorDetails>
+          <ErrorDetails summary={t("builds.viewError")}>{build.error ?? t("errors.buildFailed")}</ErrorDetails>
           <Button variant="outline" className="h-8 w-full rounded-full" disabled={retryDisabled} onClick={onRetry}>
             <RotateCwIcon />
-            Retry
+            {t("builds.retry")}
           </Button>
         </>
       )}

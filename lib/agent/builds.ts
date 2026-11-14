@@ -2,9 +2,10 @@ import { randomUUID } from "node:crypto"
 import { and, asc, eq, gt, sql, type SQL } from "drizzle-orm"
 
 import { buildEvents, builds, db, projects, screens, type Project } from "@/db"
-import { toProjectScreen, type AgentEvent, type AppPlan } from "@/lib/agent-protocol"
+import { statusEvent, toProjectScreen, type AgentEvent, type AppPlan } from "@/lib/agent-protocol"
 import { prepareScreens } from "@/lib/agent/builder"
 import { refundCharge, refundUnfinishedBuild, type BuildCharge } from "@/lib/billing/credits"
+import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { getJobRun, startJobRun } from "@/lib/jobs"
 
 export const BUILD_WORKER_PATH = "/api/jobs/build-step"
@@ -19,8 +20,6 @@ const STALLED_MS = 60_000
 
 // A failed step is safe to run again: finished screens are kept.
 const JOB_RETRIES = 2
-
-const FAILED_MESSAGE = 'The build stopped before it finished. Say "try again" and I\'ll pick up where it left off.'
 
 export class BuildLostError extends Error {
   constructor() {
@@ -138,7 +137,7 @@ export async function startBuild(project: Project, plan: AppPlan, firstEvents: A
   const log = new BuildLog(build.id, lease)
   for (const event of firstEvents) log.emit(event)
   try {
-    log.emit({ type: "status", label: plan.pendingChanges ? "Preparing your changes…" : `Preparing to build ${plan.screens.length} screens…` })
+    log.emit(plan.pendingChanges ? statusEvent("preparingChanges") : statusEvent("preparingBuild", { count: plan.screens.length }))
     const rows = await prepareScreens(project.id, plan)
     await db.update(projects).set({ status: "building" }).where(eq(projects.id, project.id))
     log.emit({ type: "project-status", status: "building" })
@@ -150,7 +149,7 @@ export async function startBuild(project: Project, plan: AppPlan, firstEvents: A
     await db.update(builds).set({ jobId }).where(eq(builds.id, build.id))
   } catch (error) {
     console.error("Starting the build failed", error)
-    await failBuild(build.id, "Couldn't start the build. Please try again.")
+    await failBuild(build.id, "buildStartFailed")
   }
   return build
 }
@@ -180,11 +179,16 @@ export async function finishBuild(buildId: string, log: BuildLog) {
   await db.update(builds).set({ status: "finished", lease: null }).where(eq(builds.id, buildId))
 }
 
-/** Ends a build that can't continue, stopping any execution still working on it. */
-export async function failBuild(buildId: string, message = FAILED_MESSAGE, onlyIfJobId?: string) {
+/**
+ * Ends a build that can't continue, stopping any execution still working on it. The error says
+ * the build `reason`, in the chat language of the project, since this can run without a request.
+ */
+export async function failBuild(buildId: string, reason: "buildStopped" | "buildStartFailed" = "buildStopped", onlyIfJobId?: string) {
   const claimed = await takeLease(buildId, onlyIfJobId ? eq(builds.jobId, onlyIfJobId) : undefined)
   if (!claimed) return
   const { build, log } = claimed
+  const [owner] = await db.select({ chatLanguage: projects.chatLanguage }).from(projects).where(eq(projects.id, build.projectId))
+  const message = translatorFor(chatLocale(owner ?? { chatLanguage: null }), "agentMessages")(reason)
 
   const stuck = await db
     .update(screens)
@@ -215,7 +219,7 @@ async function reconcileBuild(buildId: string) {
   const stalled = job?.status === "succeeded" && Date.now() - build.updatedAt.getTime() > STALLED_MS
   if (job?.status === "failed" || job?.status === "cancelled" || stalled) {
     console.error(`Build ${buildId}: job ${job.id} ended as ${job.status}`, job.error)
-    await failBuild(buildId, FAILED_MESSAGE, build.jobId)
+    await failBuild(buildId, "buildStopped", build.jobId)
   }
   return true
 }

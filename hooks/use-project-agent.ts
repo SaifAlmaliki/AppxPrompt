@@ -1,12 +1,15 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 
 import {
+  activityOf,
   componentFilePath,
   messageWithElement,
   type AgentEvent,
   type AgentRequest,
+  type Activity,
   type AppPlan,
   type ChatMessage,
   type ProjectScreen,
@@ -24,8 +27,8 @@ export type AgentState = {
   backend: BackendStatus
   /** True while a request to the agent is open. */
   busy: boolean
-  /** What the agent is doing right now, e.g. "Drafting the screen plan…". */
-  activity: string | null
+  /** What the agent is doing right now, as a status key to word here, or a label saved before there were keys. */
+  activity: Activity | null
   /** The reply being written, before it's saved. */
   streamingText: string
   reasoning: string
@@ -46,7 +49,7 @@ type Action =
   | { type: "new-session" }
   | { type: "file-code"; path: string; code: string }
 
-function reducer(state: AgentState, action: Action): AgentState {
+export function reducer(state: AgentState, action: Action): AgentState {
   switch (action.type) {
     case "begin":
       return {
@@ -99,7 +102,7 @@ function withActiveTheme(state: AgentState, activeThemeId: string): AgentState {
 function applyEvent(state: AgentState, event: AgentEvent): AgentState {
   switch (event.type) {
     case "status":
-      return { ...state, activity: event.label }
+      return { ...state, activity: activityOf(event) }
     case "reasoning-delta":
       return { ...state, reasoning: state.reasoning + event.delta }
     case "text-delta":
@@ -189,6 +192,7 @@ export function useProjectAgent(
   })
   const busyRef = React.useRef(false)
   const openUpgrade = useUpgradeDialog()
+  const t = useTranslations("chat")
 
   const send = React.useCallback(
     async (request: AgentRequest): Promise<boolean> => {
@@ -202,7 +206,7 @@ export function useProjectAgent(
               content: request.element ? messageWithElement(request.content, request.element) : request.content,
             }
           : request.action === "confirm"
-            ? { id: `local-${Date.now()}`, role: "user" as const, content: "Looks good, build it!" }
+            ? { id: `local-${Date.now()}`, role: "user" as const, content: t("confirmMessage") }
             : undefined
       dispatch({ type: "begin", optimistic })
 
@@ -217,7 +221,7 @@ export function useProjectAgent(
           if (isUpgradeReason(body?.code)) openUpgrade(body.code)
           dispatch({
             type: "fail",
-            message: body?.error ?? "The agent couldn't start. Please try again.",
+            message: body?.error ?? t("errors.agentStart"),
             removeId: optimistic?.id,
           })
           return false
@@ -243,7 +247,7 @@ export function useProjectAgent(
       } catch {
         dispatch({
           type: "fail",
-          message: "Lost the connection to the agent. Reload the page to see its latest progress.",
+          message: t("errors.connectionLost"),
         })
         return false
       } finally {
@@ -251,7 +255,7 @@ export function useProjectAgent(
         dispatch({ type: "end" })
       }
     },
-    [openUpgrade, projectId]
+    [openUpgrade, projectId, t]
   )
 
   // Start (or reattach to) the agent once when the workspace opens.
@@ -282,10 +286,10 @@ export function useProjectAgent(
         body: JSON.stringify({ themeId }),
       }).catch(() => null)
       if (!response?.ok) {
-        dispatch({ type: "theme-failed", themeId: previous, message: "Couldn't save the theme. Please try again." })
+        dispatch({ type: "theme-failed", themeId: previous, message: t("errors.themeSave") })
       }
     },
-    [projectId]
+    [projectId, t]
   )
 
   /** Connects this app to the account the person already connected, or disconnects it. */
@@ -309,8 +313,8 @@ export function useProjectAgent(
     busyRef.current = false
     if (response?.ok) return dispatch({ type: "new-session" })
     const body = await response?.json().catch(() => null)
-    dispatch({ type: "fail", message: body?.error ?? "Couldn't start a new session. Please try again." })
-  }, [projectId])
+    dispatch({ type: "fail", message: body?.error ?? t("errors.newSession") })
+  }, [projectId, t])
 
   /** Shows a file's latest code, after an edit made by hand. */
   const setFileCode = React.useCallback((path: string, code: string) => dispatch({ type: "file-code", path, code }), [])

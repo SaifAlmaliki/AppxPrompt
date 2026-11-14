@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm"
 import { db, projects } from "@/db"
 import { CLOUDHIKE_STATE_COOKIE, CLOUDHIKE_STATE_MAX_AGE } from "@/lib/cloudhike/connect-state"
 import { cloudhikeCallbackUrl, cloudhikeConnectUrl, isCloudHikeAvailable } from "@/lib/cloudhike/client"
+import { serverT } from "@/lib/i18n/server"
 import { getCurrentUser } from "@/lib/session"
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -14,13 +15,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
   if (!user) return NextResponse.redirect(new URL("/", request.url))
-  if (!UUID_PATTERN.test(projectId)) return new NextResponse("Project not found.", { status: 404 })
+  if (!UUID_PATTERN.test(projectId)) return new NextResponse((await serverT("errors"))("projectNotFound"), { status: 404 })
 
   const [project] = await db
     .select({ id: projects.id })
     .from(projects)
     .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
-  if (!project) return new NextResponse("Project not found.", { status: 404 })
+  if (!project) return new NextResponse((await serverT("errors"))("projectNotFound"), { status: 404 })
   if (!isCloudHikeAvailable()) return NextResponse.redirect(new URL(`/workspace/${project.id}?backend=error`, request.url))
 
   // Ties the callback to this browser and project, so nobody can plant their own CloudHike account here.

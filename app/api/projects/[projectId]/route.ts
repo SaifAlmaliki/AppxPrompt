@@ -5,23 +5,24 @@ import { db, projectAssets, projects, screens } from "@/db"
 import { activeBuild } from "@/lib/agent/builds"
 import { getRun } from "@/lib/agent/runs"
 import { getProjectAccess } from "@/lib/project-access"
+import { errorResponse, type ErrorKey, type ErrorValues } from "@/lib/i18n/server"
 import { MAX_PROJECT_NAME_LENGTH } from "@/lib/projects"
 import { getCurrentUser } from "@/lib/session"
 import { deleteObjects } from "@/lib/storage"
 
 type Context = { params: Promise<{ projectId: string }> }
 
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status })
+function error(key: ErrorKey, status: number, values?: ErrorValues) {
+  return errorResponse(key, status, {}, values)
 }
 
 /** Only the owner renames, publishes, or deletes a project. */
 async function ownedProject({ params }: Context) {
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
-  if (!user) return { failure: error("Please sign in to continue.", 401) }
+  if (!user) return { failure: await error("signInRequired", 401) }
   const access = await getProjectAccess(projectId, user.id)
-  if (access?.role !== "owner") return { failure: error("Project not found.", 404) }
+  if (access?.role !== "owner") return { failure: await error("projectNotFound", 404) }
   return { project: access.project }
 }
 
@@ -43,7 +44,7 @@ export async function PATCH(request: Request, context: Context) {
         .from(screens)
         .where(and(eq(screens.projectId, project.id), isNotNull(screens.code)))
         .limit(1)
-      if (!built) return error("Build the app before making it public.", 409)
+      if (!built) return error("buildBeforePublic", 409)
     }
     // Who can see it isn't an edit, so the card's "Edited" time and place in the list stay put.
     await db
@@ -53,12 +54,12 @@ export async function PATCH(request: Request, context: Context) {
     return NextResponse.json({ isPublic: body.isPublic })
   }
 
-  if (typeof body?.name !== "string") return error("Invalid request.", 400)
+  if (typeof body?.name !== "string") return error("invalidRequest", 400)
   const name = body.name.trim().replace(/\s+/g, " ")
-  if (!name) return error("Give your project a name.", 400)
-  if (name.length > MAX_PROJECT_NAME_LENGTH) return error(`Keep the name under ${MAX_PROJECT_NAME_LENGTH} characters.`, 400)
+  if (!name) return error("nameRequired", 400)
+  if (name.length > MAX_PROJECT_NAME_LENGTH) return error("nameTooLong", 400, { max: MAX_PROJECT_NAME_LENGTH })
   // A build saves the whole plan when it finishes, which would undo the new name.
-  if (await isAgentWorking(project)) return error("The agent is still working. You can rename this once it's done.", 409)
+  if (await isAgentWorking(project)) return error("agentBusyRename", 409)
 
   await db
     .update(projects)
@@ -77,7 +78,7 @@ export async function DELETE(_request: Request, context: Context) {
   if (owned.failure) return owned.failure
   const { project } = owned
 
-  if (await isAgentWorking(project)) return error("The agent is still working. You can delete this once it's done.", 409)
+  if (await isAgentWorking(project)) return error("agentBusyDelete", 409)
 
   const assets = await db
     .select({ storageKey: projectAssets.storageKey })

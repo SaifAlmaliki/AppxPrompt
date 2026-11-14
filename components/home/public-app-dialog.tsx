@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { Loader2Icon, RotateCcwIcon, RotateCwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react"
 
 import { demoStorageId, type useProjectPreview } from "@/hooks/use-project-preview"
@@ -27,6 +28,7 @@ export function PublicAppDialog({
   onOpenChange: (open: boolean) => void
   onBuildYourOwn: () => void
 }) {
+  const t = useTranslations("projects")
   const [reloadSignal, setReloadSignal] = React.useState(0)
   const { preview, failed, retry } = state
 
@@ -49,7 +51,7 @@ export function PublicAppDialog({
                     theme={preview.theme}
                     route="/"
                     interactive
-                    title={`${project.name}, running`}
+                    title={t("publicDialog.running", { name: project.name })}
                     syncing={false}
                     reloadSignal={reloadSignal}
                     edits={NO_EDITS}
@@ -57,16 +59,16 @@ export function PublicAppDialog({
                 ) : failed ? (
                   <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
                     <TriangleAlertIcon className="size-6 text-muted-foreground" />
-                    <p className="text-sm font-medium">This app couldn't be loaded</p>
+                    <p className="text-sm font-medium">{t("publicDialog.couldntLoad")}</p>
                     <Button variant="outline" className="rounded-full" onClick={retry}>
                       <RotateCwIcon />
-                      Try again
+                      {t("loadFailed.retry")}
                     </Button>
                   </div>
                 ) : (
                   <p role="status" className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Loader2Icon className="size-4 animate-spin" />
-                    Loading app…
+                    {t("publicDialog.loading")}
                   </p>
                 )}
               </div>
@@ -74,15 +76,15 @@ export function PublicAppDialog({
           </div>
         </div>
 
-        <aside className="flex shrink-0 flex-col gap-3 border-t border-border/60 p-5 md:w-72 md:border-t-0 md:border-l md:p-6 md:pt-12">
-          <div className="min-w-0 space-y-1 pr-8 md:pr-0">
+        <aside className="flex shrink-0 flex-col gap-3 border-t border-border/60 p-5 md:w-72 md:border-t-0 md:border-s md:p-6 md:pt-12">
+          <div className="min-w-0 space-y-1 pe-8 md:pe-0">
             <DialogTitle className="truncate text-lg font-semibold tracking-tight">{project.name}</DialogTitle>
             <DialogDescription className="line-clamp-2 md:line-clamp-none">{project.description}</DialogDescription>
-            <p className="text-xs text-muted-foreground">Made by {project.owner}</p>
+            <p className="text-xs text-muted-foreground">{t("publicDialog.madeBy", { owner: project.owner ?? "" })}</p>
           </div>
 
           <p className="hidden rounded-2xl bg-violet-500/10 px-3 py-2.5 text-xs leading-relaxed text-violet-800 md:block">
-            This is the real app, running on sample data. Tap around: nothing you do here reaches anyone else.
+            {t("publicDialog.notice")}
           </p>
 
           <div className="flex gap-2 md:mt-auto md:flex-col">
@@ -91,20 +93,20 @@ export function PublicAppDialog({
               onClick={onBuildYourOwn}
             >
               <SparklesIcon />
-              Build your own
+              {t("publicDialog.buildOwn")}
             </Button>
             <Button
               variant="outline"
               className="h-10 rounded-full"
               disabled={!preview}
-              aria-label="Start over with the sample data"
+              aria-label={t("publicDialog.startOverLabel")}
               onClick={() => {
                 resetPreviewStorage(demoStorageId(project.id))
                 setReloadSignal((n) => n + 1)
               }}
             >
               <RotateCcwIcon />
-              <span className="hidden md:inline">Start over</span>
+              <span className="hidden md:inline">{t("publicDialog.startOver")}</span>
             </Button>
           </div>
         </aside>
