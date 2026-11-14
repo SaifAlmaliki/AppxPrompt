@@ -7,6 +7,7 @@ import { MAX_TABS, MIN_TABS, SCREEN_LAYOUTS, statusEvent, type AppPlan, type Cha
 import { mergePlan, planAppChanges, slugify, type AppChanges } from "@/lib/agent/changes"
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
+import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
 import type { ProjectRun } from "@/lib/agent/runs"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
@@ -341,7 +342,8 @@ const TOOL_STATUS: Record<string, StatusKey> = {
 
 function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {
   return thread.map((message, index) => {
-    if (message.role === "assistant") return assistant(message.content)
+    // A call written out as text did nothing, and seeing it would teach the model to do it again.
+    if (message.role === "assistant") return assistant(findLeakedToolCall(message.content).visible || "…")
     const previous = thread.slice(0, index).findLast((item) => item.role === "assistant")
     // "1" or "1, 3" means those interview options. The chat keeps the number; the model reads the option.
     const content = previous ? expandNumberReply(message.content, previous.content, Boolean(previous.plan)) : message.content
@@ -395,50 +397,23 @@ export async function runPlannerTurn(
   }
 
   projectRun.emit(statusEvent(thread.length > 1 ? "readingMessage" : "readingRequest"))
-  const result = await run(plannerAgent, toInputItems(thread), { stream: true, context })
+  const input = toInputItems(thread)
+  const first = await streamPlannerRun(projectRun, context, input, "")
+  let text = first.text
+  let failedCall = first.leaked !== null && !first.toolRan
 
-  let text = ""
-  let responseHasText = false
-  const announcedTools = new Set<string>()
-
-  for await (const event of result) {
-    if (event.type === "raw_model_stream_event") {
-      const data = event.data
-      if (data.type === "response_started") {
-        responseHasText = false
-        projectRun.emit(statusEvent(context.confirmed ? "startingBuild" : context.changes ? "startingChanges" : context.proposedPlan ? "summarizingPlan" : "thinking"))
-      } else if (data.type === "output_text_delta") {
-        // Text from separate model calls (before and after a tool call) becomes paragraphs.
-        const delta = !responseHasText && text ? `\n\n${data.delta}` : data.delta
-        if (!responseHasText) projectRun.emit({ type: "status", label: null })
-        responseHasText = true
-        text += delta
-        projectRun.emit({ type: "text-delta", delta })
-      } else if (data.type === "model") {
-        // Raw Chat Completions chunks: reasoning and tool calls show up here first.
-        const delta = (data.event as RawChunk)?.choices?.[0]?.delta
-        if (typeof delta?.reasoning === "string" && delta.reasoning) {
-          projectRun.emit({ type: "reasoning-delta", delta: delta.reasoning })
-        }
-        for (const call of delta?.tool_calls ?? []) {
-          const name = call.function?.name
-          if (name && TOOL_STATUS[name] && !announcedTools.has(name)) {
-            announcedTools.add(name)
-            projectRun.emit(statusEvent(TOOL_STATUS[name]))
-          }
-        }
-      }
-    } else if (event.type === "run_item_stream_event" && event.name === "tool_output") {
-      announcedTools.clear()
-    }
+  // The model wrote a tool call out as text, so nothing happened. It gets one more go.
+  if (failedCall) {
+    const retry = await streamPlannerRun(projectRun, context, [...input, assistant(text || "…"), user(leakedCallNudge(first.leaked))], text)
+    text += retry.text
+    failedCall = retry.leaked !== null && !retry.toolRan
   }
-  await result.completed
 
   projectRun.emit({ type: "status", label: null })
   // The route has already set the project's chat language to the language of this message.
   const fixed = translatorFor(chatLocale(project), "agentMessages")
   const content =
-    text.trim() ||
+    (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
     (context.confirmed
       ? fixed("planStarting")
       : context.changes
@@ -454,6 +429,69 @@ export async function runPlannerTurn(
   projectRun.emit({ type: "message", message: saved })
 
   return { confirmed: context.confirmed, plan: context.plan, changes: context.changes }
+}
+
+/** Model-facing, so English: why the last reply did nothing, and what to do instead. */
+function leakedCallNudge(tool: string | null) {
+  const call = tool ? `the ${tool} call` : "a tool call"
+  return `Your last reply wrote ${call} out as text instead of calling the tool, so nothing happened and the person didn't see it. Call the tool now, through the tool interface, with the arguments you meant. Don't repeat what you already told them.`
+}
+
+/**
+ * One run of the planner, streamed to the person. A tool call the model writes out as text
+ * never reaches the chat: `leaked` names it, and `toolRan` says whether any real call ran.
+ * `before` is what the person has already seen, so new text starts a new paragraph.
+ */
+async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
+  const result = await run(plannerAgent, input, { stream: true, context })
+
+  let text = ""
+  let responseHasText = false
+  let toolRan = false
+  const filter = createLeakFilter()
+  const announcedTools = new Set<string>()
+
+  const show = (shown: string) => {
+    if (!shown) return
+    text += shown
+    projectRun.emit({ type: "text-delta", delta: shown })
+  }
+
+  for await (const event of result) {
+    if (event.type === "raw_model_stream_event") {
+      const data = event.data
+      if (data.type === "response_started") {
+        responseHasText = false
+        projectRun.emit(statusEvent(context.confirmed ? "startingBuild" : context.changes ? "startingChanges" : context.proposedPlan ? "summarizingPlan" : "thinking"))
+      } else if (data.type === "output_text_delta") {
+        // Text from separate model calls (before and after a tool call) becomes paragraphs.
+        const delta = !responseHasText && (before || text) ? `\n\n${data.delta}` : data.delta
+        if (!responseHasText) projectRun.emit({ type: "status", label: null })
+        responseHasText = true
+        show(filter.push(delta))
+      } else if (data.type === "model") {
+        // Raw Chat Completions chunks: reasoning and tool calls show up here first.
+        const delta = (data.event as RawChunk)?.choices?.[0]?.delta
+        if (typeof delta?.reasoning === "string" && delta.reasoning) {
+          projectRun.emit({ type: "reasoning-delta", delta: delta.reasoning })
+        }
+        for (const call of delta?.tool_calls ?? []) {
+          const name = call.function?.name
+          if (name && TOOL_STATUS[name] && !announcedTools.has(name)) {
+            announcedTools.add(name)
+            projectRun.emit(statusEvent(TOOL_STATUS[name]))
+          }
+        }
+      }
+    } else if (event.type === "run_item_stream_event" && event.name === "tool_output") {
+      toolRan = true
+      announcedTools.clear()
+    }
+  }
+  await result.completed
+  show(filter.flush())
+
+  return { text: text.trimEnd(), leaked: filter.leaked, toolRan }
 }
 
 type RawChunk = {

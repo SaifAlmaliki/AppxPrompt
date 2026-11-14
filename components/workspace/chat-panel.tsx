@@ -22,6 +22,7 @@ import { useElementLabel } from "@/hooks/use-element-label"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
 import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
+import { findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
 import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { cn } from "@/lib/utils"
@@ -211,7 +212,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                     {t("agentSaid")}{" "}
                   </span>
                   <MessageText
-                    text={message.content}
+                    text={findLeakedToolCall(message.content).visible}
                     numberBullets={!message.plan}
                     picked={message.id === latestAssistant?.id ? picked : undefined}
                     onPick={choiceReply && message.id === latestAssistant?.id && !busy ? pickChoice : undefined}
