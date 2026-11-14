@@ -34,7 +34,7 @@ const NAV_LINKS = [
   { label: "Explore", href: "/#explore" },
   { label: "Templates", href: "/#templates" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Docs", href: "/#docs" },
+  { label: "Docs", href: "/docs" },
 ]
 
 export function SiteHeader() {

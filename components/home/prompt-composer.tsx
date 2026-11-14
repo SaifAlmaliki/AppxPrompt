@@ -16,7 +16,7 @@ import {
 
 import { useAuth } from "@/lib/auth-client"
 import { isUpgradeReason } from "@/lib/plans"
-import { QUICK_PROMPTS } from "@/lib/home-data"
+import { QUICK_PROMPTS, USE_PROMPT_EVENT } from "@/lib/home-data"
 import {
   ACCEPTED_ASSET_TYPES,
   isAcceptedAsset,
@@ -318,6 +318,17 @@ export function PromptComposer() {
       el.setSelectionRange(text.length, text.length)
     })
   }
+
+  // Templates elsewhere on the page fill the composer through this event.
+  const onUsePrompt = React.useEffectEvent((event: Event) => {
+    const text = (event as CustomEvent<unknown>).detail
+    if (typeof text === "string") applySuggestion(text)
+  })
+  React.useEffect(() => {
+    const listener = (event: Event) => onUsePrompt(event)
+    window.addEventListener(USE_PROMPT_EVENT, listener)
+    return () => window.removeEventListener(USE_PROMPT_EVENT, listener)
+  }, [])
 
   const dragHandlers = {
     onDragEnter: (e: React.DragEvent) => {

@@ -1,10 +1,12 @@
 import { SparklesIcon } from "lucide-react"
 
+import { FaqSection } from "@/components/home/faq-section"
 import { Logo } from "@/components/home/logo"
 import { ProjectsSection } from "@/components/home/projects-section"
 import { PromptComposer } from "@/components/home/prompt-composer"
 import { SignInDialogProvider } from "@/components/home/sign-in-dialog"
 import { SiteHeader } from "@/components/home/site-header"
+import { TemplatesSection } from "@/components/home/templates-section"
 
 export default function Home() {
   return (
@@ -54,8 +56,10 @@ export default function Home() {
             </div>
           </section>
 
-          <div className="pb-24">
+          <div className="space-y-24 pb-24">
             <ProjectsSection />
+            <TemplatesSection />
+            <FaqSection />
           </div>
         </main>
 
