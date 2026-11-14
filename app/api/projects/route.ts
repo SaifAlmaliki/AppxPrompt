@@ -3,6 +3,8 @@ import { desc, eq } from "drizzle-orm"
 
 import { db, messages, projectAssets, projects } from "@/db"
 import { assertCanUseAgent, assertProjectSlot, claimProjectSlot, hasProjectSlot, PlanLimitError, planLimitResponse } from "@/lib/billing/credits"
+import { requestLocale } from "@/i18n/request"
+import { detectChatLanguage } from "@/lib/i18n/chat-language"
 import { errorResponse, serverT, type ErrorKey, type ErrorValues } from "@/lib/i18n/server"
 import { LAST_EDITED, SUMMARY_COLUMNS, toProjectSummary } from "@/lib/project-summaries"
 import {
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
     }
   }
 
+  const chatLanguage = detectChatLanguage(prompt, await requestLocale())
   const projectId = crypto.randomUUID()
   const assets = files.map((file) => ({
     file,
@@ -115,6 +118,7 @@ export async function POST(request: Request) {
           title: projectNameFromPrompt(prompt),
           prompt,
           platform,
+          chatLanguage,
         })
         .returning({ id: projects.id, status: projects.status })
 

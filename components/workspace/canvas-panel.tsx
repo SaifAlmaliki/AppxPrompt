@@ -16,9 +16,10 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
+import { useActivityText } from "@/hooks/use-activity-text"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import { localeDirection } from "@/i18n/config"
-import { isRunnable, screenRoute, type AppPlan, type ProjectScreen, type ScreenStatus } from "@/lib/agent-protocol"
+import { isRunnable, screenRoute, type Activity, type AppPlan, type ProjectScreen, type ScreenStatus } from "@/lib/agent-protocol"
 import { DEVICE_WIDTH, type PreviewProject } from "@/lib/preview-protocol"
 import { activeTheme, type AppTheme } from "@/lib/themes"
 import { SCREEN_GAP, SCREEN_HEIGHT, SCREEN_WIDTH, type CanvasScreen } from "@/lib/workspace-data"
@@ -111,7 +112,7 @@ export function CanvasPanel({
   /** The app as built so far, which the finished screens run from. */
   app: PreviewProject
   /** The agent's current activity, shown while there's nothing to draw yet. */
-  activity: string | null
+  activity: Activity | null
   /** True while the agent is working on the screens. */
   syncing: boolean
   onThemeChange: (themeId: string) => void
@@ -545,8 +546,9 @@ function SelectionToolbar({ style, canEdit, onEdit }: { style: React.CSSProperti
   )
 }
 
-function CanvasEmptyState({ activity }: { activity: string | null }) {
+function CanvasEmptyState({ activity }: { activity: Activity | null }) {
   const t = useTranslations("canvas.empty")
+  const activityText = useActivityText()
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
       <div className="max-w-xs rounded-3xl border border-white/70 bg-white/80 p-6 text-center shadow-[0_12px_40px_-20px_rgba(76,29,149,0.35)] backdrop-blur">
@@ -557,7 +559,7 @@ function CanvasEmptyState({ activity }: { activity: string | null }) {
           {activity ? t("planningTitle") : t("title")}
         </p>
         <p dir={activity ? "auto" : undefined} className="mt-1 text-xs text-muted-foreground" role={activity ? "status" : undefined}>
-          {activity ?? t("body")}
+          {activity ? activityText(activity) : t("body")}
         </p>
       </div>
     </div>

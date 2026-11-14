@@ -23,6 +23,11 @@ export function translatorFor<N extends Namespace>(locale: Locale, namespace: N)
   return createTranslator({ locale, messages: MESSAGES[locale], namespace, formats }) as unknown as Translator<N>
 }
 
+/** The language a project's chat is in, for code that has no request. Projects from before it was kept are English. */
+export function chatLocale(project: { chatLanguage: Locale | null }): Locale {
+  return project.chatLanguage ?? "en"
+}
+
 /** A translator in the requester's language, or in `locale`. Only for code that runs inside a request. */
 export async function serverT<N extends Namespace>(namespace: N, locale?: Locale): Promise<Translator<N>> {
   return getTranslations({ locale: locale ?? (await requestLocale()), namespace }) as Promise<Translator<N>>

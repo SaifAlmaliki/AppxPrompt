@@ -2,7 +2,8 @@ import { Agent, assistant, run, user, type AgentInputItem } from "@openai/agents
 import { and, asc, eq, ne, sql } from "drizzle-orm"
 
 import { db, messages, projects, screens, type Project, type Screen } from "@/db"
-import { componentLabel, screenFilePath, toProjectScreen, type AppPlan, type PendingChanges } from "@/lib/agent-protocol"
+import type { Locale } from "@/i18n/config"
+import { componentLabel, screenFilePath, statusEvent, toProjectScreen, type AgentEvent, type AppPlan, type PendingChanges } from "@/lib/agent-protocol"
 import { mergePlan } from "@/lib/agent/changes"
 import { generateComponents, writeComponent } from "@/lib/agent/components"
 import { BUILDER_MODEL, configureAgents } from "@/lib/agent/config"
@@ -12,6 +13,8 @@ import { BuildLostError, type BuildLog } from "@/lib/agent/builds"
 import { fatalScreenProblem, screenProblems, visibleCode } from "@/lib/agent/validate-screen"
 import { refundUnfinishedBuild } from "@/lib/billing/credits"
 import { isBackendLinked, setUpBackend } from "@/lib/cloudhike/backend"
+import { isolate } from "@/lib/i18n/activity"
+import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { fillGeneratedImages, hasGeneratedImages } from "@/lib/imagekit"
 
 const builderAgent = new Agent({
@@ -73,21 +76,30 @@ export async function prepareScreens(projectId: string, plan: AppPlan) {
   return rows.map((row) => (row.status === "done" ? row : { ...row, status: "pending" as const }))
 }
 
-function listNames(names: string[]) {
-  if (names.length < 2) return names.join("")
-  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
+/** Screen, component and app names are agent-authored, so in Arabic each stays in its own direction. */
+const isolateNames = (names: string[], locale: Locale) => (locale === "ar" ? names.map(isolate) : names)
+
+/** "A, B" for a list of names, with the separator of the language. */
+const commaList = (items: string[], locale: Locale) => items.join(locale === "ar" ? "، " : ", ")
+
+/** "A, B and C", with "and" in the language. */
+function listNames(items: string[], locale: Locale) {
+  if (items.length < 2) return items.join("")
+  return translatorFor(locale, "agentMessages")("listLast", { rest: commaList(items.slice(0, -1), locale), last: items.at(-1)! })
 }
 
 /** The message for a finished round of changes to a built app. */
-function changesSummary({ added, updated, removed, failed = [] }: PendingChanges) {
+function changesSummary({ added, updated, removed, failed = [] }: PendingChanges, locale: Locale) {
+  const t = translatorFor(locale, "agentMessages")
+  const names = (list: string[]) => listNames(isolateNames(list, locale), locale)
   const done = [
-    added.length > 0 && `added ${listNames(added)}`,
-    updated.length > 0 && `updated ${listNames(updated)}`,
-    removed.length > 0 && `removed ${listNames(removed)}`,
+    added.length > 0 && t("changesAdded", { names: names(added) }),
+    updated.length > 0 && t("changesUpdated", { names: names(updated) }),
+    removed.length > 0 && t("changesRemoved", { names: names(removed) }),
   ].filter((part): part is string => Boolean(part))
-  const what = done.length > 0 ? `I ${listNames(done)}.` : "Your changes are in."
-  const missed = failed.length > 0 ? ` I couldn't change ${listNames(failed)}, so ${failed.length === 1 ? "it's" : "they're"} still as before. Ask me again if you'd still like that.` : ""
-  return `All done! ${what}${missed} Have a look in the preview, and tell me if you'd like anything else changed.`
+  const what = done.length > 0 ? t("changesDone", { parts: listNames(done, locale) }) : t("changesNone")
+  const missed = failed.length > 0 ? ` ${t("changesMissed", { names: names(failed), count: failed.length })}` : ""
+  return t("changesSummary", { what, missed })
 }
 
 /**
@@ -100,11 +112,14 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
 
   const plan = project.plan
   if (!plan) throw new Error(`Project ${project.id} has no plan to build.`)
+  // Runs from CloudHike Jobs, with no request, so the chat language of the project words what's said.
+  const locale = chatLocale(project)
+  const t = translatorFor(locale, "agentMessages")
 
   if (!plan.themePackage || !plan.collections) {
-    log.emit({ type: "status", label: "Designing your themes and sample data…" })
+    log.emit(statusEvent("designingFoundation"))
     const foundation = await generateFoundation(plan)
-    if (hasGeneratedImages(foundation.collections)) log.emit({ type: "status", label: "Generating your app's images…" })
+    if (hasGeneratedImages(foundation.collections)) log.emit(statusEvent("generatingAppImages"))
     const next = { ...plan, ...foundation, collections: await fillGeneratedImages(project.id, foundation.collections) }
     await log.flush()
     await db.update(projects).set({ plan: next }).where(eq(projects.id, project.id))
@@ -114,7 +129,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
 
   const changes = plan.pendingChanges
   if (changes?.data) {
-    log.emit({ type: "status", label: "Updating your app's data…" })
+    log.emit(statusEvent("updatingData"))
     const collections = await fillGeneratedImages(project.id, await changeCollections(plan, changes.data))
     await log.flush()
     const next = await mergePlan(project.id, { collections, pendingChanges: { ...changes, data: null } })
@@ -131,7 +146,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
 
   // Apps built before shared components existed keep their screens as they are.
   if (!plan.components && !rows.some((row) => row.code)) {
-    log.emit({ type: "status", label: "Building your reusable components…" })
+    log.emit(statusEvent("buildingComponents"))
     const components = await fillGeneratedImages(project.id, await generateComponents(plan))
     await log.flush()
     const next = await mergePlan(project.id, { components })
@@ -145,7 +160,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
     const [name, { purpose, request }] = componentChange
     const library = plan.components ?? []
     const current = library.find((component) => component.name === name)
-    log.emit({ type: "status", label: `Updating ${componentLabel(name)}…` })
+    log.emit(statusEvent("updatingComponent", { name: componentLabel(name) }))
     const code = await fillGeneratedImages(project.id, await writeComponent(plan, { name, purpose }, current?.code ?? null, request))
     await log.flush()
     const { [name]: _done, ...waiting } = changes.components!
@@ -171,7 +186,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
     const request = changes?.edits[row.slug]
     const edit = row.code && request ? { code: row.code, request } : null
     const styleReference = edit ? null : (rows.find((other) => other.status === "done" && other.code)?.code ?? null)
-    const label = `${screen.name} (${row.position + 1} of ${rows.length})`
+    const progress = { name: screen.name, position: row.position + 1, total: rows.length }
 
     // A screen being edited keeps its code here until the new code is ready, and the browser only sees the new code arrive.
     const [generating] = await db
@@ -182,16 +197,16 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
     Object.assign(row, generating)
     const writing = () => toProjectScreen({ ...row, code: null })
     log.emit({ type: "screen", screen: writing() })
-    log.emit({ type: "status", label: `Designing ${label}…` })
+    log.emit(statusEvent("designingScreen", progress))
 
     /** Streams one attempt at the file to the client and returns the finished code. */
-    const generate = async (input: AgentInputItem[], status: string) => {
+    const generate = async (input: AgentInputItem[], status: AgentEvent) => {
       const result = await run(builderAgent, input, { stream: true, signal: log.signal })
       let raw = ""
       let shown = ""
       for await (const event of result) {
         if (event.type !== "raw_model_stream_event" || event.data.type !== "output_text_delta") continue
-        if (!raw) log.emit({ type: "status", label: status })
+        if (!raw) log.emit(status)
         raw += event.data.delta
         const next = visibleCode(raw)
         if (next.length > shown.length && next.startsWith(shown)) {
@@ -214,7 +229,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
           edit,
         })
       )
-      let code = await generate([prompt], `Writing ${label}…`)
+      let code = await generate([prompt], statusEvent("writingScreen", progress))
 
       // One rewrite if the screen breaks the rules, since it wouldn't run or follow the theme.
       const problems = screenProblems(
@@ -226,7 +241,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
       )
       if (problems.length > 0) {
         log.emit({ type: "screen", screen: writing() })
-        log.emit({ type: "status", label: `Polishing ${screen.name}…` })
+        log.emit(statusEvent("polishingScreen", { name: screen.name }))
         code = await generate(
           [
             prompt,
@@ -235,14 +250,14 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
               `This file has problems:\n${problems.map((problem) => `- ${problem}`).join("\n")}\nRewrite the complete file with these fixed and everything else kept. Reply with only the file.`
             ),
           ],
-          `Rewriting ${label}…`
+          statusEvent("rewritingScreen", progress)
         )
       }
 
       const fatal = fatalScreenProblem(code)
       if (fatal) throw new Error(fatal)
 
-      if (hasGeneratedImages(code)) log.emit({ type: "status", label: `Generating images for ${screen.name}…` })
+      if (hasGeneratedImages(code)) log.emit(statusEvent("generatingScreenImages", { name: screen.name }))
       code = await fillGeneratedImages(project.id, code)
 
       // Stops here if a newer execution took over, so it can't overwrite that one's screen.
@@ -282,16 +297,12 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   // Deploying can take minutes, so it gets a step of its own. It's safe to repeat if this step is retried.
   const linked = failed.length === 0 && (await isBackendLinked(project))
   if (linked && row) return true
-  let backendNote = plan.backend
-    ? " Everything people add is saved to your CloudHike backend."
-    : " Everything you add is saved on the device for now. Click Connect Backend at the top when you'd like it in the cloud."
+  let backendNote = ` ${plan.backend ? t("backendCloud") : t("backendLocal")}`
   if (linked) {
-    log.emit({ type: "status", label: "Setting up your backend…" })
+    log.emit(statusEvent("settingUpBackend"))
     const result = await setUpBackend(project, { emit: (event) => log.emit(event) })
     await log.flush()
-    backendNote = result.ok
-      ? " Everything people add is saved to your CloudHike backend and syncs live."
-      : ` I couldn't set up your CloudHike backend, so nothing moved to the cloud: ${result.message}`
+    backendNote = ` ${result.ok ? t("backendSynced") : t("backendFailed", { message: result.message })}`
   }
 
   const status = failed.length === 0 ? "ready" : "failed"
@@ -302,17 +313,17 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   log.emit({ type: "project-status", status })
 
   const refunded = status === "failed" ? await refundUnfinishedBuild(log.buildId) : 0
-  const refundNote = refunded > 0 ? ` I returned the ${refunded} credits for what didn't finish.` : ""
+  const refundNote = refunded > 0 ? ` ${t("refund", { credits: refunded })}` : ""
 
-  const names = (list: Screen[]) => list.map((row) => row.name).join(", ")
+  const names = (list: Screen[]) => commaList(isolateNames(list.map((row) => row.name), locale), locale)
   const content =
     failed.length === 0
       ? changes
-        ? `${changesSummary(changes)}${linked ? backendNote : ""}`
-        : `${plan.appName} is ready! I built all ${built.length} screens: ${names(built)}.\n\nTap through the app in the preview, and try other looks from the Theme menu at the top of the canvas.${backendNote}`
+        ? `${changesSummary(changes, locale)}${linked ? backendNote : ""}`
+        : t("ready", { appName: plan.appName, count: built.length, names: names(built), backendNote })
       : built.length === 0
-        ? `I couldn't build the screens this time.${refundNote} Say "try again" and I'll have another go.`
-        : `I built ${built.length} of ${rows.length} screens. ${names(failed)} didn't come out right.${refundNote} Say "try again" and I'll retry ${failed.length === 1 ? "it" : "them"}, keeping the finished screens.`
+        ? t("failedNone", { refundNote })
+        : t("failedSome", { built: built.length, total: rows.length, names: names(failed), refundNote, count: failed.length })
 
   const saved = await db.transaction(async (tx) => {
     // Everything asked for so far is done. This message says what was, so later requests can still refer to it.

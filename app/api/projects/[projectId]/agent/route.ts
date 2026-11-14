@@ -7,7 +7,9 @@ import { applyAppChanges } from "@/lib/agent/changes"
 import { runPlannerTurn } from "@/lib/agent/planner"
 import { getRun, startRun, type ProjectRun } from "@/lib/agent/runs"
 import { assertCanUseAgent, chargeForBuild, PlanLimitError, planLimitResponse, refundCharge, type BuildCharge } from "@/lib/billing/credits"
-import { errorResponse, serverT, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
+import { requestLocale } from "@/i18n/request"
+import { detectChatLanguage } from "@/lib/i18n/chat-language"
+import { chatLocale, errorResponse, serverT, translatorFor, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { getCurrentUser, type SessionUser } from "@/lib/session"
 
@@ -33,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   if (!UUID_PATTERN.test(projectId)) return error("projectNotFound", 404)
 
   const t = await serverT("errors")
-  const [project] = await db
+  let [project] = await db
     .select()
     .from(projects)
     .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
@@ -65,6 +67,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
       throw cause
     }
     const element = readElementContext(body.element)
+    // From what the person wrote, before the element's code is added, which is Latin text of its own.
+    const chatLanguage = detectChatLanguage(content, chatLocale(project))
+    if (chatLanguage !== project.chatLanguage) {
+      await db.update(projects).set({ chatLanguage }).where(eq(projects.id, project.id))
+      project = { ...project, chatLanguage }
+    }
     await db.insert(messages).values({ projectId: project.id, role: "user", content: element ? messageWithElement(content, element) : content })
     return streamRun(startRun(project.id, (run) => respond(run, project, user, t), t("agentRunFailed")), request)
   }
@@ -81,13 +89,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
       if (cause instanceof PlanLimitError) return planLimitResponse(cause)
       throw cause
     }
-    await db.insert(messages).values({ projectId: project.id, role: "user", content: "Looks good, build it!" })
+    // The person's message is in the language of the interface, like the one shown while this request is sent.
+    await db.insert(messages).values({ projectId: project.id, role: "user", content: translatorFor(await requestLocale(), "agentMessages")("confirm") })
     const [reply] = await db
       .insert(messages)
       .values({
         projectId: project.id,
         role: "assistant",
-        content: `On it! I'll build the ${plan.screens.length} screens one at a time, starting with ${plan.screens[0].name}.`,
+        content: translatorFor(chatLocale(project), "agentMessages")("onIt", { count: plan.screens.length, name: plan.screens[0].name }),
       })
       .returning({ id: messages.id, role: messages.role, content: messages.content, plan: messages.plan })
     const started = await startBuild(project, plan, [{ type: "message", message: reply }], charge)

@@ -4,10 +4,12 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 
 import {
+  activityOf,
   componentFilePath,
   messageWithElement,
   type AgentEvent,
   type AgentRequest,
+  type Activity,
   type AppPlan,
   type ChatMessage,
   type ProjectScreen,
@@ -25,8 +27,8 @@ export type AgentState = {
   backend: BackendStatus
   /** True while a request to the agent is open. */
   busy: boolean
-  /** What the agent is doing right now, e.g. "Drafting the screen plan…". */
-  activity: string | null
+  /** What the agent is doing right now, as a status key to word here, or a label saved before there were keys. */
+  activity: Activity | null
   /** The reply being written, before it's saved. */
   streamingText: string
   reasoning: string
@@ -47,7 +49,7 @@ type Action =
   | { type: "new-session" }
   | { type: "file-code"; path: string; code: string }
 
-function reducer(state: AgentState, action: Action): AgentState {
+export function reducer(state: AgentState, action: Action): AgentState {
   switch (action.type) {
     case "begin":
       return {
@@ -100,7 +102,7 @@ function withActiveTheme(state: AgentState, activeThemeId: string): AgentState {
 function applyEvent(state: AgentState, event: AgentEvent): AgentState {
   switch (event.type) {
     case "status":
-      return { ...state, activity: event.label }
+      return { ...state, activity: activityOf(event) }
     case "reasoning-delta":
       return { ...state, reasoning: state.reasoning + event.delta }
     case "text-delta":

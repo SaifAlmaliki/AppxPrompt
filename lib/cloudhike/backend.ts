@@ -4,7 +4,7 @@
 import { and, eq, inArray, lt, ne, sql } from "drizzle-orm"
 
 import { cloudhikeConnections, db, projectBackends, projects, screens, type Project, type ProjectBackend } from "@/db"
-import type { AgentEvent, AppPlan } from "@/lib/agent-protocol"
+import { statusEvent, type AgentEvent, type AppPlan } from "@/lib/agent-protocol"
 import { mergePlan } from "@/lib/agent/changes"
 import type { AppBackend, BackendService, BackendServiceStatus, BackendStatus } from "@/lib/backend-protocol"
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/lib/cloudhike/client"
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { closeAppConnection, prepareAppDatabase } from "@/lib/cloudhike/gateway"
-import { translatorFor, type Translator } from "@/lib/i18n/server"
+import { chatLocale, translatorFor, type Translator } from "@/lib/i18n/server"
 
 const DEPLOY_WAIT_MS = 3 * 60_000
 const DEPLOY_POLL_MS = 3_000
@@ -151,6 +151,8 @@ export type SetUpBackendResult =
  * and an app already running keeps running if this fails.
  */
 export async function setUpBackend(project: Project, { services = [], acceptEmailPolicy = false, emit }: SetUpBackendOptions): Promise<SetUpBackendResult> {
+  // This runs from CloudHike Jobs too, with no request. What it says is in the project's chat language.
+  const t = translatorFor(chatLocale(project), "errors")
   const claimedAt = new Date(Date.now() - CLAIM_EXPIRES_MS)
   const [row] = await db
     .update(projectBackends)
@@ -162,7 +164,7 @@ export async function setUpBackend(project: Project, { services = [], acceptEmai
       )
     )
     .returning()
-  if (!row) return { ok: false, message: "This app's backend is already being set up, or isn't connected." }
+  if (!row) return { ok: false, message: t("backendSetupBusy") }
   const wasReady = Boolean(project.plan?.backend)
 
   const report = async (changes: Partial<ProjectBackend>) => {
@@ -179,7 +181,7 @@ export async function setUpBackend(project: Project, { services = [], acceptEmai
     let cloudhikeId = row.cloudhikeProjectId
     let slug = row.cloudhikeProjectSlug
     if (!cloudhikeId) {
-      emit({ type: "status", label: "Creating your CloudHike project…" })
+      emit(statusEvent("creatingBackendProject"))
       const name = cloudhikeProjectName(project)
       const created = (await client.findProject(name)) ?? (await client.createProject(name))
       cloudhikeId = created.id
@@ -195,7 +197,7 @@ export async function setUpBackend(project: Project, { services = [], acceptEmai
 
     const missing = [...wanted].filter((type) => !deployed.has(type))
     if (missing.length > 0) {
-      emit({ type: "status", label: "Deploying your backend services…" })
+      emit(statusEvent("deployingBackend"))
       await client.deployServices(cloudhikeId, missing, acceptEmailPolicy)
     }
 
@@ -204,18 +206,18 @@ export async function setUpBackend(project: Project, { services = [], acceptEmai
     for (;;) {
       const waiting = [...wanted].filter((type) => !SETTLED.has(latest.find((service) => service.type === type)?.status ?? ""))
       const failed = latest.find((service) => wanted.has(service.type) && service.status === "failed")
-      if (failed) throw new CloudHikeError(`CloudHike couldn't deploy ${failed.type}. Open the project in CloudHike for details.`)
+      if (failed) throw new CloudHikeError(t("backendDeployFailed", { service: failed.type }))
       if (waiting.length === 0) break
-      if (Date.now() > deadline) throw new CloudHikeError(`${waiting.join(", ")} is taking longer than expected to start. Try again in a minute.`)
+      if (Date.now() > deadline) throw new CloudHikeError(t("backendSlowStart", { services: waiting.join(", ") }))
       await new Promise((resolve) => setTimeout(resolve, DEPLOY_POLL_MS))
       latest = (await client.getProject(cloudhikeId)).services
       await report({ services: latest, cloudhikeProjectSlug: slug })
     }
 
     const database = latest.find((service) => service.type === "postgres")?.status
-    if (database !== "ready") throw new CloudHikeError(`Your CloudHike database is ${database}. Start it again from the CloudHike dashboard, then try again.`)
+    if (database !== "ready") throw new CloudHikeError(t("backendDatabaseState", { state: String(database) }))
 
-    emit({ type: "status", label: "Connecting your app…" })
+    emit(statusEvent("connectingApp"))
     const env = await client.getEnvironment(cloudhikeId)
     const [fresh] = await db.select({ plan: projects.plan }).from(projects).where(eq(projects.id, project.id))
     await prepareAppDatabase(env, fresh?.plan?.collections ?? [])
@@ -229,7 +231,7 @@ export async function setUpBackend(project: Project, { services = [], acceptEmai
     const expired = error instanceof CloudHikeAuthError
     if (expired) await db.delete(cloudhikeConnections).where(eq(cloudhikeConnections.userId, project.userId))
     // Connection strings can appear in driver errors, so only CloudHike's own messages reach the person.
-    const message = error instanceof CloudHikeError || expired ? error.message : "Something went wrong while setting up the backend. Please try again."
+    const message = expired ? t("cloudhikeAuthLost") : error instanceof CloudHikeError ? error.message : t("backendSetupFailed")
     if (!(error instanceof CloudHikeError)) console.error(`Setting up the backend of ${project.id} failed`, error)
     await report({ state: wasReady ? "ready" : "failed", error: message })
     emit({ type: "status", label: null })

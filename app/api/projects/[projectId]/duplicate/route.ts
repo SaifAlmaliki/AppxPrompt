@@ -74,6 +74,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pr
         title: name,
         prompt: project.prompt,
         platform: project.platform,
+        chatLanguage: project.chatLanguage,
         status: project.status,
         plan: project.plan && { ...project.plan, appName: name, backend: null, pendingChanges: null },
       })

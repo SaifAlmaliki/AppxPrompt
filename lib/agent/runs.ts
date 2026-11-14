@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/lib/agent-protocol"
+import { activityOf, type AgentEvent } from "@/lib/agent-protocol"
 
 type Listener = (event: AgentEvent) => void
 
@@ -13,7 +13,7 @@ type Listener = (event: AgentEvent) => void
  */
 export class ProjectRun {
   private listeners = new Set<Listener>()
-  private status: string | null = null
+  private status: Extract<AgentEvent, { type: "status" }> | null = null
   private text = ""
   private reasoning = ""
   private code: { screenId: string; text: string } | null = null
@@ -21,7 +21,7 @@ export class ProjectRun {
   emit(event: AgentEvent) {
     switch (event.type) {
       case "status":
-        this.status = event.label
+        this.status = activityOf(event) === null ? null : event
         break
       case "reasoning-delta":
         this.reasoning += event.delta
@@ -44,7 +44,7 @@ export class ProjectRun {
   }
 
   subscribe(listener: Listener) {
-    if (this.status) listener({ type: "status", label: this.status })
+    if (this.status) listener(this.status)
     if (this.reasoning) listener({ type: "reasoning-delta", delta: this.reasoning })
     if (this.text) listener({ type: "text-delta", delta: this.text })
     if (this.code?.text) listener({ type: "code-delta", screenId: this.code.screenId, delta: this.code.text })

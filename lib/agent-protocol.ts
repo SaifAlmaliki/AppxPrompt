@@ -175,9 +175,27 @@ export type AgentRequest =
   | { action: "message"; content: string; element?: ElementContext }
   | { action: "confirm" }
 
+/** A line of `status.*` in the message files, worded by whoever shows it. */
+export type StatusKey = keyof (typeof import("@/messages/en.json"))["status"]
+export type StatusValues = Record<string, string | number>
+
+/** What the agent is doing right now, as the workspace keeps it. A string is a label saved before there were keys. */
+export type Activity = { key: StatusKey; values?: StatusValues } | string
+
+/** The activity a status event sets, or null when it clears it. */
+export function activityOf(event: { label?: string | null; key?: StatusKey; values?: StatusValues }): Activity | null {
+  if (event.key) return event.values ? { key: event.key, values: event.values } : { key: event.key }
+  return event.label ?? null
+}
+
+/** Says what the agent is doing, to be worded in the language of whoever is reading. */
+export function statusEvent(key: StatusKey, values?: StatusValues): AgentEvent {
+  return values ? { type: "status", key, values } : { type: "status", key }
+}
+
 export type AgentEvent =
-  /** What the agent is doing right now. `null` clears it. */
-  | { type: "status"; label: string | null }
+  /** What the agent is doing right now. An event with neither `label` nor `key` clears it. `label` is plain text from before keys. */
+  | { type: "status"; label?: string | null; key?: StatusKey; values?: StatusValues }
   | { type: "reasoning-delta"; delta: string }
   | { type: "text-delta"; delta: string }
   /** The finished assistant reply, as saved. Ends the streamed text. */

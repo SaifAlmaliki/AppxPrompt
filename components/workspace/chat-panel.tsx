@@ -17,6 +17,7 @@ import {
   XIcon,
 } from "lucide-react"
 
+import { useActivityText } from "@/hooks/use-activity-text"
 import { useElementLabel } from "@/hooks/use-element-label"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
@@ -56,6 +57,7 @@ const FOLLOW_THRESHOLD = 120
 export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: ChatAsset[]; editor: InlineEditor }) {
   const t = useTranslations("chat")
   const elementLabel = useElementLabel()
+  const activityText = useActivityText()
   const [draft, setDraft] = React.useState("")
   const [newSessionOpen, setNewSessionOpen] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -260,7 +262,7 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
                 {streamingText && <MessageText text={streamingText} streaming={busy} />}
                 {showBuild && <BuildProgress screens={screens} />}
                 {busy && (activity || !streamingText) && (
-                  <ActivityLine label={activity ?? t("activity")} />
+                  <ActivityLine label={activity ? activityText(activity) : t("activity")} />
                 )}
               </div>
             </li>
