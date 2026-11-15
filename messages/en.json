@@ -66,6 +66,7 @@
     "tagline": "AI agent for mobile apps",
     "heroTitle": "Turn your idea into a <highlight>mobile app</highlight>",
     "heroSubtitle": "Describe what you want to build. AppxPrompt designs the screens, writes the code, and gets it ready for iOS and Android.",
+    "support": "If you have questions or need support, reach out to us at <email>support@appxprompt.com</email>.",
     "footer": "© {year} AppxPrompt. All rights reserved."
   },
   "composer": {

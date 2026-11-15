@@ -66,6 +66,7 @@
     "tagline": "وكيل ذكاء اصطناعي لتطبيقات الجوال",
     "heroTitle": "حوّل فكرتك إلى <highlight>تطبيق جوال</highlight>",
     "heroSubtitle": "صِف ما تريد بناءه، ويصمّم AppxPrompt الشاشات ويكتب الشيفرة ويجهّز تطبيقك لنظامي iOS و Android.",
+    "support": "إذا كانت لديك أسئلة أو احتجت إلى دعم، تواصل معنا على <email>support@appxprompt.com</email>.",
     "footer": "جميع الحقوق محفوظة \u2066© {year} AppxPrompt\u2069"
   },
   "composer": {

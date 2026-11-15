@@ -69,8 +69,21 @@ export default async function Home() {
         </main>
 
         <footer className="relative px-4 pb-4 sm:px-6">
-          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-sm text-muted-foreground sm:flex-row">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-6 text-center text-sm text-muted-foreground sm:flex-row sm:text-start">
             <Logo className="size-7 rounded-xl" />
+            <p className="sm:flex-1">
+              {t.rich("support", {
+                email: (chunks) => (
+                  <a
+                    href="mailto:support@appxprompt.com"
+                    dir="ltr"
+                    className="font-medium text-violet-700 hover:underline"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })}
+            </p>
             <p>{t("footer", { year: new Date().getFullYear() })}</p>
           </div>
         </footer>
