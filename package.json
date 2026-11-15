@@ -21,6 +21,7 @@
     "@base-ui/react": "^1.7.0",
     "@imagekit/nodejs": "^7.13.0",
     "@openai/agents": "^0.21.0",
+    "@sentry/nextjs": "^11.12.0",
     "@shadcn/react": "^0.3.1",
     "@vercel/analytics": "^2.0.1",
     "assert": "^2.1.0",
