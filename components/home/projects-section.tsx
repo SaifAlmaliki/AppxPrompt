@@ -3,7 +3,7 @@
 import Link from "next/link"
 import * as React from "react"
 import { useTranslations } from "next-intl"
-import { ArrowRightIcon, Loader2Icon, PlusIcon, RotateCwIcon, SparklesIcon } from "lucide-react"
+import { Loader2Icon, PlusIcon, RotateCwIcon } from "lucide-react"
 
 import { useProjectPreview } from "@/hooks/use-project-preview"
 import { useAuth } from "@/lib/auth-client"
@@ -13,16 +13,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useUpgradeDialog } from "@/components/billing/upgrade-dialog"
 import { ProjectCard, useNearScreen } from "@/components/home/project-card"
 import { ProjectDialogs, ProjectMenu, useSendChange, type ProjectDialogKind } from "@/components/home/project-actions"
-import { PublicAppDialog } from "@/components/home/public-app-dialog"
-import { useSignInDialog } from "@/components/home/sign-in-dialog"
 
 const GRID_CLASS = "grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
 
 export function ProjectsSection() {
-  const { user, isPending } = useAuth()
+  const { user } = useAuth()
 
-  if (isPending) return <SectionSkeleton />
-  if (!user) return <PublicApps />
+  if (!user) return null
   return (
     <div className="space-y-14">
       <UserProjects />
@@ -73,89 +70,6 @@ function SectionHeading({
       </div>
       {action}
     </div>
-  )
-}
-
-function PublicApps() {
-  const t = useTranslations("projects.public")
-  const { openSignIn } = useSignInDialog()
-  const { projects, failed, reload } = useProjectList("/api/projects/public")
-
-  return (
-    <section id="explore" className="scroll-mt-24">
-      <SectionHeading
-        title={t("title")}
-        description={t("description")}
-        action={
-          <Button
-            variant="ghost"
-            size="lg"
-            className="h-10 rounded-full px-4 text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700"
-            onClick={() => openSignIn("sign-in")}
-          >
-            {t("signInToSee")}
-            <ArrowRightIcon className="rtl:-scale-x-100" />
-          </Button>
-        }
-      />
-
-      {failed ? (
-        <LoadFailed what="publicApps" onRetry={reload} />
-      ) : !projects ? (
-        <CardSkeletons />
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-[2rem] border border-border/60 bg-muted/40 px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
-            <SparklesIcon className="size-5" />
-          </span>
-          <p className="font-medium">{t("emptyTitle")}</p>
-          <p className="max-w-sm text-sm text-muted-foreground">{t("emptyBody")}</p>
-          <Button className="mt-1 h-10 rounded-full px-5" onClick={() => openSignIn("sign-up")}>
-            {t("getStarted")}
-          </Button>
-        </div>
-      ) : (
-        <div className={GRID_CLASS}>
-          {projects.map((project) => (
-            <PublicAppCard key={project.id} project={project} />
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function PublicAppCard({ project }: { project: ProjectSummary }) {
-  const { openSignIn } = useSignInDialog()
-  const [open, setOpen] = React.useState(false)
-  const { ref, near, seen } = useNearScreen<HTMLElement>()
-  const state = useProjectPreview(project.id, seen || open)
-
-  return (
-    <>
-      <ProjectCard
-        ref={ref}
-        project={project}
-        state={state}
-        // Behind the dialog, the same app would only restart on every change made in it.
-        running={near && !open}
-        action={(className) => (
-          <button type="button" data-card-action className={className} onClick={() => setOpen(true)}>
-            {project.name}
-          </button>
-        )}
-      />
-      <PublicAppDialog
-        project={project}
-        state={state}
-        open={open}
-        onOpenChange={setOpen}
-        onBuildYourOwn={() => {
-          setOpen(false)
-          openSignIn("sign-up")
-        }}
-      />
-    </>
   )
 }
 
@@ -357,12 +271,3 @@ function CardSkeletons() {
   )
 }
 
-function SectionSkeleton() {
-  return (
-    <section aria-busy="true">
-      <Skeleton className="mb-2 h-7 w-48" />
-      <Skeleton className="mb-6 h-4 w-72" />
-      <CardSkeletons />
-    </section>
-  )
-}

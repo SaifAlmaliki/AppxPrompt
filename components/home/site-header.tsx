@@ -33,7 +33,6 @@ import { Logo } from "@/components/home/logo"
 import { useSignInDialog } from "@/components/home/sign-in-dialog"
 
 const NAV_LINKS = [
-  { id: "explore", href: "/#explore" },
   { id: "templates", href: "/#templates" },
   { id: "pricing", href: "/pricing" },
   { id: "docs", href: "/docs" },
@@ -52,6 +51,14 @@ export function SiteHeader() {
             <Logo className="size-8 rounded-full" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
+            {user && (
+              <Link
+                href="/#projects"
+                className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-violet-500/10 hover:text-violet-700"
+              >
+                {t("header.myProjects")}
+              </Link>
+            )}
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.id}
@@ -107,6 +114,11 @@ export function SiteHeader() {
               <MenuIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-2xl">
+              {user && (
+                <DropdownMenuItem className="py-2" render={<Link href="/#projects" />}>
+                  {t("header.myProjects")}
+                </DropdownMenuItem>
+              )}
               {NAV_LINKS.map((link) => (
                 <DropdownMenuItem
                   key={link.id}

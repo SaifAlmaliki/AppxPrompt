@@ -1,6 +1,7 @@
 import { SparklesIcon } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
+import { DemoReel } from "@/components/home/demo-reel"
 import { FaqSection } from "@/components/home/faq-section"
 import { Logo } from "@/components/home/logo"
 import { ProjectsSection } from "@/components/home/projects-section"
@@ -63,6 +64,17 @@ export default async function Home() {
 
           <div className="space-y-24 pb-24">
             <ProjectsSection />
+            <section id="demo" aria-labelledby="demo-title" className="scroll-mt-24">
+              <div className="mb-6 text-center">
+                <h2 id="demo-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                  {t("demo.heading")}
+                </h2>
+                <p id="demo-caption" className="mt-1 text-sm text-muted-foreground">
+                  {t("demo.caption")}
+                </p>
+              </div>
+              <DemoReel />
+            </section>
             <TemplatesSection />
             <FaqSection />
           </div>

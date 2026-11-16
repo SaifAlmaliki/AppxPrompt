@@ -67,7 +67,18 @@
     "heroTitle": "حوّل فكرتك إلى <highlight>تطبيق جوال</highlight>",
     "heroSubtitle": "صِف ما تريد بناءه، ويصمّم AppxPrompt الشاشات ويكتب الشيفرة ويجهّز تطبيقك لنظامي iOS و Android.",
     "support": "إذا كانت لديك أسئلة أو احتجت إلى دعم، تواصل معنا على <email>support@appxprompt.com</email>.",
-    "footer": "جميع الحقوق محفوظة \u2066© {year} AppxPrompt\u2069"
+    "footer": "جميع الحقوق محفوظة \u2066© {year} AppxPrompt\u2069",
+    "demo": {
+      "heading": "شاهده وهو يعمل",
+      "label": "عرض توضيحي لتطبيق AppxPrompt",
+      "caption": "شاهد وصفاً يتحول إلى تطبيق جوال.",
+      "play": "تشغيل",
+      "pause": "إيقاف مؤقت",
+      "playWithSound": "شغّل الصوت",
+      "soundOn": "تشغيل الصوت",
+      "mute": "كتم الصوت",
+      "seek": "تقديم العرض أو ترجيعه"
+    }
   },
   "composer": {
     "label": "صِف التطبيق الذي تريد بناءه",

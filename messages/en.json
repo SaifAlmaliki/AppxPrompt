@@ -67,7 +67,18 @@
     "heroTitle": "Turn your idea into a <highlight>mobile app</highlight>",
     "heroSubtitle": "Describe what you want to build. AppxPrompt designs the screens, writes the code, and gets it ready for iOS and Android.",
     "support": "If you have questions or need support, reach out to us at <email>support@appxprompt.com</email>.",
-    "footer": "© {year} AppxPrompt. All rights reserved."
+    "footer": "© {year} AppxPrompt. All rights reserved.",
+    "demo": {
+      "heading": "See it in action",
+      "label": "AppxPrompt product demo",
+      "caption": "Watch a prompt turn into a mobile app.",
+      "play": "Play",
+      "pause": "Pause",
+      "playWithSound": "Play with sound",
+      "soundOn": "Sound on",
+      "mute": "Mute",
+      "seek": "Seek in the demo"
+    }
   },
   "composer": {
     "label": "Describe the app you want to build",

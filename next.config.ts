@@ -8,6 +8,19 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Dev only: lets the app be opened through an ngrok tunnel (see JOBS_PUBLIC_URL).
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev"],
+  async headers() {
+    return [
+      {
+        source: "/media/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ]
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {
