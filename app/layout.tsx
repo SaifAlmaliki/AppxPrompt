@@ -29,6 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
+    other: {
+      google: "notranslate",
+    },
   };
 }
 
@@ -45,6 +48,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={dir}
+      translate="no"
       className={`${geist.variable} ${tajawal.variable}`}
     >
       <body className="antialiased">

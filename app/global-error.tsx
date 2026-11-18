@@ -15,7 +15,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
+    <html translate="no">
       <body>
         <h2>Something went wrong!</h2>
         <button type="button" onClick={() => retry()}>
