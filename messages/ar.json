@@ -1,6 +1,7 @@
 {
   "common": {
-    "credits": "{count, plural, zero {{count, number, integer} رصيد} one {رصيد واحد} two {رصيدان} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}"
+    "credits": "{count, plural, zero {{count, number, integer} رصيد} one {رصيد واحد} two {رصيدان} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}",
+    "askSupport": "إذا نقصك شيء، أو لم تعرف كيف تستخدم ميزة معيّنة، اسأل <email>support@appxprompt.com</email>."
   },
   "languageToggle": {
     "label": "اللغة",

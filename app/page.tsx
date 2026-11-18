@@ -12,6 +12,7 @@ import { TemplatesSection } from "@/components/home/templates-section"
 
 export default async function Home() {
   const t = await getTranslations("home")
+  const tCommon = await getTranslations("common")
 
   return (
     <SignInDialogProvider>
@@ -59,6 +60,19 @@ export default async function Home() {
 
             <div className="mt-10 w-full">
               <PromptComposer />
+              <p className="mx-auto mt-4 max-w-lg text-sm text-pretty text-muted-foreground">
+                {tCommon.rich("askSupport", {
+                  email: (chunks) => (
+                    <a
+                      href="mailto:support@appxprompt.com"
+                      dir="ltr"
+                      className="font-medium text-violet-700 hover:underline"
+                    >
+                      {chunks}
+                    </a>
+                  ),
+                })}
+              </p>
             </div>
           </section>
 

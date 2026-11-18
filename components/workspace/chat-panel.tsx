@@ -57,6 +57,7 @@ const FOLLOW_THRESHOLD = 120
 
 export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: ChatAsset[]; editor: InlineEditor }) {
   const t = useTranslations("chat")
+  const tCommon = useTranslations("common")
   const elementLabel = useElementLabel()
   const activityText = useActivityText()
   const [draft, setDraft] = React.useState("")
@@ -291,13 +292,14 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
         </ol>
       </div>
 
+      <div className="shrink-0">
       {editor.readOnly ? (
-        <p className="m-3 flex shrink-0 items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="m-3 flex items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
           <EyeIcon className="size-3.5 shrink-0" />
           {t("readOnly")}
         </p>
       ) : (
-      <form onSubmit={handleSubmit} className="shrink-0 p-3">
+      <form onSubmit={handleSubmit} className="p-3 pb-1">
         <div className="rounded-3xl bg-linear-to-br from-indigo-300/70 via-white to-fuchsia-300/70 p-px shadow-[0_12px_32px_-16px_rgba(76,29,149,0.35)] transition-colors focus-within:from-indigo-400 focus-within:to-fuchsia-400">
           <div className="rounded-[calc(1.5rem-1px)] bg-white p-2">
             {attachment && (
@@ -372,6 +374,20 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
         </div>
       </form>
       )}
+        <p className="px-4 pt-1.5 pb-3 text-center text-xs leading-relaxed text-pretty text-muted-foreground">
+          {tCommon.rich("askSupport", {
+            email: (chunks) => (
+              <a
+                href="mailto:support@appxprompt.com"
+                dir="ltr"
+                className="font-medium text-violet-700 hover:underline"
+              >
+                {chunks}
+              </a>
+            ),
+          })}
+        </p>
+      </div>
     </section>
   )
 }

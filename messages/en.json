@@ -1,6 +1,7 @@
 {
   "common": {
-    "credits": "{count, plural, one {# credit} other {# credits}}"
+    "credits": "{count, plural, one {# credit} other {# credits}}",
+    "askSupport": "Missing something, or not sure how a feature works? Ask <email>support@appxprompt.com</email>."
   },
   "languageToggle": {
     "label": "Language",

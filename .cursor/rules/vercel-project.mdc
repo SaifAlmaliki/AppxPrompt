@@ -1,0 +1,6 @@
+---
+description: Use only the appx-prompt Vercel project in this repo
+alwaysApply: true
+---
+
+In this repository, Vercel means the Hobby project `appx-prompt` on team `saif-almaliki` (`appx-prompt.vercel.app`). Do not query or change `zempar` or any other Vercel project unless the user names it.
