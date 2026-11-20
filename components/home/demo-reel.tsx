@@ -81,7 +81,9 @@ export function DemoReel() {
       }
       if (resumeRef.current) {
         resumeRef.current = false
-        void video.play()
+        // In-app browsers (e.g. Facebook) can fire visibility changes in quick
+        // succession, so this resume may be interrupted by a pause().
+        video.play().catch(() => {})
       }
     }
 
