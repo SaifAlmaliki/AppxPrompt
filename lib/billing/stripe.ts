@@ -2,7 +2,8 @@ import Stripe from "stripe"
 import { eq } from "drizzle-orm"
 
 import { db, users, type User } from "@/db"
-import { endProPlan, grantMonthlyCredits } from "@/lib/billing/credits"
+import { endProPlan, grantMonthlyCredits, grantTopupCredits } from "@/lib/billing/credits"
+import { TOPUP_PACKS, topupPriceId, type TopupId } from "@/lib/plans"
 import { LocalizedError, type ErrorKey } from "@/lib/i18n/server"
 
 // Everything that depends on the payment provider stays in this file.
@@ -62,6 +63,27 @@ export async function createCheckoutUrl(userId: number) {
   return session.url
 }
 
+/** Where to send someone to buy a one-time credit pack. */
+export async function createTopupCheckoutUrl(userId: number, packId: TopupId) {
+  const pack = TOPUP_PACKS.find((item) => item.id === packId)
+  const price = pack && topupPriceId(pack.id)
+  if (!pack || !price) throw new BillingError("billingUnavailable", 503)
+  const user = await loadUser(userId)
+  const api = stripe()
+  const session = await api.checkout.sessions.create({
+    mode: "payment",
+    customer: await ensureCustomer(user),
+    client_reference_id: String(user.id),
+    line_items: [{ price, quantity: 1 }],
+    metadata: { userId: String(user.id), kind: "topup", credits: String(pack.credits) },
+    success_url: appUrl("/pricing?checkout=topup"),
+    cancel_url: appUrl("/pricing"),
+    integration_identifier: "appxprompt_topup_wqnbxkpl",
+  })
+  if (!session.url) throw new BillingError("checkoutFailed", 502)
+  return session.url
+}
+
 /** Where someone can change their card and see their invoices. */
 export async function createPortalUrl(userId: number) {
   const user = await loadUser(userId)
@@ -116,6 +138,16 @@ async function syncSubscription(subscription: Stripe.Subscription) {
   return user
 }
 
+/** Adds a paid one-time pack to the buyer's credits. A repeated event adds them once. */
+async function grantPaidTopup(session: Stripe.Checkout.Session) {
+  if (session.mode !== "payment" || session.metadata?.kind !== "topup" || session.payment_status !== "paid") return
+  const priceId = idOf(session.line_items?.data[0]?.price)
+  const pack = TOPUP_PACKS.find((item) => priceId && topupPriceId(item.id) === priceId)
+  const userId = Number(session.client_reference_id)
+  if (!pack || !Number.isInteger(userId)) throw new Error(`Top-up session ${session.id} doesn't match a pack.`)
+  await grantTopupCredits(userId, pack.credits, `topup:${session.id}`)
+}
+
 /**
  * Checks that a webhook really is from Stripe, and applies it. Events can arrive
  * late, out of order, or twice, so what they're about is read again from Stripe.
@@ -131,6 +163,10 @@ export async function handleStripeWebhook(raw: string, signature: string) {
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       await syncSubscription(await api.subscriptions.retrieve(event.data.object.id))
+      break
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
+      await grantPaidTopup(await api.checkout.sessions.retrieve(event.data.object.id, { expand: ["line_items"] }))
       break
     case "invoice.paid": {
       const invoice = await api.invoices.retrieve(event.data.object.id!)

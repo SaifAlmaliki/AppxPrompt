@@ -157,6 +157,29 @@ export async function claimProjectSlot(tx: Transaction, userId: number, t: Error
   if (owned >= maxProjects) throw projectLimitReached(maxProjects, t)
 }
 
+/** Adds a bought pack to the credits that never expire. Once per `reference`, the Checkout Session. */
+export async function grantTopupCredits(userId: number, amount: number, reference: string) {
+  if (amount <= 0) return false
+  return db.transaction(async (tx) => {
+    const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update")
+    if (!user) return false
+    const saved = await tx
+      .insert(creditTransactions)
+      .values({
+        userId,
+        amount,
+        balanceAfter: user.credits + user.monthlyCredits + amount,
+        reason: "topup",
+        reference,
+      })
+      .onConflictDoNothing()
+      .returning({ id: creditTransactions.id })
+    if (saved.length === 0) return false
+    await tx.update(users).set({ credits: user.credits + amount }).where(eq(users.id, userId))
+    return true
+  })
+}
+
 /** Replaces what's left of the last period's credits with a new month's. Once per `reference`, the paid invoice. */
 export async function grantMonthlyCredits(userId: number, reference: string) {
   await db.transaction(async (tx) => {

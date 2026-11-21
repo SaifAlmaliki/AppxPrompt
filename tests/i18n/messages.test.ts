@@ -83,11 +83,11 @@ describe("Arabic plurals", () => {
   const t = createTranslator({ locale: "ar", messages: ar, formats });
 
   it.each([
-    [1, "رصيد واحد"],
-    [2, "رصيدان"],
-    [3, "3 أرصدة"],
-    [11, "11 رصيدًا"],
-    [100, "100 رصيد"],
+    [1, "نقطة واحدة"],
+    [2, "نقطتان"],
+    [3, "3 نقاط"],
+    [11, "11 نقطةً"],
+    [100, "100 نقطة"],
   ])("count %i", (count, expected) => {
     const result = t("common.credits", { count });
     expect(result).toBe(expected);

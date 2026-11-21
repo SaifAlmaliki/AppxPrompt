@@ -23,7 +23,7 @@ const CREDIT_COSTS = [
   { id: "planning", value: 0 },
 ] as const
 
-const QUESTIONS = ["used", "rollover", "downgrade", "publish"] as const
+const QUESTIONS = ["used", "rollover", "topup", "downgrade", "publish"] as const
 
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
   const { checkout } = await searchParams
@@ -55,7 +55,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
             <p className="mt-5 text-base text-pretty text-muted-foreground sm:text-lg">{t("pricing.subtitle")}</p>
           </section>
 
-          <PricingPlans checkout={checkout === "success"} />
+          <PricingPlans checkout={checkout === "success" ? "pro" : checkout === "topup" ? "topup" : null} />
 
           <section aria-labelledby="credit-costs" className="mx-auto mt-20 max-w-4xl">
             <h2 id="credit-costs" className="text-center text-2xl font-semibold tracking-tight">

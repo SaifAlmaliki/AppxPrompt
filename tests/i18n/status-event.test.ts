@@ -142,6 +142,6 @@ describe("agent messages", () => {
     const t = translatorFor("ar", "agentMessages")
     expect(t("onIt", { count: 2, name: "Home" })).toContain("شاشتين")
     expect(t("onIt", { count: 7, name: "Home" })).toContain("7 شاشات")
-    expect(t("refund", { credits: 1 })).toContain("رصيد واحد")
+    expect(t("refund", { credits: 1 })).toContain("نقطة واحدة")
   })
 })

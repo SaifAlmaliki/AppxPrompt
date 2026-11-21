@@ -92,6 +92,13 @@
       "when": 1794669101033,
       "tag": "0012_bizarre_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795293822426,
+      "tag": "0013_square_valkyrie",
+      "breakpoints": true
     }
   ]
 }

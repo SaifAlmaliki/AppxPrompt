@@ -32,7 +32,30 @@ export function isUpgradeReason(value: unknown): value is UpgradeReason {
   return UPGRADE_REASONS.includes(value as UpgradeReason)
 }
 
-export const CREDIT_REASONS = ["build", "edit", "image", "refund", "renewal", "plan-ended"] as const
+export const CREDIT_REASONS = ["build", "edit", "image", "refund", "renewal", "plan-ended", "topup"] as const
+
+/** One-time packs. The price ids live in the matching STRIPE_TOPUP_* env vars. */
+export const TOPUP_PACKS = [
+  { id: "100", credits: 100, priceLabel: "$5" },
+  { id: "400", credits: 400, priceLabel: "$15" },
+  { id: "1000", credits: 1000, priceLabel: "$29" },
+] as const
+export type TopupId = (typeof TOPUP_PACKS)[number]["id"]
+
+const TOPUP_PRICE_ENV: Record<TopupId, string> = {
+  "100": "STRIPE_TOPUP_100_PRICE_ID",
+  "400": "STRIPE_TOPUP_400_PRICE_ID",
+  "1000": "STRIPE_TOPUP_1000_PRICE_ID",
+}
+
+export function isTopupId(value: unknown): value is TopupId {
+  return TOPUP_PACKS.some((pack) => pack.id === value)
+}
+
+/** The Stripe price for a pack, or null when that env var isn't set. */
+export function topupPriceId(id: TopupId) {
+  return process.env[TOPUP_PRICE_ENV[id]] || null
+}
 export type CreditReason = (typeof CREDIT_REASONS)[number]
 
 /**

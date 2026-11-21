@@ -1,6 +1,6 @@
 {
   "common": {
-    "credits": "{count, plural, zero {{count, number, integer} رصيد} one {رصيد واحد} two {رصيدان} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}",
+    "credits": "{count, plural, zero {{count, number, integer} نقطة} one {نقطة واحدة} two {نقطتان} few {{count, number, integer} نقاط} many {{count, number, integer} نقطةً} other {{count, number, integer} نقطة}}",
     "askSupport": "إذا نقصك شيء، أو لم تعرف كيف تستخدم ميزة معيّنة، اسأل <email>support@appxprompt.com</email>."
   },
   "languageToggle": {
@@ -23,7 +23,7 @@
     },
     "billing": {
       "title": "الاستخدام والفوترة — AppxPrompt",
-      "description": "اطّلع على خطتك والأرصدة المتبقية لديك وعدد المشاريع التي استخدمتها."
+      "description": "اطّلع على خطتك والنقاط المتبقية لديك وعدد المشاريع التي استخدمتها."
     }
   },
   "plans": {
@@ -52,8 +52,8 @@
     "signIn": "تسجيل الدخول",
     "getStarted": "ابدأ الآن",
     "openMenu": "فتح القائمة",
-    "creditsTitle": "الرصيد المتبقي: {credits} في الخطة {plan}",
-    "creditsUnit": "{count, plural, zero {رصيد} one {رصيد} two {رصيدين} few {أرصدة} many {رصيدًا} other {رصيد}}",
+    "creditsTitle": "النقاط المتبقية: {credits} في الخطة {plan}",
+    "creditsUnit": "{count, plural, zero {نقطة} one {نقطة} two {نقطتين} few {نقاط} many {نقطةً} other {نقطة}}",
     "accountMenu": "فتح قائمة الحساب",
     "managePro": "إدارة خطة Pro",
     "upgradePro": "الترقية إلى Pro",
@@ -326,7 +326,7 @@
       },
       "cost": {
         "question": "كم التكلفة؟",
-        "answer": "البدء مجاني، مع {signup, plural, zero {{signup, number, integer} رصيد} one {رصيد واحد} two {رصيدين} few {{signup, number, integer} أرصدة} many {{signup, number, integer} رصيدًا} other {{signup, number, integer} رصيد}} لا تنتهي صلاحيتها. وتكلّف الشاشة الجديدة {screen, plural, zero {{screen, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{screen, number, integer} أرصدة} many {{screen, number, integer} رصيدًا} other {{screen, number, integer} رصيد}}، وتكلّف جولة التعديلات {edit, plural, zero {{edit, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{edit, number, integer} أرصدة} many {{edit, number, integer} رصيدًا} other {{edit, number, integer} رصيد}}، بينما الدردشة والتخطيط وتبديل السمات مجانية. اطّلع على <pricing>الأسعار</pricing> لخطة {proName}."
+        "answer": "البدء مجاني، مع {signup, plural, zero {{signup, number, integer} نقطة} one {نقطة واحدة} two {نقطتين} few {{signup, number, integer} نقاط} many {{signup, number, integer} نقطةً} other {{signup, number, integer} نقطة}} لا تنتهي صلاحيتها. وتكلّف الشاشة الجديدة {screen, plural, zero {{screen, number, integer} نقطة} one {نقطةً واحدةً} two {نقطتين} few {{screen, number, integer} نقاط} many {{screen, number, integer} نقطةً} other {{screen, number, integer} نقطة}}، وتكلّف جولة التعديلات {edit, plural, zero {{edit, number, integer} نقطة} one {نقطةً واحدةً} two {نقطتين} few {{edit, number, integer} نقاط} many {{edit, number, integer} نقطةً} other {{edit, number, integer} نقطة}}، بينما الدردشة والتخطيط وتبديل السمات مجانية. اطّلع على <pricing>الأسعار</pricing> لخطة {proName}."
       },
       "privacy": {
         "question": "من يستطيع رؤية مشاريعي؟",
@@ -340,7 +340,7 @@
       "signIn": "مرحبًا بعودتك"
     },
     "description": {
-      "signUp": "ابدأ بتحويل أفكارك إلى تطبيقات جوال — مع {credits, plural, zero {{credits, number, integer} رصيد مجاني} one {رصيد مجاني واحد} two {رصيدين مجانيين} few {{credits, number, integer} أرصدة مجانية} many {{credits, number, integer} رصيدًا مجانيًا} other {{credits, number, integer} رصيد مجاني}}.",
+      "signUp": "ابدأ بتحويل أفكارك إلى تطبيقات جوال — مع {credits, plural, zero {{credits, number, integer} نقطة مجانية} one {نقطة مجانية واحدة} two {نقطتين مجانيتين} few {{credits, number, integer} نقاط مجانية} many {{credits, number, integer} نقطةً مجانيةً} other {{credits, number, integer} نقطة مجانية}}.",
       "signIn": "سجّل الدخول لمواصلة البناء باستخدام AppxPrompt."
     },
     "orEmail": "أو تابع بالبريد الإلكتروني",
@@ -449,7 +449,7 @@
     "planning": {
       "title": "التخطيط مع الوكيل",
       "p1": "عند فتح مساحة العمل، يقرأ الوكيل طلبك ويسألك بضعة أسئلة قصيرة عمّا يهمّك أكثر. تأتي الأسئلة غالبًا مع خيارات مرقّمة، فيمكنك الإجابة برقم فقط، أو كتابة إجابتك.",
-      "p2": "ثم يقترح خطة: الشاشات التي سيبنيها، ووظيفة كل منها، والتبويبات التي سيضمّها التطبيق. اطلب التعديلات في المحادثة («أضف شاشة إعدادات»، «احذف الخريطة») إلى أن تصبح الخطة كما تريد، ثم أكّدها بالزر الموجود على الخطة أو بقول ذلك. لا يُبنى شيء ولا تُستهلك أي أرصدة حتى تؤكّد.",
+      "p2": "ثم يقترح خطة: الشاشات التي سيبنيها، ووظيفة كل منها، والتبويبات التي سيضمّها التطبيق. اطلب التعديلات في المحادثة («أضف شاشة إعدادات»، «احذف الخريطة») إلى أن تصبح الخطة كما تريد، ثم أكّدها بالزر الموجود على الخطة أو بقول ذلك. لا يُبنى شيء ولا تُستهلك أي نقاط حتى تؤكّد.",
       "tip": "ما لم تطلب المزيد، تضم الخطة الأولى بضع شاشات رئيسية وشاشة لتسجيل الدخول، لتحصل على النتائج سريعًا."
     },
     "building": {
@@ -458,7 +458,7 @@
       "step1": "<strong>السمات والبيانات.</strong> الألوان والخطوط والمحتوى التجريبي المشترك بين شاشاتك.",
       "step2": "<strong>المكوّنات المشتركة.</strong> الأزرار والبطاقات وعناصر أخرى يُعاد استخدامها في الشاشات، فيحدّث تغيير واحد التطبيق كله.",
       "step3": "<strong>الشاشات</strong>، واحدة تلو الأخرى، وتظهر كل منها في المعاينة فور جاهزيتها.",
-      "p2": "تعمل عمليات البناء في الخلفية، فيمكنك مغادرة الصفحة والعودة لمتابعتها. تُخصم الأرصدة عند بدء البناء، وإذا فشل البناء تستعيد أرصدة ما لم يكتمل منه."
+      "p2": "تعمل عمليات البناء في الخلفية، فيمكنك مغادرة الصفحة والعودة لمتابعتها. تُخصم النقاط عند بدء البناء، وإذا فشل البناء تستعيد نقاط ما لم يكتمل منه."
     },
     "editing": {
       "title": "تعديل تطبيقك",
@@ -512,12 +512,12 @@
       "p3": "لتجربة نسخة مختلفة دون المساس بالأصل، كرّر المشروع من قائمته في الصفحة الرئيسية."
     },
     "credits": {
-      "title": "الخطط والأرصدة",
+      "title": "الخطط والنقاط",
       "table": {
         "projects": "المشاريع",
         "unlimited": "غير محدودة",
         "screens": "الشاشات لكل مشروع",
-        "credits": "الأرصدة",
+        "credits": "النقاط",
         "freeCredits": "{count, number, integer}، لا تنتهي صلاحيتها",
         "proCredits": "{count, number, integer} شهريًا",
         "publishing": "النشر على الويب وZIP وGitHub",
@@ -525,7 +525,7 @@
         "yes": "نعم",
         "no": "لا"
       },
-      "p1": "تكلفة الشاشة الجديدة {screenCredits}، وتكلفة جولة التعديلات {editCredits}، وتكلفة الصورة بالذكاء الاصطناعي {imageCredits}. المحادثة والتخطيط وتبديل السمات مجانية، لكن الحد الأدنى من الرصيد اللازم ليردّ الوكيل هو {editCredits}. رصيدك ظاهر دائمًا في الرأس. راجع صفحة <pricing>الأسعار</pricing> للتفاصيل."
+      "p1": "تكلفة الشاشة الجديدة {screenCredits}، وتكلفة جولة التعديلات {editCredits}، وتكلفة الصورة بالذكاء الاصطناعي {imageCredits}. المحادثة والتخطيط وتبديل السمات مجانية، لكن الحد الأدنى من النقاط اللازمة ليردّ الوكيل هو {editCredits}. نقاطك ظاهرة دائمًا في الرأس. راجع صفحة <pricing>الأسعار</pricing> للتفاصيل."
     }
   },
   "pricing": {
@@ -563,9 +563,18 @@
       }
     },
     "status": {
-      "welcome": "مرحبًا بك في Pro! أرصدتك جاهزة.",
+      "welcome": "مرحبًا بك في Pro! نقاطك جاهزة.",
       "confirming": "جارٍ تأكيد دفعتك…",
-      "stillConfirming": "ما زالت دفعتك قيد التأكيد. ستعرض هذه الصفحة خطة Pro فور اكتمال العملية، فتفقّدها مجددًا بعد دقيقة."
+      "stillConfirming": "ما زالت دفعتك قيد التأكيد. ستعرض هذه الصفحة خطة Pro فور اكتمال العملية، فتفقّدها مجددًا بعد دقيقة.",
+      "topupReady": "نقاطك الإضافية جاهزة.",
+      "topupPending": "ما زالت دفعتك قيد التأكيد. تُضاف النقاط فور اكتمالها."
+    },
+    "topups": {
+      "heading": "نفدت نقاطك قبل بداية الشهر الجديد؟",
+      "subtitle": "اشترِ باقة لمرة واحدة وواصل البناء. هذه النقاط لا تنتهي صلاحيتها، وتبقى خطتك كما هي.",
+      "about": "{apps, plural, zero {حوالي {apps, number, integer} تطبيق صغير} one {حوالي تطبيق صغير واحد} two {حوالي تطبيقين صغيرين} few {حوالي {apps, number, integer} تطبيقات صغيرة} many {حوالي {apps, number, integer} تطبيقًا صغيرًا} other {حوالي {apps, number, integer} تطبيق صغير}}",
+      "buy": "اشترِ مقابل {price}",
+      "signIn": "سجّل الدخول للشراء"
     },
     "actions": {
       "getStarted": "ابدأ مجانًا",
@@ -580,12 +589,12 @@
     },
     "downgrade": {
       "title": "التحويل إلى الخطة المجانية؟",
-      "description": "ستحتفظ بخطة Pro حتى {date}، ولن يُحتسب عليك أي مبلغ مجددًا. بعد ذلك تنتهي أرصدتك الشهرية، ولا يمكنك التصدير إلى iOS أو Android، ولا بدء مشاريع جديدة تتجاوز {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}. وتبقى المشاريع التي أنشأتها ملكًا لك.",
+      "description": "ستحتفظ بخطة Pro حتى {date}، ولن يُحتسب عليك أي مبلغ مجددًا. بعد ذلك تنتهي نقاطك الشهرية، ولا يمكنك التصدير إلى iOS أو Android، ولا بدء مشاريع جديدة تتجاوز {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}. وتبقى المشاريع التي أنشأتها ملكًا لك.",
       "periodEnd": "نهاية فترة الفوترة الحالية",
       "confirm": "تحويل"
     },
     "costs": {
-      "heading": "كيف تعمل الأرصدة",
+      "heading": "كيف تعمل النقاط",
       "free": "مجانًا",
       "smallApp": {
         "label": "تطبيق صغير",
@@ -607,12 +616,12 @@
     "questions": {
       "heading": "الأسئلة",
       "used": {
-        "question": "متى تُستهلك الأرصدة؟",
-        "answer": "عند بدء عملية البناء. تكلّف الشاشة الجديدة {screenCredits}، وتكلّف جولة التعديلات {editCredits}، وتكلّف الشاشة الجديدة المضافة في تلك الجولة {screenCredits} إضافية. وإذا فشل البناء تستعيد أرصدة ما لم يكتمل منه."
+        "question": "متى تُستهلك النقاط؟",
+        "answer": "عند بدء عملية البناء. تكلّف الشاشة الجديدة {screenCredits}، وتكلّف جولة التعديلات {editCredits}، وتكلّف الشاشة الجديدة المضافة في تلك الجولة {screenCredits} إضافية. وإذا فشل البناء تستعيد نقاط ما لم يكتمل منه."
       },
       "rollover": {
-        "question": "هل تُرحَّل أرصدتي؟",
-        "answer": "لا تنتهي صلاحية الأرصدة المجانية أبدًا. أما الأرصدة الشهرية في خطة Pro فتنتهي صلاحيتها عند كل تجديد وتُستبدل بها أرصدة جديدة عددها {monthly, number, integer}. وتبقى لك الأرصدة المجانية التي تملكها عند انضمامك إلى Pro، وتُستخدم بعد الأرصدة الشهرية."
+        "question": "هل تُرحَّل نقاطي؟",
+        "answer": "لا تنتهي صلاحية النقاط المجانية أبدًا. أما النقاط الشهرية في خطة Pro فتنتهي صلاحيتها عند كل تجديد وتُستبدل بها نقاط جديدة عددها {monthly, number, integer}. وتبقى لك النقاط المجانية التي تملكها عند انضمامك إلى Pro، وتُستخدم بعد النقاط الشهرية. ونقاط الباقة المشتراة لا تنتهي صلاحيتها أيضًا، وتُستخدم بعد النقاط الشهرية."
       },
       "downgrade": {
         "question": "هل يمكنني خفض خطتي في أي وقت؟",
@@ -621,19 +630,23 @@
       "publish": {
         "question": "هل يمكنني النشر في الخطة المجانية؟",
         "answer": "نعم، كموقع إلكتروني له عنوانه الخاص. أما بناء ملفات ‎.aab و‎.apk و‎.ipa لمتاجر التطبيقات فهو جزء من خطة Pro."
+      },
+      "topup": {
+        "question": "ماذا تغيّر باقة النقاط؟",
+        "answer": "نقاطك فقط. الباقة دفعة لمرة واحدة، ولا تنتهي صلاحية نقاطها، وتُستخدم بعد نقاط هذا الشهر. تبقى خطتك وحدّ المشاريع وتصدير متاجر التطبيقات كما هي."
       }
     }
   },
   "billing": {
-    "subtitle": "خطتك، والأرصدة المتبقية لديك، وعدد المشاريع التي استخدمتها.",
+    "subtitle": "خطتك، والنقاط المتبقية لديك، وعدد المشاريع التي استخدمتها.",
     "signInPrompt": "سجّل الدخول لعرض استخدامك وفواتيرك.",
     "creditsLeft": "المتبقي: {credits}",
-    "creditsLeftLabel": "الأرصدة المتبقية",
+    "creditsLeftLabel": "النقاط المتبقية",
     "projectsUsedLabel": "المشاريع المستخدمة",
-    "lowCredits": "لا يكفي الرصيد المتبقي لتعديل آخر.",
-    "oneTimeCredits": "أرصدة تُمنح لمرة واحدة ولا تنتهي صلاحيتها.",
-    "endsWithPro": "تنتهي الأرصدة الشهرية بانتهاء خطة Pro في {date}.",
-    "expiresOn": "تنتهي صلاحية الأرصدة الشهرية غير المستخدمة في {date}.",
+    "lowCredits": "لا تكفي النقاط المتبقية لتعديل آخر.",
+    "oneTimeCredits": "نقاط تُمنح لمرة واحدة ولا تنتهي صلاحيتها.",
+    "endsWithPro": "تنتهي النقاط الشهرية بانتهاء خطة Pro في {date}.",
+    "expiresOn": "تنتهي صلاحية النقاط الشهرية غير المستخدمة في {date}.",
     "projectsCount": "{count, plural, zero {{count, number, integer} مشروع} one {مشروع واحد} two {مشروعان} few {{count, number, integer} مشاريع} many {{count, number, integer} مشروعًا} other {{count, number, integer} مشروع}}",
     "projectsOf": "{used, number, integer} من أصل {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}",
     "unlimited": "غير محدودة في خطة Pro.",
@@ -654,8 +667,8 @@
       "description": "تسمح الخطة المجانية بما يصل إلى {free, plural, zero {{free, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{free, number, integer} شاشات} many {{free, number, integer} شاشة} other {{free, number, integer} شاشة}} لكل مشروع. انضم إلى Pro لتبني ما يصل إلى {pro, plural, zero {{pro, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{pro, number, integer} شاشات} many {{pro, number, integer} شاشة} other {{pro, number, integer} شاشة}}."
     },
     "credits": {
-      "title": "نفدت أرصدتك",
-      "description": "ليس لديك رصيد كافٍ لهذا الإجراء. انضم إلى Pro لتحصل على أرصدة جديدة كل شهر."
+      "title": "نفدت نقاطك",
+      "description": "ليس لديك نقاط كافية لهذا الإجراء. انضم إلى Pro لتحصل على نقاط جديدة كل شهر."
     },
     "native-publish": {
       "title": "انشر في متاجر التطبيقات مع Pro",
@@ -663,9 +676,9 @@
     },
     "highlightCredits": "{credits} كل شهر",
     "alreadyPro": {
-      "title": "لقد استخدمت أرصدة هذا الشهر",
-      "renews": "ستحصل على {count, number, integer} رصيد إضافي عند تجديد خطة Pro في {date}.",
-      "noneLeft": "ليس لديك رصيد كافٍ متبقٍّ لهذا الإجراء."
+      "title": "لقد استخدمت نقاط هذا الشهر",
+      "renews": "ستحصل على {count, number, integer} نقطة إضافية عند تجديد خطة Pro في {date}.",
+      "noneLeft": "ليس لديك نقاط كافية متبقية لهذا الإجراء."
     },
     "gotIt": "حسنًا",
     "join": "انضم إلى Pro مقابل <amount>{price}</amount> شهريًا",
@@ -780,7 +793,7 @@
     "hideDetails": "إخفاء تفاصيل الشاشات",
     "showDetails": "إظهار تفاصيل الشاشات",
     "confirm": "{count, plural, zero {تأكيد وبناء {count, number, integer} شاشة} one {تأكيد وبناء شاشة واحدة} two {تأكيد وبناء شاشتين} few {تأكيد وبناء {count, number, integer} شاشات} many {تأكيد وبناء {count, number, integer} شاشة} other {تأكيد وبناء {count, number, integer} شاشة}}",
-    "cost": "يستهلك {count, plural, zero {{count, number, integer} رصيد} one {رصيدًا واحدًا} two {رصيدين} few {{count, number, integer} أرصدة} many {{count, number, integer} رصيدًا} other {{count, number, integer} رصيد}}. هل تريد تعديلات؟ أخبرني في المحادثة أدناه."
+    "cost": "يستهلك {count, plural, zero {{count, number, integer} نقطة} one {نقطةً واحدةً} two {نقطتين} few {{count, number, integer} نقاط} many {{count, number, integer} نقطةً} other {{count, number, integer} نقطة}}. هل تريد تعديلات؟ أخبرني في المحادثة أدناه."
   },
   "buildProgress": {
     "label": "تقدّم البناء",
@@ -1386,7 +1399,7 @@
     "writeMessageFirst": "اكتب رسالة أولًا.",
     "messageTooLong": "اجعل رسالتك أقصر من {max, plural, zero {{max, number, integer} حرف} one {حرفًا واحدًا} two {حرفين} few {{max, number, integer} أحرف} many {{max, number, integer} حرفًا} other {{max, number, integer} حرف}}.",
     "noPlanWaiting": "لا توجد خطة بانتظار التأكيد.",
-    "creditsShort": "يحتاج هذا إلى {needed, plural, zero {{needed, number, integer} رصيد} one {رصيد واحد} two {رصيدان} few {{needed, number, integer} أرصدة} many {{needed, number, integer} رصيدًا} other {{needed, number, integer} رصيد}}، ولا يتبقى لديك ما يكفي.",
+    "creditsShort": "يحتاج هذا إلى {needed, plural, zero {{needed, number, integer} نقطة} one {نقطة واحدة} two {نقطتان} few {{needed, number, integer} نقاط} many {{needed, number, integer} نقطةً} other {{needed, number, integer} نقطة}}، ولا يتبقى لديك ما يكفي.",
     "projectLimit": "تتضمن الخطة المجانية {max, plural, zero {{max, number, integer} مشروع} one {مشروع واحد} two {مشروعين} few {{max, number, integer} مشاريع} many {{max, number, integer} مشروعًا} other {{max, number, integer} مشروع}}. انضم إلى Pro لمشاريع غير محدودة، أو احذف أحدها لتفسح المجال.",
     "screenLimit": "{plan, select, pro {تسمح خطة Pro} other {تسمح الخطة المجانية}} بما يصل إلى {max, plural, zero {{max, number, integer} شاشة} one {شاشة واحدة} two {شاشتين} few {{max, number, integer} شاشات} many {{max, number, integer} شاشة} other {{max, number, integer} شاشة}} لكل مشروع.",
     "screenLimitUpgrade": "{limit} انضم إلى Pro لبناء هذه الشاشة، أو أزل بعض الشاشات.",
@@ -1525,7 +1538,7 @@
     "backendLocal": "يُحفظ كل ما تضيفه على الجهاز حاليًا. انقر على «ربط الواجهة الخلفية» في الأعلى عندما تريد نقله إلى السحابة.",
     "backendSynced": "يُحفظ كل ما يضيفه المستخدمون في واجهة CloudHike الخلفية ويُزامَن مباشرةً.",
     "backendFailed": "تعذّر عليّ إعداد واجهة CloudHike الخلفية، لذا لم ينتقل أي شيء إلى السحابة: {message}",
-    "refund": "أعدتُ إليك {credits, plural, zero {{credits, number, integer} رصيد} one {رصيد واحد} two {رصيدين} few {{credits, number, integer} أرصدة} many {{credits, number, integer} رصيدًا} other {{credits, number, integer} رصيد}} مقابل ما لم يكتمل.",
+    "refund": "أعدتُ إليك {credits, plural, zero {{credits, number, integer} نقطة} one {نقطة واحدة} two {نقطتين} few {{credits, number, integer} نقاط} many {{credits, number, integer} نقطةً} other {{credits, number, integer} نقطة}} مقابل ما لم يكتمل.",
     "failedNone": "تعذّر عليّ بناء الشاشات هذه المرة.{refundNote} قل «حاول مرة أخرى» وسأحاول من جديد.",
     "failedSome": "بنيتُ {built, number, integer} من {total, number, integer} شاشة. لم تخرج {names} بالشكل المطلوب.{refundNote} قل «حاول مرة أخرى» وسأعيد المحاولة، مع الإبقاء على الشاشات المكتملة.",
     "listLast": "{rest} و{last}",

@@ -14,7 +14,9 @@ import {
   PRO_MONTHLY_CREDITS,
   PRO_PRICE_LABEL,
   SMALL_APP_CREDITS,
+  TOPUP_PACKS,
   type PlanId,
+  type TopupId,
 } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 import {
@@ -72,14 +74,20 @@ function featureValue(t: Translator, plan: PlanId, id: (typeof FEATURE_IDS)[numb
 }
 
 /** `checkout` is how the browser's trip to Stripe went, when it has just come back. */
-export function PricingPlans({ checkout }: { checkout: boolean }) {
+export function PricingPlans({ checkout }: { checkout: "pro" | "topup" | null }) {
   const { user, isPending, refresh } = useAuth()
   const { redirect, pending, error: redirectError } = useBillingRedirect()
   const { openSignIn } = useSignInDialog()
   const t = useTranslations()
   const format = useFormatter()
   const timeZone = useBrowserTimeZone()
-  const [waitingForPayment, setWaitingForPayment] = React.useState(checkout)
+  const [waitingForPayment, setWaitingForPayment] = React.useState(checkout === "pro")
+  const [topupWaiting, setTopupWaiting] = React.useState(checkout === "topup")
+  const [topupAdded, setTopupAdded] = React.useState(false)
+  const [buying, setBuying] = React.useState<TopupId | null>(null)
+  const topupStart = React.useRef<number | null>(null)
+  const creditsRef = React.useRef(user?.credits)
+  creditsRef.current = user?.credits
   const [changing, setChanging] = React.useState(false)
   const [changeError, setChangeError] = React.useState<string | null>(null)
   const [confirmDowngrade, setConfirmDowngrade] = React.useState(false)
@@ -97,6 +105,48 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
       clearTimeout(giveUp)
     }
   }, [isPro, refresh, waitingForPayment])
+
+  React.useEffect(() => {
+    if (!topupWaiting) return
+    const timer = setInterval(() => {
+      const current = creditsRef.current
+      if (current === undefined) return
+      if (topupStart.current === null) {
+        topupStart.current = current
+      } else if (current > topupStart.current) {
+        setTopupAdded(true)
+        setTopupWaiting(false)
+        return
+      }
+      void refresh()
+    }, 2000)
+    const giveUp = setTimeout(() => setTopupWaiting(false), 30_000)
+    return () => {
+      clearInterval(timer)
+      clearTimeout(giveUp)
+    }
+  }, [refresh, topupWaiting])
+
+  async function buyPack(pack: TopupId) {
+    if (!user) {
+      openSignIn("sign-in")
+      return
+    }
+    setBuying(pack)
+    setChangeError(null)
+    const response = await fetch("/api/billing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "topup", pack }),
+    }).catch(() => null)
+    const body = await response?.json().catch(() => null)
+    if (response?.ok && body?.url) {
+      window.location.href = body.url
+      return
+    }
+    setBuying(null)
+    setChangeError(body?.error ?? t("billing.errors.network"))
+  }
 
   async function change(action: "downgrade" | "keep-pro") {
     setChanging(true)
@@ -121,15 +171,32 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
 
   return (
     <div className="space-y-6">
-      {checkout && (waitingForPayment || isPro) && (
+      {checkout === "pro" && (waitingForPayment || isPro) && (
         <p role="status" className="mx-auto flex w-fit items-center gap-2 rounded-full bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-800">
           {isPro ? <CheckIcon className="size-4" /> : <Loader2Icon className="size-4 animate-spin" />}
           {isPro ? t("pricing.status.welcome") : t("pricing.status.confirming")}
         </p>
       )}
-      {checkout && !waitingForPayment && !isPro && !isPending && (
+      {checkout === "pro" && !waitingForPayment && !isPro && !isPending && (
         <p role="status" className="mx-auto w-fit rounded-full bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800">
           {t("pricing.status.stillConfirming")}
+        </p>
+      )}
+      {checkout === "topup" && topupWaiting && (
+        <p role="status" className="mx-auto flex w-fit items-center gap-2 rounded-full bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-800">
+          <Loader2Icon className="size-4 animate-spin" />
+          {t("pricing.status.confirming")}
+        </p>
+      )}
+      {checkout === "topup" && topupAdded && (
+        <p role="status" className="mx-auto flex w-fit items-center gap-2 rounded-full bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-800">
+          <CheckIcon className="size-4" />
+          {t("pricing.status.topupReady")}
+        </p>
+      )}
+      {checkout === "topup" && !topupWaiting && !topupAdded && !isPending && (
+        <p role="status" className="mx-auto w-fit rounded-full bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800">
+          {t("pricing.status.topupPending")}
         </p>
       )}
       {error && (
@@ -209,6 +276,35 @@ export function PricingPlans({ checkout }: { checkout: boolean }) {
           }
         />
       </div>
+
+      <section aria-labelledby="topups" className="mx-auto max-w-4xl pt-12">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 id="topups" className="text-2xl font-semibold tracking-tight">
+            {t("pricing.topups.heading")}
+          </h2>
+          <p className="mt-3 text-sm text-pretty text-muted-foreground sm:text-base">{t("pricing.topups.subtitle")}</p>
+        </div>
+        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+          {TOPUP_PACKS.map((pack) => (
+            <li key={pack.id} className="flex flex-col rounded-3xl border border-border/60 bg-white/70 p-6 shadow-[0_8px_32px_-12px_rgba(76,29,149,0.15)]">
+              <p className="text-2xl font-semibold tracking-tight text-violet-700">{t("common.credits", { count: pack.credits })}</p>
+              <p dir="ltr" className="mt-2 text-4xl font-semibold tracking-tight">
+                {pack.priceLabel}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("pricing.topups.about", { apps: Math.floor(pack.credits / SMALL_APP_CREDITS) })}</p>
+              <Button
+                variant="outline"
+                className="mt-6 h-11 w-full rounded-full"
+                disabled={isPending || buying !== null}
+                onClick={() => void buyPack(pack.id)}
+              >
+                {buying === pack.id && <Loader2Icon className="animate-spin" />}
+                {user || isPending ? t("pricing.topups.buy", { price: pack.priceLabel }) : t("pricing.topups.signIn")}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <AlertDialog open={confirmDowngrade} onOpenChange={setConfirmDowngrade}>
         <AlertDialogContent className="rounded-3xl">

@@ -53,7 +53,7 @@ describe("translatorFor", () => {
 
   it("uses Arabic plural forms and Western digits", () => {
     const t = translatorFor("ar", "errors");
-    expect(t("creditsShort", { needed: 2 })).toContain("رصيدان");
+    expect(t("creditsShort", { needed: 2 })).toContain("نقطتان");
     expect(t("projectLimit", { max: 3 })).toContain("3 مشاريع");
   });
 });

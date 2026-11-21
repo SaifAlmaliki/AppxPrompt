@@ -565,7 +565,16 @@
     "status": {
       "welcome": "Welcome to Pro! Your credits are ready.",
       "confirming": "Confirming your payment…",
-      "stillConfirming": "Your payment is still being confirmed. This page will show Pro once it's through, so check back in a minute."
+      "stillConfirming": "Your payment is still being confirmed. This page will show Pro once it's through, so check back in a minute.",
+      "topupReady": "Your extra credits are ready.",
+      "topupPending": "Your payment is still being confirmed. Your balance updates once it's through."
+    },
+    "topups": {
+      "heading": "Ran out before the month resets?",
+      "subtitle": "Buy a one-time pack and keep building. These credits never expire, and your plan stays the same.",
+      "about": "About {apps, plural, one {# small app} other {# small apps}}",
+      "buy": "Buy for {price}",
+      "signIn": "Sign in to buy"
     },
     "actions": {
       "getStarted": "Get started free",
@@ -612,7 +621,7 @@
       },
       "rollover": {
         "question": "Do my credits roll over?",
-        "answer": "Free credits never expire. Pro's monthly credits expire at each renewal and are replaced with a new {monthly, number, integer}. Free credits you still have when you join Pro stay yours, and are used after the monthly ones."
+        "answer": "Free credits never expire. Pro's monthly credits expire at each renewal and are replaced with a new {monthly, number, integer}. Free credits you still have when you join Pro stay yours, and are used after the monthly ones. Credits from a top-up never expire either, and are used after the monthly ones."
       },
       "downgrade": {
         "question": "Can I downgrade at any time?",
@@ -621,6 +630,10 @@
       "publish": {
         "question": "Can I publish on the Free plan?",
         "answer": "Yes, as a website with its own address. Building .aab, .apk, and .ipa files for the app stores is part of Pro."
+      },
+      "topup": {
+        "question": "What does a top-up change?",
+        "answer": "Only your credit balance. A pack is a one-time payment, the credits never expire, and they are spent after this month's credits. Your plan, project limit, and app store export stay as they are."
       }
     }
   },

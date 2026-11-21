@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
-import { BillingError, createCheckoutUrl, createPortalUrl, setDowngrade } from "@/lib/billing/stripe"
+import { BillingError, createCheckoutUrl, createPortalUrl, createTopupCheckoutUrl, setDowngrade } from "@/lib/billing/stripe"
+import { isTopupId } from "@/lib/plans"
 import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { getCurrentUser } from "@/lib/session"
 
@@ -16,11 +17,14 @@ export async function POST(request: Request) {
   const user = await getCurrentUser().catch(() => null)
   if (!user) return error("signInRequired", 401)
 
-  const body = (await request.json().catch(() => null)) as { action?: unknown } | null
+  const body = (await request.json().catch(() => null)) as { action?: unknown; pack?: unknown } | null
   try {
     switch (body?.action) {
       case "upgrade":
         return NextResponse.json({ url: await createCheckoutUrl(user.id) })
+      case "topup":
+        if (!isTopupId(body.pack)) return error("invalidRequest", 400)
+        return NextResponse.json({ url: await createTopupCheckoutUrl(user.id, body.pack) })
       case "manage":
         return NextResponse.json({ url: await createPortalUrl(user.id) })
       case "downgrade":
