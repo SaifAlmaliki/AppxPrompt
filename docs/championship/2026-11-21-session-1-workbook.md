@@ -55,7 +55,7 @@ Every business needs a different app. A bakery needs a menu and pickup times. A 
 - One click to connect their own account. After that, the database, sign-in and file storage are prepared for them. They don't set those up or look after them.
 - Prices, product details, and anything shown to real customers
 - Anything involving customer data
-- For clinics: the agent builds service listings and appointment requests only. Patient records and medical information stay out of scope, because UAE health data rules apply to them.
+- What the app stores is the owner's decision. The agent designs the database each project needs, and the data lives in the owner's own CloudHike account, so the owner is responsible for the rules that apply to their data.
 
 ---
 
@@ -185,4 +185,4 @@ After your conversations, paste the workbook's prompt into ChatGPT or Claude wit
 - **Test access for judges:** a working link and a test account that stays active until the end of the Championship.
 - **Testing evidence:** for example, 20 app descriptions across different sectors, how many built successfully on the first try, what broke and how you fixed it.
 - **Cost per task:** model tokens for one plan plus one screen build, from your logs.
-- **Disclose limits:** for example, generated apps aren't built to store patient records or medical data, the agent can't take real payments without a backend set up, a free plan allows 5 screens, and builds need the background job service.
+- **Disclose limits:** for example, the agent can't take real payments without a backend set up, a free plan allows 5 screens, and builds need the background job service.

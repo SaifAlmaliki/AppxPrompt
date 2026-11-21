@@ -375,7 +375,7 @@ Estimate for a 4-screen app, to replace with measured numbers:
 - No version history yet
 - Phone preview needs Expo Go for SDK 54
 - iOS publishing needs the owner's own Apple developer account
-- Apps for clinics show services and appointment requests only. They aren't built to store patient records or medical data.
+- The owner decides what their app stores. The agent designs the database each project needs, and the data lives in the owner's own CloudHike account, so the owner is responsible for the rules that apply to it.
 - The agent only sees the names of attached files, not their contents
 - Model output can vary, so the same prompt can produce different apps
 
