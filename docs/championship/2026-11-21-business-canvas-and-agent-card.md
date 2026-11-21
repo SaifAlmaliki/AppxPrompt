@@ -1,0 +1,388 @@
+# AppxPrompt: AI Agent Business Canvas and Agent Card
+
+Draft answers for the Create AI Agents Championship submission portal (opens 4 December 2026, closes 4 January 2027). The portal asks these questions, and the pitch deck and videos should tell the same story.
+
+How to read the labels:
+- **Built** means it works in the code today.
+- **Guess** is an assumption to test. Don't present it as a finding.
+- **Estimate** is a calculated number that hasn't been measured yet.
+- **[FILL IN]** needs a real story, number or link from you.
+- **[MEASURE]** needs a number from your own tests or logs.
+
+---
+
+# Part 1: AI Agent Business Canvas
+
+## 1. Problem (feeds slides 1 and 2)
+
+**What specific problem does your agent solve?**
+Small businesses that sell or promote their services on Instagram, Facebook and WhatsApp don't own their sales channel. Orders and bookings arrive as DMs and get tracked by hand. The algorithm decides who sees their posts. They can't easily keep a customer list or message their own customers. Getting their own app means paying an agency a lot of money and waiting months, so most owners never find out whether their customers would use one.
+
+**Who experiences it, and how often?**
+Owners of small shops, home businesses, salons, clinics, restaurants, real estate agencies and service businesses with no tech team. They deal with the DM and order problem every day. The "should we have our own app?" decision comes up whenever they want to grow. (Guess)
+
+**What does this problem cost in time or money?**
+Guess, to check in interviews:
+- An agency or freelancer quote for a simple app: tens of thousands of dirhams and two to three months
+- Hours each week answering the same DMs ("price?", "available?", "where are you?")
+- Lost orders when a DM is missed
+- Platform risk: a blocked or hacked Instagram account can wipe out the whole sales channel overnight
+
+**What evidence confirms the problem exists?**
+**[FILL IN]** None collected yet. Target: at least 10 conversations with owners and a 20+ response survey before 4 January. Record who it was (no names), what happened, and when it last happened.
+
+## 2. Market Opportunity (feeds slide 3)
+
+**How large is the addressable market?**
+Guess, all sources to check:
+
+| Tier | Customers | Source or assumption | Value a year |
+|---|---|---|---|
+| TAM | 165,000 | About 550,000 SMEs in the UAE (UAE Ministry of Economy, **to check**) times a guessed 30% who sell mainly through social media | AED 138.6M |
+| SAM | 10,000 | Owners we can reach online in English and Arabic through SME programs and seller communities in the UAE | AED 8.4M |
+| SOM | 100 | Paying Pro users in the first 12 months | AED 84,000 |
+
+Price used: Pro at $19 a month, about AED 70 a month or AED 840 a year.
+
+**What evidence shows demand for the solution?**
+**[FILL IN]** Possible sources: survey results, sign-ups since launch, apps built on the platform, apps made public on the home page, Pro conversions. Use only real numbers from your dashboard.
+
+**What are your TAM, SAM and SOM estimates?**
+See the table above. AED 138.6M, AED 8.4M and AED 84K, all Guesses.
+
+**Which market segment will you target first?**
+Small business owners in the UAE who already sell or take bookings through Instagram and WhatsApp, in any sector. They already have customers and products, so they get value from their own app quickly.
+
+## 3. Solution (feeds slides 1 and 2)
+
+**What task does the agent complete end to end?**
+It turns a plain description of a business into a working mobile app. It interviews the owner, proposes a screen plan, builds the app after they approve it, and hands over something they can try on their phone, publish, and download as their own code.
+
+**Why use an agent instead of an app or chatbot?**
+Every business needs a different app, so the steps change each time. The agent decides which questions to ask, which screens and data the business needs, which shared components to build, and how to fix a screen that breaks its rules. A template builder makes the owner fit into a fixed layout. A chatbot gives them code they can't run or publish.
+
+**What triggers it and what result does it deliver?**
+- **Trigger:** the owner types an idea on the home page, for example "An app for my abaya shop where customers browse by collection and order in their size."
+- **Result:** a working Expo (React Native) app with screens, sample data, five themes, and sign-in. They can tap through it in the browser, open it on their phone with a QR code, publish it as a website or Android and iOS build files, download it as a ZIP, or push it to GitHub.
+
+**What is already working in your prototype?** (Built)
+- Three-question interview, then a screen plan the owner must confirm
+- Screens built one at a time in background jobs, with live progress
+- Live preview in a sandboxed frame, plus a code view
+- Editing by chat and by clicking any element
+- Five themes per app, switched without rebuilding
+- Shared component library
+- AI images through ImageKit
+- Real backend through CloudHike: database, sign-in and storage in the owner's own account
+- QR code to test on a phone in Expo Go
+- ZIP export and push to GitHub
+- Publishing to the web and Android and iOS build files through the owner's own Expo account
+- English and Arabic interface, with right-to-left layout
+- Free and Pro plans with credits, through Stripe
+
+## 4. Current Solutions (feeds slides 2 and 8)
+
+**How do users solve this problem today?**
+They stay on Instagram, Facebook and WhatsApp, set up a template website, or pay an agency or freelancer to build an app.
+
+**What tools, processes or workarounds exist?**
+- Instagram and Facebook shops, and the WhatsApp Business catalog
+- Website builders such as Shopify, Wix, Salla and Zid
+- Agencies and freelancers
+- No-code app builders such as FlutterFlow, Adalo and Bubble
+- AI app builders such as Lovable, Bolt and Rork
+
+**Where do these alternatives fall short?**
+- Social platforms: the owner doesn't own the audience, the data or the brand experience
+- Website builders: a website, not a mobile app, and template layouts
+- Agencies: expensive and slow for testing an idea
+- No-code builders: owners have to learn the tool first
+- Most AI builders target developers and are English only
+
+**What would make users switch?** (Guess)
+Seeing a working app for their own business on their own phone in one session, for the price of a monthly subscription, in Arabic or English, with the code and accounts in their own name.
+
+## 5. Target Audience (feeds slide 3)
+
+**Who benefits directly from the agent?**
+Small business owners, and their customers, who get a proper place to browse, order and book instead of sending DMs.
+
+**Who uses it, and who pays for it?**
+The owner uses it and pays for it. In a small business the owner also makes the purchasing decision, so user, payer and decision maker are the same person.
+
+**Which industries or communities are targeted?**
+Any small business that sells or promotes services online: retail, e-commerce, food, beauty, clinics, real estate, fitness and services. Later: developers and agencies that need fast proofs of concept.
+
+**How will you reach your first users?**
+Direct outreach to owners we already know, SME programs and communities in the UAE, Instagram seller groups, and short Arabic and English videos showing a real business getting its app. See section 9.
+
+## 6. Ideal Customer Persona (feeds slide 3)
+
+**Describe your ideal user and their daily tasks.**
+Guess, a made-up example: Noura, 34, runs a home-based abaya business in Sharjah with about 8,000 Instagram followers. Each day she posts new pieces, answers DMs about prices and sizes, takes orders in WhatsApp, and tracks them in a notebook.
+
+**[FILL IN]** Replace Noura with a real owner you've spoken to.
+
+**What frustrations or constraints do they face?**
+She isn't technical and prefers Arabic. Orders get lost in DMs. She worries about her account being blocked. An agency quote for an app was too high to justify before she knew customers would use it.
+
+**How frequently would they use the agent?**
+Guess: intensively for the first week (building and changing the app), then a few times a month to add products, screens or offers.
+
+**What proof do you have from real users?**
+**[FILL IN]** None yet.
+
+## 7. Key Differentiators (feeds slide 8)
+
+**What makes your solution hard to replace?**
+- The owner gets a real native mobile app, not a website, and can publish it to the stores under their own Expo account
+- They own the code (ZIP or GitHub) and the backend (their own CloudHike account), so there's no lock-in
+- An Arabic interface built for UAE and GCC owners
+- The agent interviews and plans before it builds, so a non-technical owner isn't left with a blank editor
+
+**What unique data, workflow or capability helps?**
+- The plan-then-build workflow, with the owner's approval required before credits are spent
+- A rule check on every generated screen, with one automatic rewrite when a screen breaks a rule
+- Edits by chat or by clicking an element, where only the affected screens are rebuilt
+- Themes and shared components, so one change updates the whole app
+
+**How is it better than existing alternatives?**
+Estimate, to confirm with tests: minutes to a first working app instead of weeks with an agency, for a monthly subscription instead of a large one-time fee.
+
+**How will you demonstrate measurable value?**
+**[MEASURE]** Time from first prompt to a working app on a phone, for 20 test businesses across sectors. Compare with agency quotes collected in interviews.
+
+## 8. Competitors (feeds slide 8)
+
+**Who are your direct and indirect competitors?**
+- **Direct:** AI app builders such as Lovable, Bolt, Rork and FlutterFlow's AI features
+- **Indirect:** Shopify, Wix, Salla and Zid; agencies and freelancers; staying on Instagram and WhatsApp
+
+**What are their strengths and limitations?**
+Fill this in after you check each competitor's current product and pricing. Starting points (Guess):
+
+| | Strengths | Limitations for our customer |
+|---|---|---|
+| Lovable, Bolt | Fast, popular, strong for web apps | Mostly web apps, aimed at people comfortable with code |
+| Rork | AI mobile app builder | English first, aimed at builders more than shop owners |
+| Shopify, Salla, Zid | Payments, inventory, trusted by sellers | Websites and template apps, little custom flow |
+| Agencies | Fully custom, done for you | Expensive and slow for a first test |
+
+**How do features, costs and outcomes compare?**
+**[FILL IN]** after checking current pricing. Put AppxPrompt's Free plan and $19 Pro plan next to each.
+
+**What is your sustainable competitive edge?**
+Focus on non-technical small business owners in the UAE and GCC: Arabic interface, an agent that interviews first, real mobile apps, and the owner keeps the code and the accounts.
+
+## 9. Go-to-Market Plan (feeds slides 10 and 11)
+
+**How will you acquire your first customers?**
+Build free apps with 10 owners we know (any sector), film their before and after, and use those as case studies.
+
+**Which channels and partnerships will you use?**
+- Direct outreach to owners we know and their referrals
+- UAE SME programs and communities, such as Dubai SME, Khalifa Fund and Sharjah SME (**to contact**)
+- Instagram and TikTok videos in Arabic and English showing a real business getting its app
+- Co-working spaces and business setup consultants that work with new license holders
+- Later: agencies that resell AppxPrompt to their small business clients
+
+**What is your 6 to 12 month launch plan?**
+- **Months 1 to 2:** 10 pilot owners, interviews, fixes from their feedback
+- **Months 3 to 4:** case study videos, first SME community partnership, 30 paying Pro users
+- **Months 5 to 8:** Arabic content campaign, referral credits, 60 paying users
+- **Months 9 to 12:** agency partner program, 100 paying users (the SOM)
+
+**How will you measure adoption and retention?**
+Sign-ups, the share of new projects that reach a built app, apps opened on a phone, apps published, Free to Pro conversion, and Pro users still paying after three months.
+
+## 10. Commercial Model (feeds slide 9)
+
+**Who pays, for what unit and at what price?** (Built)
+The business owner pays a subscription:
+- **Free:** 2 projects, 5 screens each, 100 one-time credits, web publishing, ZIP and GitHub
+- **Pro:** $19 a month (about AED 70), unlimited projects, 10 screens each, 1,000 credits a month, Android and iOS builds
+
+Credits: a new screen is 10, a round of changes is 5, an AI image is 1. Chatting, planning and theme switches are free.
+
+**What does one completed task cost, incl. retries?**
+Estimate, to replace with real numbers from your logs. Model: Claude Sonnet 5.5 at about $2 per million input tokens and $10 per million output tokens.
+- Interview and plan (about 5 turns): about $0.10 to $0.15
+- Foundation (themes and sample data) and components: about $0.10
+- Each screen: about $0.08, or about $0.16 if it needs the one automatic rewrite
+- **A 4-screen app: about $0.50 to $0.90**, before hosting, jobs and image costs
+
+**[MEASURE]** Log the input and output tokens for 20 real builds and report the average and the worst case.
+
+**How do usage and customer volume affect margin?**
+Estimate. A Pro user who spends all 1,000 credits builds about 25 small apps, which could cost $12 to $20 in model usage, close to the $19 price. Most users won't use every credit, but this is the main risk to margin. Ways to manage it: prompt caching (cached input is much cheaper), a smaller model for the interview, and adjusting credit prices once real costs are known. Hosting and database costs grow slowly with users.
+
+**How will you fund or sustain the solution?**
+Pro subscriptions, then an agency plan. **[FILL IN]** Self-funded today? Say so, and name any grants or programs you plan to apply for.
+
+## 11. Operational and Agent Model (feeds slides 4 to 6)
+
+**Which models, tools and data does it use?** (Built)
+- **Model:** Claude Sonnet 5.5 through Anthropic's OpenAI-compatible API, run with the OpenAI Agents SDK
+- **App:** Next.js 16, React 19, PostgreSQL with Drizzle
+- **Jobs, sign-in and storage:** CloudHike
+- **Generated apps:** Expo and React Native, previewed with react-native-web and Expo Snack
+- **Images:** ImageKit
+- **Publishing:** Expo Application Services
+- **Payments:** Stripe
+- **Monitoring:** Sentry
+
+**What are the workflow and approval points?**
+Interview, then the plan card, which the owner must confirm. After that, every change is a chat request from the owner. Connecting a backend, deploying it, accepting the email policy and publishing are all owner actions. See the Agent Card below.
+
+**How are user data and access protected?** (Built)
+- Generated code runs in a sandboxed frame that can't reach the site's cookies or storage
+- Expo, GitHub and CloudHike tokens are encrypted on the server and never sent to the browser
+- The agent never gets raw access to the owner's CloudHike account, so it can't read their secrets or other projects
+- Only the owner can change a project; shared projects are view-only
+- Public apps run on sample data only, so visitors can't reach the owner's backend
+- Deleting a project removes its rows and uploaded files
+
+**What tests, failures and retests prove reliability?**
+**[MEASURE]** Run 20 standard and hard test prompts across sectors (shop, clinic, salon, restaurant, real estate, Arabic prompt, vague prompt, very large idea). For each, record: built on first try or not, screens that failed the rule check, screens fixed by the automatic rewrite, time to finish, and credits used. Include at least one failure and the fix. The project also has automated tests (`npm test`) for the language files.
+
+## 12. Key Partners and Scale (feeds slide 11)
+
+**Which partners or platforms are essential?**
+Anthropic (model), CloudHike (jobs, sign-in, storage and app backends), Expo (preview on phones and publishing), Stripe (payments), ImageKit (images), Vercel (hosting).
+
+**What dependencies and risks could block growth?**
+- Model cost and changes at Anthropic
+- Publishing uses Expo's internal GraphQL API, which isn't documented and could change
+- Phone preview needs Expo Go for SDK 54
+- iOS publishing needs the owner's own Apple developer account
+- Background jobs depend on CloudHike Jobs
+
+**How will you handle more users and requests?**
+Every build step already runs as its own background job, so builds don't depend on one long server request. Credits limit cost per user. Next: prompt caching and model choice per step to lower cost.
+
+**What resources and milestones come next?**
+- Three milestones for the next 6 to 12 months: 10 pilot owners with real apps; 100 paying users; a measured first-try build success rate above a target you set **[FILL IN]**
+- Resources: funding for model costs during pilots, an Arabic content creator, and partnerships with SME programs
+
+---
+
+# Part 2: Agent Card
+
+## 1. Defined task
+Turn a small business owner's description of their business into a working mobile app they can test on their phone and publish.
+
+## 2. Trigger
+The owner types their idea on the AppxPrompt home page (they can attach images, PDFs or text files) and creates a project. The agent starts on its own when the workspace opens.
+
+## 3. Workflow
+1. Reads the idea and asks three questions, one at a time: who it's for, what they must be able to do, and which parts need their own screen
+2. Proposes a screen plan as a card: screens, navigation, design direction, and assumptions
+3. Revises the plan from the owner's feedback until they confirm it
+4. Charges credits for the build, then designs the foundation: five themes and the app's sample data
+5. Designs and builds a library of shared components
+6. Builds each screen in a background job, streaming the code live
+7. Checks each screen against the rules (compiles, has a default export, uses only allowed imports, theme colors, and known data). If a check fails, it rewrites the screen once
+8. Shows the running app in the preview. The owner can scan a QR code to open it on their phone
+9. Takes change requests by chat or by clicking an element, and rebuilds only the affected screens and components
+10. When the owner asks, sets up the backend in their CloudHike account and helps them publish
+
+## 4. Tools and integrations
+- Claude Sonnet 5.5 through the OpenAI Agents SDK
+- Agent tools: `propose_plan`, `confirm_plan`, `update_app`, `set_theme`, `setup_backend`
+- CloudHike: jobs, sign-in, storage, and app backends
+- Expo Snack for phones, Expo Application Services for publishing
+- ImageKit for AI images
+- GitHub for pushing code
+- Stripe for plans and credits
+
+## 5. Data sources
+- The owner's prompt, their chat messages, and the names of files they attach
+- The current plan, screens, themes, data structure and components of their project
+- The owner's plan and credit balance
+- Backend status (connected or not)
+- Fixed rules and lists of allowed packages and components
+
+The agent does not browse the web or read other users' projects.
+
+## 6. Shape
+Six agents:
+- **Planner:** talks with the owner, interviews, plans, and handles change requests through its tools
+- **Foundation Designer:** creates the themes and sample data
+- **Data Designer:** changes the app's data when a new screen needs to store something new
+- **Component Designer:** decides the shared component library
+- **Component Builder:** writes each shared component
+- **Screen Builder:** writes each screen's code
+
+## 7. Human approval points
+- Confirming the screen plan before any build or credit charge
+- Every change after the first build (the owner's request is the approval)
+- Connecting CloudHike, which the owner does themselves. The agent never asks for keys or passwords.
+- Deploying the backend, which the agent names and says is billed to the owner's account
+- Accepting CloudHike's email policy before email is turned on
+- Publishing to the web, Android or iOS, through the owner's own Expo account
+- Making an app public, and sharing it with someone by email
+
+## 8. When unsure or it fails
+- **Unclear request:** asks one question, or picks sensible choices and lists them as assumptions in the plan
+- **Request it can't build exactly:** builds the closest version that works and says what's different
+- **Screen breaks the rules:** rewrites it once automatically. If it still won't run, the screen is marked failed and the unbuilt credits are refunded
+- **Out of credits or over a plan limit:** says so plainly and shows the upgrade prompt, without claiming the work happened
+- **Build stops or a job fails:** the workspace notices and marks the build failed, and retrying charges only what's still unbuilt
+- **Backend setup fails:** explains why in plain words, without showing credentials
+- **The model writes a tool call as text instead of calling the tool:** a filter catches it, hides it from the chat, and the planner asks the model again
+
+## 9. Data handling
+- Projects, chats and screens are stored in PostgreSQL; attached files in CloudHike Storage
+- Expo, GitHub and CloudHike tokens are encrypted on the server and never sent to the browser
+- Generated code runs in a sandboxed frame without access to the site's cookies or storage
+- An app's own data lives in the owner's CloudHike database, not in AppxPrompt's
+- Public apps show sample data only
+- Deleting a project removes its rows and uploaded files
+- Errors are monitored with Sentry
+- **[FILL IN]** Data retention period, where the database is hosted, and how a user can ask for their account to be deleted
+
+## 10. Cost per task
+Estimate for a 4-screen app, to replace with measured numbers:
+- Interview and plan: about $0.10 to $0.15
+- Foundation and components: about $0.10
+- Four screens: about $0.32, or up to $0.64 if every screen needs the rewrite
+- AI images, jobs and hosting: **[MEASURE]**
+- **Total: about $0.50 to $0.90 per app**
+- Credits charged to the owner: 40 for a 4-screen app
+
+## 11. Built and planned
+**Built:**
+- Interview, plan approval and screen-by-screen builds
+- Live preview, code view and QR code for phones
+- Editing by chat and by clicking, with themes and shared components
+- AI images
+- CloudHike backend: database, sign-in and storage
+- ZIP export, push to GitHub, web publishing, and Android and iOS build files
+- English and Arabic interface
+- Free and Pro plans with Stripe
+
+**Planned:**
+- Version history and restoring an earlier version
+- Real payments inside generated apps
+- Server code for generated apps (so jobs and Redis can be used)
+- Offline support in generated apps
+- **[FILL IN]** anything else you plan before the Grand Finale
+
+## 12. Limitations
+- Builds at most 10 screens per app (5 on Free), and plans 3 by default unless the owner asks for more
+- Generated apps can't take real payments yet
+- No offline mode in generated apps: writes need a connection
+- No version history yet
+- Phone preview needs Expo Go for SDK 54
+- iOS publishing needs the owner's own Apple developer account
+- Apps for clinics show services and appointment requests only. They aren't built to store patient records or medical data.
+- The agent only sees the names of attached files, not their contents
+- Model output can vary, so the same prompt can produce different apps
+
+## 13. Links
+- **Working prototype:** **[FILL IN]** live URL
+- **Judge test account:** **[FILL IN]** email and password, with enough credits, active until the end of the Championship
+- **Demo video (2 minutes):** **[FILL IN]** unlisted link (draft file: `appxprompt_demo_16x9_vo.mp4`)
+- **Test results:** **[FILL IN]** link to your test log
+- **Technical documentation:** README, `docs/app-builder-roadmap.md`, `docs/appxprompt-architecture.html`
+- **Support:** support@appxprompt.com
