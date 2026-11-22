@@ -41,8 +41,22 @@ function subscribe(listener: () => void) {
   }
 }
 
+export const getStack = () => stack
+
 export function useStack() {
-  return React.useSyncExternalStore(subscribe, () => stack)
+  return React.useSyncExternalStore(subscribe, getStack)
+}
+
+// A canvas frame is a picture of one screen, and nobody can tap in it, so any navigation is the screen
+// redirecting itself, like a sign-in screen skipping ahead for a signed-in person. It would show another screen.
+let pinned = false
+
+export function setPinned(value: boolean) {
+  pinned = value
+}
+
+function navigateTo(next: () => StackEntry[]) {
+  if (!pinned) setStack(next())
 }
 
 /** Parses "/detail?id=3" or { pathname, params } into a route the stack can hold. */
@@ -73,27 +87,29 @@ export function resetStack(route: string) {
 export const router = {
   push(href: Href) {
     if (isExternal(href)) return void Linking.openURL(href)
-    setStack([...stack, toEntry(href, true)])
+    navigateTo(() => [...stack, toEntry(href, true)])
   },
   replace(href: Href) {
     if (isExternal(href)) return void Linking.openURL(href)
-    setStack([...stack.slice(0, -1), toEntry(href, false)])
+    navigateTo(() => [...stack.slice(0, -1), toEntry(href, false)])
   },
   /** Goes back to the route if it's already open, otherwise opens it. */
   navigate(href: Href) {
     if (isExternal(href)) return void Linking.openURL(href)
-    const entry = toEntry(href, true)
-    const existing = stack.findIndex((e) => e.route === entry.route)
-    setStack(existing === -1 ? [...stack, entry] : [...stack.slice(0, existing), { ...entry, animated: false }])
+    navigateTo(() => {
+      const entry = toEntry(href, true)
+      const existing = stack.findIndex((e) => e.route === entry.route)
+      return existing === -1 ? [...stack, entry] : [...stack.slice(0, existing), { ...entry, animated: false }]
+    })
   },
   back() {
-    if (stack.length > 1) setStack(stack.slice(0, -1))
+    if (stack.length > 1) navigateTo(() => stack.slice(0, -1))
   },
   dismiss() {
     router.back()
   },
   dismissAll() {
-    setStack(stack.slice(0, 1))
+    navigateTo(() => stack.slice(0, 1))
   },
   canGoBack: () => stack.length > 1,
   setParams(params: Record<string, string>) {

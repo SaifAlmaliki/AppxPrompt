@@ -10,7 +10,7 @@ import { applyTheme, postToHost, setStorageSnapshot } from "./host"
 import { clearSelection, selectParent, setEditMode, setElementEdits } from "./inspector"
 import { loadFile, loadedExports, resetModules, setFiles } from "./modules"
 import { INSETS, Ionicons, Overlays } from "./native"
-import { ScreenContext, findScreen, resetStack, router, useStack, type StackEntry } from "./router"
+import { ScreenContext, findScreen, resetStack, router, setPinned, useStack, type StackEntry } from "./router"
 
 let project: PreviewProject = { files: [], screens: [] }
 let initialRoute = "/"
@@ -50,6 +50,7 @@ window.addEventListener("message", (event: MessageEvent<HostMessage>) => {
       project = message.project
       initialRoute = message.route
       document.documentElement.dataset.interactive = String(message.interactive)
+      setPinned(!message.interactive)
       setStorageSnapshot(message.storage)
       applyTheme(message.theme)
       setElementEdits(message.edits)
