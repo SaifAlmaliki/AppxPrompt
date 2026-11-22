@@ -32,9 +32,25 @@ export function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "screen"
 }
 
-/** Treats "Settings", "settings" and "Settings Screen" as the same screen. */
+/**
+ * Treats "Settings", "settings" and "Settings Screen" as the same screen. Keeps letters from any script,
+ * so Arabic names don't all collapse into one key. Null when there's nothing to compare.
+ */
 function screenKey(value: string) {
-  return slugify(value).replace(/-(screen|page)$/, "")
+  const key = value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-(screen|page)$/, "")
+  return key || null
+}
+
+/** The ids slugify falls back to for names without Latin letters, which say nothing about the screen. */
+const GENERIC_ID = /^screen(-\d+)?$/
+
+function idKey(id: string) {
+  return GENERIC_ID.test(id) ? null : screenKey(id)
 }
 
 function linksTo(code: string, slug: string) {
@@ -69,18 +85,23 @@ export function planAppChanges(
   const removedIds = removed.map((screen) => screen.id)
   const edited = new Map(request.editScreens.map((screen) => [screen.id, screen]))
 
-  const taken = new Set(plan.screens.flatMap((screen) => [screenKey(screen.id), screenKey(screen.name)]))
+  const taken = new Set(plan.screens.flatMap((screen) => [idKey(screen.id), screenKey(screen.name)]))
+  taken.delete(null)
+  const usedIds = new Set(plan.screens.map((screen) => screen.id))
   const repeated: string[] = []
   const idMap = new Map<string, string>()
   const added: PlannedScreen[] = []
   for (const screen of request.addScreens) {
-    const id = slugify(screen.id || screen.name)
-    const keys = [screenKey(id), screenKey(screen.name)]
+    const base = slugify(screen.id || screen.name)
+    const keys = [idKey(base), screenKey(screen.name)].filter((key) => key !== null)
     if (keys.some((key) => taken.has(key))) {
       repeated.push(screen.name)
       continue
     }
     keys.forEach((key) => taken.add(key))
+    let id = base
+    for (let n = 2; usedIds.has(id); n++) id = `${base}-${n}`
+    usedIds.add(id)
     idMap.set(screen.id, id)
     added.push({ ...screen, id })
   }
