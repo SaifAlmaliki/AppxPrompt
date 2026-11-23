@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -24,6 +25,7 @@ import type { Locale } from "@/i18n/config";
 import { BACKEND_STATES, type BackendServiceStatus } from "@/lib/backend-protocol";
 import { CREDIT_REASONS, FREE_SIGNUP_CREDITS, PLAN_IDS } from "@/lib/plans";
 import { PROJECT_PLATFORMS, PROJECT_STATUSES } from "@/lib/projects";
+import type { ServiceDefinition } from "@/lib/services/protocol";
 import { APP_BUILD_FORMATS, APP_BUILD_PLATFORMS, APP_BUILD_STATUSES, WEB_PUBLISH_STATUSES } from "@/lib/publish-protocol";
 
 export const userPlan = pgEnum("user_plan", PLAN_IDS);
@@ -256,6 +258,51 @@ export const projectBackends = pgTable("project_backends", {
     .$onUpdate(() => new Date()),
 });
 
+/** A third-party service a generated app uses, and which hosts the person has approved it to reach. */
+export const projectServices = pgTable(
+  "project_services",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    definition: jsonb("definition").$type<ServiceDefinition>().notNull(),
+    approvedHosts: text("approved_hosts").array().default([]).notNull(),
+    checkResult: text("check_result").$type<"ok" | "rejected">(),
+    checkedAt: timestamp("checked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [primaryKey({ columns: [table.projectId, table.slug] })]
+);
+
+/** One value of a service. Sealed with `lib/cloudhike/crypto.ts` unless `kind` is "public". */
+export const projectCredentials = pgTable(
+  "project_credentials",
+  {
+    projectId: uuid("project_id").notNull(),
+    name: text("name").notNull(),
+    serviceSlug: text("service_slug").notNull(),
+    kind: text("kind").$type<"secret" | "public" | "oauth_token">().notNull(),
+    value: text("value").notNull(),
+    hint: text("hint"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.name] }),
+    foreignKey({
+      columns: [table.projectId, table.serviceSlug],
+      foreignColumns: [projectServices.projectId, projectServices.slug],
+    }).onDelete("cascade"),
+  ]
+);
 /** Someone a project was shared with. They can open it and download it, but only its owner can change it. */
 export const projectShares = pgTable(
   "project_shares",
@@ -412,6 +459,7 @@ export type ProjectAsset = typeof projectAssets.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Screen = typeof screens.$inferSelect;
 export type ProjectBackend = typeof projectBackends.$inferSelect;
+export type ProjectService = typeof projectServices.$inferSelect;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type AppBuild = typeof appBuilds.$inferSelect;
 export type WebPublish = typeof webPublishes.$inferSelect;
