@@ -10,5 +10,6 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
 
   beforeSend: (event) => scrubSecrets(event),
+  beforeSendTransaction: (event) => scrubSecrets(event),
   beforeBreadcrumb: (crumb) => scrubSecrets(crumb),
 });

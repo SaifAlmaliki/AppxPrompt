@@ -14,6 +14,7 @@ Sentry.init({
   denyUrls: [/\/[a-f0-9]{16}\/script\.js/],
 
   beforeSend: (event) => scrubSecrets(event),
+  beforeSendTransaction: (event) => scrubSecrets(event),
   beforeBreadcrumb: (crumb) => scrubSecrets(crumb),
 });
 

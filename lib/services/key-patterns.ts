@@ -34,11 +34,31 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null
 }
 
-export function scrubSecrets<T>(value: T): T {
-  if (typeof value === "string") return removeKeys(value) as T
-  if (Array.isArray(value)) return value.map(scrubSecrets) as T
-  if (isPlainObject(value)) {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrubSecrets(v)])) as T
+const URL_KEYS = new Set(["url", "http.url", "url.full"])
+const QUERY_KEYS = new Set(["http.query", "url.query", "query_string"])
+
+function scrubString(key: string, value: string): string {
+  if (QUERY_KEYS.has(key)) return ""
+  const text = URL_KEYS.has(key) ? value.replace(/\?[^#]*/, "") : value
+  return removeKeys(text)
+}
+
+function scrub(value: unknown, key: string, active: WeakSet<object>): unknown {
+  if (typeof value === "string") return scrubString(key, value)
+  if (typeof value !== "object" || value === null) return value
+  const isArray = Array.isArray(value)
+  if (!isArray && !isPlainObject(value)) return value
+  if (active.has(value)) return "[Circular]"
+  active.add(value)
+  try {
+    if (isArray) return value.map((item) => scrub(item, "", active))
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrub(v, k, active)]))
+  } finally {
+    active.delete(value)
   }
-  return value
+}
+
+/** Removes keys from every string, and the query string from url-like fields, so telemetry never carries credentials. */
+export function scrubSecrets<T>(value: T): T {
+  return scrub(value, "", new WeakSet()) as T
 }

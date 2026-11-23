@@ -58,6 +58,49 @@ describe("scrubSecrets", () => {
   it("redacts nested strings without changing other values", () => {
     expect(scrubSecrets({ a: [`x ${openai}`], n: 1, ok: true })).toEqual({ a: [`x ${KEY_REMOVED}`], n: 1, ok: true })
   })
+
+  it("strips query strings from url-like fields", () => {
+    expect(
+      scrubSecrets({
+        request: { url: "https://api.example.com/v1/ping?key=abc123&x=1", query_string: "key=abc123" },
+        data: {
+          "http.url": "https://api.example.com/v1?token=t#frag",
+          "url.full": "https://api.example.com/v1?token=t",
+          "http.query": "?token=t",
+          "url.query": "token=t",
+          other: "https://example.com/page?keep=1",
+        },
+      }),
+    ).toEqual({
+      request: { url: "https://api.example.com/v1/ping", query_string: "" },
+      data: {
+        "http.url": "https://api.example.com/v1#frag",
+        "url.full": "https://api.example.com/v1",
+        "http.query": "",
+        "url.query": "",
+        other: "https://example.com/page?keep=1",
+      },
+    })
+  })
+
+  it("leaves a url without a query alone", () => {
+    expect(scrubSecrets({ url: "https://example.com/a" })).toEqual({ url: "https://example.com/a" })
+  })
+
+  it("survives circular references", () => {
+    const event: Record<string, unknown> = { message: `x ${openai}`, list: [] }
+    event.self = event
+    ;(event.list as unknown[]).push(event)
+    const scrubbed = scrubSecrets(event) as Record<string, unknown>
+    expect(scrubbed.message).toBe(`x ${KEY_REMOVED}`)
+    expect(scrubbed.self).toBe("[Circular]")
+    expect(scrubbed.list).toEqual(["[Circular]"])
+  })
+
+  it("keeps a value that appears twice without a cycle", () => {
+    const shared = { note: `k ${openai}` }
+    expect(scrubSecrets({ a: shared, b: shared })).toEqual({ a: { note: `k ${KEY_REMOVED}` }, b: { note: `k ${KEY_REMOVED}` } })
+  })
 })
 
 describe("KEY_PATTERN_SOURCES", () => {
