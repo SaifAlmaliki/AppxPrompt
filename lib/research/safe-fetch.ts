@@ -85,6 +85,7 @@ export const httpsRequestOnce: RequestOnce = (url, signal) =>
       {
         method: "GET",
         lookup: safeLookup,
+        agent: false,
         signal,
         headers: {
           "user-agent": "Mozilla/5.0 (compatible; AppxPromptResearch/1.0)",
@@ -235,7 +236,7 @@ export async function fetchPublic(url: string, requestOnce: RequestOnce = httpsR
   } catch (error) {
     const { code, name } = (error ?? {}) as { code?: string; name?: string }
     if (code === "ERR_PRIVATE_ADDRESS") return { error: errors.privateAddress }
-    if (name === "TimeoutError" || name === "AbortError") return { error: errors.timeout }
+    if (signal.aborted || name === "TimeoutError" || name === "AbortError") return { error: errors.timeout }
     return { error: errors.unreachable }
   }
 }

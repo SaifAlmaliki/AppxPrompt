@@ -1,10 +1,13 @@
 import { EventEmitter } from "node:events"
+import https from "node:https"
+import net from "node:net"
 import { Readable } from "node:stream"
-import { describe, expect, it, vi } from "vitest"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("node:dns", async (importOriginal) => ({ ...(await importOriginal<typeof import("node:dns")>()), lookup: vi.fn() }))
 const dns = await import("node:dns")
-const { fetchPublic, isPrivateAddress, isPublicHttpsUrl, pinnedFetch, readLimited, safeLookup } = await import("@/lib/research/safe-fetch")
+const originalRequest = https.request
+const { fetchPublic, httpsRequestOnce, isPrivateAddress, isPublicHttpsUrl, pinnedFetch, readLimited, safeLookup } = await import("@/lib/research/safe-fetch")
 
 describe("isPrivateAddress", () => {
   it.each(["127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0",
@@ -193,5 +196,63 @@ describe("pinnedFetch", () => {
     })
     const error = await pinnedFetch("https://api.example.com/?key=SECRET", { headers: { a: "SECRET" }, body: "SECRET" }, impl as never).catch((e) => e)
     expect(String(error.message)).not.toContain("SECRET")
+  })
+})
+
+describe("fetchPublic after the shared timeout", () => {
+  it("reports a timeout, not an unreachable site, when the signal fired", async () => {
+    const controller = new AbortController()
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal)
+    try {
+      const requestOnce = vi.fn(async () => {
+        controller.abort()
+        throw new Error("socket hang up")
+      })
+      expect(await fetchPublic("https://x.com/", requestOnce)).toEqual({ error: "Not read: the page took too long to load." })
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+})
+
+describe("real sockets", () => {
+  const publicName = "docs.example.com"
+  let server: net.Server
+  let port = 0
+  let connections = 0
+
+  beforeAll(async () => {
+    server = net.createServer((socket) => {
+      connections++
+      socket.destroy()
+    })
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+    port = (server.address() as net.AddressInfo).port
+  })
+  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())))
+  beforeEach(() => {
+    connections = 0
+    vi.mocked(dns.lookup).mockImplementation(((_h: string, _o: unknown, cb: Function) => cb(null, [{ address: "127.0.0.1", family: 4 }])) as never)
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  const toLocalPort = ((url: string, options: object, callback: never) => originalRequest(url, { ...options, port }, callback)) as typeof https.request
+
+  it("pinnedFetch never connects to a private address behind a public-looking name", async () => {
+    const error = await pinnedFetch(`https://${publicName}/`, {}, toLocalPort).catch((e) => e)
+    expect(error).toMatchObject({ code: "ERR_PRIVATE_ADDRESS" })
+    expect(dns.lookup).toHaveBeenCalled()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(connections).toBe(0)
+  })
+
+  it("httpsRequestOnce never connects either, and never uses a shared agent", async () => {
+    const spy = vi.spyOn(https, "request").mockImplementation(((url: string, options: object, callback: never) =>
+      originalRequest(url, { ...options, port }, callback)) as never)
+    const error = await httpsRequestOnce(`https://${publicName}/`, AbortSignal.timeout(5000)).catch((e) => e)
+    expect(error).toMatchObject({ code: "ERR_PRIVATE_ADDRESS" })
+    expect(spy.mock.calls[0][1]).toMatchObject({ agent: false })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(connections).toBe(0)
   })
 })
