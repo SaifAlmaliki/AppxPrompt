@@ -111,6 +111,15 @@ export async function listServiceSummaries(projectId: string): Promise<ServiceSu
   return services.map((service) => toSummary(service, credentials))
 }
 
+/** The research notes saved with a service, or null when the project has no such service. Never reads credentials. */
+export async function getServiceNotes(projectId: string, slug: string): Promise<string | null> {
+  const [row] = await db
+    .select({ definition: projectServices.definition })
+    .from(projectServices)
+    .where(and(eq(projectServices.projectId, projectId), eq(projectServices.slug, slug)))
+  return row ? row.definition.notes : null
+}
+
 /** Saves the service, or returns why it can't be saved. */
 export async function registerService(projectId: string, definition: ServiceDefinition): Promise<ServiceSummary | string> {
   return db.transaction(async (tx) => {

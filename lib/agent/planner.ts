@@ -8,6 +8,7 @@ import { mergePlan, planAppChanges, slugify, type AppChanges } from "@/lib/agent
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
 import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
+import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import type { ProjectRun } from "@/lib/agent/runs"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
@@ -18,7 +19,7 @@ import { expandNumberReply } from "@/lib/interview-choices"
 import { normalizeService, serviceDefinitionSchema } from "@/lib/services/definition"
 import { integrationsEnabled } from "@/lib/services/flags"
 import { plannerServices } from "@/lib/services/status"
-import { listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
+import { getServiceNotes, listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
 
 type PlannerContext = PlannerState & {
@@ -37,6 +38,8 @@ type PlannerContext = PlannerState & {
   confirmed: boolean
   /** The changes to a built app asked for during this turn, made right after the reply. */
   changes: AppChanges | null
+  /** What's left of this turn's searches and page reads. */
+  research: ResearchBudget
 }
 
 const screenSchema = z.object({
@@ -353,12 +356,37 @@ const registerService = tool<typeof serviceDefinitionSchema, PlannerContext>({
   },
 })
 
+const notesSchema = z.object({ slug: z.string().describe("The service's slug, e.g. 'google-calendar'") })
+
+const readServiceNotes = tool<typeof notesSchema, PlannerContext>({
+  name: "read_service_notes",
+  description:
+    "Read the research notes saved for a service the app already has. Call it before register_service updates that service, so nothing learned earlier is lost.",
+  parameters: notesSchema,
+  async execute({ slug }, runContext) {
+    const ctx = runContext!.context
+    const notes = await getServiceNotes(ctx.projectId, slug)
+    if (notes === null) return `No service "${slug}" is registered.`
+    return `Notes saved for ${slug}:\n${notes || "(none)"}\n\nWhen you call register_service for it again, keep everything here that's still true and add what you learned.`
+  },
+})
+
 const plannerAgent = new Agent<PlannerContext>({
   name: "AppxPrompt Planner",
   model: PLANNER_MODEL,
   instructions: (runContext) => plannerInstructions(runContext.context),
-  tools: [proposePlan, confirmPlan, updateApp, setTheme, setupBackend, ...(integrationsEnabled() ? [registerService] : [])],
+  tools: [
+    proposePlan,
+    confirmPlan,
+    updateApp,
+    setTheme,
+    setupBackend,
+    ...(integrationsEnabled() ? [registerService, readServiceNotes, ...createResearchTools<PlannerContext>()] : []),
+  ],
 })
+
+// Research takes a model call per search or page, so the SDK's default of 10 is too few.
+const MAX_PLANNER_TURNS = 24
 
 const TOOL_STATUS: Record<string, StatusKey> = {
   propose_plan: "draftingPlan",
@@ -367,6 +395,9 @@ const TOOL_STATUS: Record<string, StatusKey> = {
   set_theme: "changingTheme",
   setup_backend: "settingUpBackend",
   register_service: "registeringService",
+  web_search: "searchingWeb",
+  read_page: "readingDocs",
+  read_service_notes: "readingServiceNotes",
 }
 
 function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {
@@ -426,6 +457,7 @@ export async function runPlannerTurn(
     priorAssistantReplies: thread.filter((message) => message.role === "assistant").length,
     latestUserMessage: [...thread].reverse().find((message) => message.role === "user")?.content ?? "",
     interviewBlocked: false,
+    research: newResearchBudget(),
   }
 
   projectRun.emit(statusEvent(thread.length > 1 ? "readingMessage" : "readingRequest"))
@@ -475,7 +507,7 @@ function leakedCallNudge(tool: string | null) {
  * `before` is what the person has already seen, so new text starts a new paragraph.
  */
 async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
-  const result = await run(plannerAgent, input, { stream: true, context })
+  const result = await run(plannerAgent, input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS })
 
   let text = ""
   let responseHasText = false

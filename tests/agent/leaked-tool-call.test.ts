@@ -19,6 +19,12 @@ describe("findLeakedToolCall", () => {
     expect(findLeakedToolCall('Sure.\n<register_service>\n<parameter name="slug">openai</parameter>').tool).toBe("register_service")
   })
 
+  it("recognizes the research tools", () => {
+    expect(findLeakedToolCall('Checking.\n<web_search>\n<parameter name="query">x</parameter>').tool).toBe("web_search")
+    expect(findLeakedToolCall('<invoke name="read_page">').tool).toBe("read_page")
+    expect(findLeakedToolCall("<read_service_notes>").tool).toBe("read_service_notes")
+  })
+
   it("leaves an ordinary reply alone, including angle brackets in prose", () => {
     expect(findLeakedToolCall("Use a <Button> and 3 < 5.")).toEqual({ visible: "Use a <Button> and 3 < 5.", tool: null })
   })
