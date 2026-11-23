@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubSecrets } from "@/lib/services/key-patterns";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -11,6 +12,9 @@ Sentry.init({
   // Vercel Analytics / Speed Insights are served from hashed first-party paths
   // (e.g. /abd9ec3b62d16918/script.js); their errors on outdated bots/browsers aren't actionable.
   denyUrls: [/\/[a-f0-9]{16}\/script\.js/],
+
+  beforeSend: (event) => scrubSecrets(event),
+  beforeBreadcrumb: (crumb) => scrubSecrets(crumb),
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
