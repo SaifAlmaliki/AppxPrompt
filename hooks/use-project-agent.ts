@@ -164,6 +164,9 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
     case "upgrade":
     case "done":
       return state
+    default:
+      // An event type this tab doesn't know yet, from a newer server.
+      return state
   }
 }
 

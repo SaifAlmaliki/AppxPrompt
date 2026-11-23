@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { reducer, type AgentState } from "@/hooks/use-project-agent"
+import type { AgentEvent } from "@/lib/agent-protocol"
 import type { ServiceSummary } from "@/lib/services/protocol"
 
 function service(slug: string, status: ServiceSummary["status"] = "missing"): ServiceSummary {
@@ -46,6 +47,11 @@ describe("services in the agent state", () => {
     const asked = reducer(start, { type: "event", event: { type: "service-request", slug: "openai" } })
     expect(asked.serviceRequest).toBe("openai")
     expect(reducer(asked, { type: "service-request-handled" }).serviceRequest).toBeNull()
+  })
+
+  it("ignores an event type it doesn't know, so an old tab keeps working", () => {
+    const future = { type: "from-the-future", value: 1 } as unknown as AgentEvent
+    expect(reducer(start, { type: "event", event: future })).toBe(start)
   })
 
   it("upserts and removes a changed service", () => {
