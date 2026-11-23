@@ -48,40 +48,68 @@ These all come from the phase 1 plan:
   }
   ```
   `path` is an Expo Router file path like `app/api/booking/slots+api.ts`.
-- **Storage:** a `server_routes` table: `projectId`, `path`, `kind` (`function` | `agent` | `helper`), `purpose`, `code`, `status` (same values as screens), and timestamps. The key is (`projectId`, `path`).
-- **Writing the code:** `lib/agent/server-builder.ts` exports `buildServerRoute(...)`, which runs as a build step. `lib/agent/validate-server-route.ts` exports:
+- **Related protocol additions** in `lib/agent-protocol.ts`:
+  - `PendingChanges.serverRoutes?: Record<string, string>` holds the request text by route `path`.
+  - `ProjectServerRoute = { path; kind; purpose; status; code }`.
+  - New `AgentEvent`s: `{ type: "server-routes"; routes }` and `{ type: "server-route"; route }`.
+  - Path rules: `API_ROUTE_FILE`, `SERVER_HELPER_FILE` (which allows `server/agents/<id>.instructions.ts`), `RESERVED_HELPER_FILE` (`server/agents/**` and `server/agent-loop.ts`, which the server builder never writes), `SYSTEM_SERVER_FILES`, `apiRouteUrl` and `isServerFile`.
+- **Storage:** a `server_routes` table: `projectId`, `path`, `kind` (`function` | `agent` | `helper`), `purpose`, `code`, `status` (same values as screens), and timestamps. The key is (`projectId`, `path`). Phase 4's generated agent files are stored as `helper` rows. There's also a `project_sandboxes` table for the runner's state.
+- **Writing the code:**
+  - `lib/agent/server-builder.ts` exports `buildServerRoute(...)`, which runs as a build step.
+  - Build order: every `function` route is built before any `agent` route (`nextServerRoute`), and both come before the screens.
+  - `lib/agent/validate-server-route.ts` exports:
   ```ts
   validateServerRoute(code: string, ctx: {
     path: string; credentialNames: string[]; allowedHosts: string[]; helperPaths: string[]
   }): string[] // problems; empty means valid
   ```
+  An import is allowed when it names a `helperPaths` entry or a system file, as `@/<path without .ts>` or relatively. That includes `app/api/**` handler files, which agent routes import to call function handlers in-process.
 - **The sandbox:**
   - `lib/sandbox/runner.ts`:
     ```ts
-    interface SandboxRunner { invoke(projectId: string, request: SandboxRequest): Promise<SandboxResponse> }
+    interface SandboxRunner {
+      invoke(projectId: string, request: SandboxRequest): Promise<SandboxResponse>
+      reload(projectId: string): Promise<void> // the next invoke loads the current files and credentials
+      stop(projectId: string): Promise<void>
+    }
     type SandboxRequest = { method: string; path: string; headers: Record<string, string>; body: string | null }
     type SandboxResponse = { status: number; headers: Record<string, string>; body: string }
+    class SandboxUnavailableError extends Error { reason: "disabled" | "starting" | "limit" | "failed" }
     getSandboxRunner(): SandboxRunner
     ```
-    The implementation is chosen by a spike task inside the phase 3 plan.
+    The implementation is Vercel Sandbox (`SANDBOX_PROVIDER=vercel`), confirmed by the phase 3 spike, and can be swapped behind this interface.
   - `lib/sandbox/bundle.ts`:
     ```ts
-    buildSandboxBundle(projectId: string): Promise<SandboxBundle>
-    matchApiRoute(routes: string[], path: string): { route: string; params: Record<string, string> } | null
+    buildSandboxBundle(projectId: string): Promise<SandboxBundle> // { runtime, env, signature }
+    sandboxSignature(projectId: string): Promise<string>          // changes when routes, helpers, credentials, services, plan.backend or plan.serverRoutes change
+    serverSourceFiles(projectId: string): Promise<{ path: string; code: string }[]>
+    matchApiRoute(routes: string[], path: string): { route: string; params: Record<string, string> } | null // re-exported from lib/sandbox/routes.ts
     ```
+    `serverSourceFiles` returns every server-side source file, uncompiled, exactly as the sandbox loads it. That's the `app/api/**/+api.ts` routes, the `server/**` helpers (phase 4's agent files included), and the system files `server/data.ts`, `server/auth.ts` and `server/respond.ts`.
   - `lib/sandbox/token.ts`:
     ```ts
     createSandboxToken(projectId: string, userId: number, ttlSeconds?: number): string
     verifySandboxToken(token: string, projectId: string): boolean
     ```
   - The route `app/api/apps/[projectId]/server/[...path]/route.ts`, which requires the header `x-appxprompt-sandbox`.
-- **The server key:** the system credential `APPXPROMPT_SERVER_KEY`, kept under a hidden system service with slug `appxprompt`. It isn't returned by `listServiceSummaries`. The gateway accepts it in the header `x-appxprompt-server-key`.
+- **The server key:**
+  - It's the system credential `APPXPROMPT_SERVER_KEY`, kept under a hidden system service with slug `appxprompt`. It isn't returned by `listServiceSummaries`, and `normalizeService` refuses that slug.
+  - The gateway accepts it in the header `x-appxprompt-server-key`, with `x-appxprompt-as: caller | app` (default `caller`).
+  - The phase 1 store gains `listServiceDefinitions(projectId)` and `loadProjectEnvironment(projectId)`.
 - **Generated app files:**
-  - `lib/server/config.ts` and `lib/server/index.ts`, exporting `callServer(path, body)` and `class ServerError { code: "not_connected" | "sign_in" | "bad_request" | "unavailable" | "preview"; service?: string }`.
-  - `server/data.ts`, exporting `data.asCaller(request)` and `data.asApp()`.
-  - `server/auth.ts`, exporting `getCaller(request)`.
-- **Preview protocol** (`lib/preview-protocol.ts`): the workspace sends the frame `{ type: "sandbox-token"; token: string }`, and the frame sends the workspace `{ type: "service-needed"; slug: string }`.
-- **Credits:** `buildCost` counts server routes of kind `function` and `agent` as screens, using `SCREEN_CREDITS` / `EDIT_CREDITS`.
+  - `lib/server/config.ts` exports exactly two values and nothing else:
+    - `SERVER_BASE_URL: string`, with no trailing slash, where `""` means relative.
+    - `SERVER_TOKEN: string | null`. It's the sandbox token in preview and Snack, `""` when there's no token (`callServer` then throws `preview` without fetching), and `null` in published builds.
+  - `lib/server/index.ts` reads only those two values to decide where and whether to call, and it reads them at call time.
+  - `lib/server/index.ts` exports `callServer(path, body?)`, which always POSTs JSON, and `class ServerError { code: "not_connected" | "sign_in" | "bad_request" | "unavailable" | "preview"; service?: string }`. These client files come from `generatedAppFiles(plan, server?: ServerTarget)`.
+  - Server-side system files come from `generatedServerFiles(plan)`, never from `generatedAppFiles`:
+    - `server/data.ts`, exporting `data.asCaller(request)` and `data.asApp()`.
+    - `server/auth.ts`, exporting `getCaller(request)` and `requireCaller(request)`. `getCaller` resolves to `null` when nobody is signed in or the token isn't valid, and never throws for that. This file is generated whenever the plan has any server route, so always when it has a route of kind `agent`.
+    - `server/respond.ts`, exporting `ok`, `fail`, `withErrors`, `ServiceNotConnected` and `SignInRequired`.
+- **Preview protocol** (`lib/preview-protocol.ts`): the workspace sends the frame `{ type: "sandbox-token"; token: string }` (`""` means none), and the frame sends the workspace `{ type: "service-needed"; slug: string }`.
+- **Credits:**
+  - `buildCost` counts server routes of kind `function` and `agent` as screens, using `SCREEN_CREDITS` / `EDIT_CREDITS`.
+  - They're charged under the new credit reason `"server-route"`.
 - **Viewers:** the Code tab and the ZIP leave out `app/api/**` and `server/**` for anyone who isn't the owner.
 
 ## Phase 4: AI agents and the Agent tab
@@ -93,7 +121,7 @@ These all come from the phase 1 plan:
   - `server/agent-loop.ts`, a shared helper: a tool loop with a step cap and a timeout.
 - **The planner:** `update_agent_instructions` tool.
 - **The workspace:** an Agent tab in `components/workspace/preview-panel.tsx` (owner only), with a "Try it" box that calls the sandbox through `/api/apps/[projectId]/server/...`.
-- **The hook:** `onAgentChanged(projectId)`, which reloads the sandbox in phase 4 and is extended in phase 5 to redeploy.
+- **The hook:** `onAgentChanged(projectId)`, which calls `getSandboxRunner().reload(projectId)` in phase 4 and is extended in phase 5 to redeploy.
 
 ## Phase 5: publishing and export
 
