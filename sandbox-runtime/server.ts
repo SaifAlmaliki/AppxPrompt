@@ -8,6 +8,7 @@ import { Readable } from "node:stream"
 import { fileURLToPath } from "node:url"
 import type { RuntimeBundle } from "../lib/sandbox/bundle"
 import { createDispatcher } from "./dispatch"
+import { createVmEvaluator, hardenHost } from "./evaluate"
 
 const SECRET_NAME = "APPXPROMPT_SANDBOX_SECRET"
 const INTERNAL_HEADER = "x-appxprompt-internal"
@@ -65,15 +66,16 @@ async function main() {
   const { [SECRET_NAME]: secret, ...env } = await readEnvLine()
   if (!secret) throw new Error("The internal secret is missing.")
   delete process.env[SECRET_NAME]
-  Object.assign(process.env, env)
+  // The credentials go to the dispatcher only, never into the host's process.env, which stray host-realm references could read.
 
   const bundle = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "bundle.json"), "utf8")) as RuntimeBundle
   const port = Number(process.env.PORT) || 3000
   const expected = digest(secret)
-  const dispatch = createDispatcher(bundle, { env, fetch: globalThis.fetch })
+  const dispatch = createDispatcher(bundle, { env, fetch: globalThis.fetch.bind(globalThis), evaluate: createVmEvaluator() })
 
   process.on("unhandledRejection", () => {})
   process.on("uncaughtException", () => {})
+  hardenHost()
 
   const server = createServer(async (req, res) => {
     try {

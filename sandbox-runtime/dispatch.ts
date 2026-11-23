@@ -131,17 +131,70 @@ function resolveFile(files: Record<string, string>, from: string, specifier: str
   return null
 }
 
+/** What a module sees as its own scope. A real evaluator must also make these its globals. */
+export type ModuleScope = {
+  require: (specifier: string) => unknown
+  module: { exports: Record<string, unknown> }
+  exports: Record<string, unknown>
+  process: { env: Readonly<Record<string, string>> }
+  console: Record<string, unknown>
+  fetch: typeof fetch
+}
+
+/** Runs one compiled module. The default only shadows names; server.ts passes a vm-based one. */
+export type Evaluator = (code: string, scope: ModuleScope, filename: string) => void
+
+const shadowEvaluator: Evaluator = (code, scope) => {
+  new Function("require", "module", "exports", "process", "console", "fetch", code)(
+    scope.require,
+    scope.module,
+    scope.exports,
+    scope.process,
+    scope.console,
+    scope.fetch
+  )
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let text = ""
+  for (const byte of bytes) text += String.fromCharCode(byte)
+  return btoa(text)
+}
+
+/** The ways a secret might be smuggled into an answer: as is, and encoded the usual ways. */
+function secretForms(secret: string) {
+  const bytes = new TextEncoder().encode(secret)
+  const base64 = bytesToBase64(bytes)
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")
+  return [
+    secret,
+    base64,
+    base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+    hex,
+    hex.toUpperCase(),
+    encodeURIComponent(secret),
+    JSON.stringify(secret).slice(1, -1),
+  ]
+}
+
+// Neither the evaluator nor the timeout below is a security boundary. The sandbox VM's network policy is the egress wall.
+// The timer can't stop a synchronous infinite loop (nothing else runs to fire it), so a spinning route
+// is cut off by the host's own deadline, which restarts the VM.
 export function createDispatcher(
   bundle: RuntimeBundle,
-  options: { env: Record<string, string>; fetch: typeof fetch; timeoutMs?: number; maxBodyBytes?: number }
+  options: { env: Record<string, string>; fetch: typeof fetch; timeoutMs?: number; maxBodyBytes?: number; evaluate?: Evaluator }
 ): (request: Request) => Promise<Response> {
   const timeoutMs = options.timeoutMs ?? RUNTIME_LIMITS.timeoutMs
   const maxBodyBytes = options.maxBodyBytes ?? RUNTIME_LIMITS.maxBodyBytes
+  const evaluate = options.evaluate ?? shadowEvaluator
   const env = Object.freeze({ ...options.env })
-  const secrets = bundle.secretNames.map((name) => env[name]).filter((value): value is string => typeof value === "string" && value.length >= MIN_SECRET_LENGTH)
-  const sandboxProcess = { env }
+  const secrets = bundle.secretNames
+    .map((name) => env[name])
+    .filter((value): value is string => typeof value === "string" && value.length >= MIN_SECRET_LENGTH)
+    .flatMap(secretForms)
+  const sandboxProcess = Object.freeze({ env })
+  const guarded = guardedFetch(options.fetch, bundle.allowedHosts)
   const modules = new Map<string, { exports: Record<string, unknown> }>()
-  let fetchInstalled = false
 
   function load(path: string): Record<string, unknown> {
     const cached = modules.get(path)
@@ -154,19 +207,16 @@ export function createDispatcher(
         if (!target) throw new Error(`${specifier} isn't available on the server.`)
         return load(target)
       }
-      const factory = new Function("require", "module", "exports", "process", "console", bundle.files[path])
-      factory(require, module, module.exports, sandboxProcess, SILENT_CONSOLE)
+      evaluate(
+        bundle.files[path],
+        { require, module, exports: module.exports, process: sandboxProcess, console: SILENT_CONSOLE, fetch: guarded },
+        path
+      )
     } catch (error) {
       modules.delete(path)
       throw error
     }
     return module.exports
-  }
-
-  function installFetch() {
-    if (fetchInstalled) return
-    globalThis.fetch = guardedFetch(options.fetch, bundle.allowedHosts)
-    fetchInstalled = true
   }
 
   async function run(handler: Handler, request: Request, params: Record<string, string>) {
@@ -187,7 +237,6 @@ export function createDispatcher(
       const match = matchApiRoute(bundle.routes, url.pathname)
       if (!match) return errorResponse(404, "bad_request", `There's no server function at ${url.pathname}.`)
 
-      installFetch()
       const exported = load(match.route)
       const handler = Object.prototype.hasOwnProperty.call(exported, request.method) ? exported[request.method] : undefined
       if (typeof handler !== "function") {

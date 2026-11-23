@@ -121,6 +121,40 @@ describe("createDispatcher", () => {
     expect(text).not.toContain("sk-proj-")
   })
 
+  it.each([
+    ["base64", 'btoa(process.env.OPENAI_API_KEY)'],
+    ["base64url", 'btoa(process.env.OPENAI_API_KEY).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/, "")'],
+    ["hex", '[...new TextEncoder().encode(process.env.OPENAI_API_KEY)].map((b) => b.toString(16).padStart(2, "0")).join("")'],
+    ["url-encoded", "encodeURIComponent(process.env.OPENAI_API_KEY)"],
+    ["JSON-escaped", "JSON.stringify(process.env.OPENAI_API_KEY).slice(1, -1)"],
+  ])("blocks a response that contains the %s form of a secret", async (_name, expression) => {
+    const run = dispatcher({ "app/api/leak+api.ts": `export function POST() { return new Response(${expression}) }` })
+    const response = await run(post("/api/leak"))
+    expect(response.status).toBe(500)
+    expect((await response.json()).error.message).toContain("blocked")
+  })
+
+  it("blocks a secret in a response header", async () => {
+    const run = dispatcher({ "app/api/leak+api.ts": "export function POST() { return new Response('ok', { headers: { 'x-debug': encodeURIComponent(process.env.OPENAI_API_KEY) } }) }" })
+    const response = await run(post("/api/leak"))
+    expect(response.status).toBe(500)
+  })
+
+  it("blocks the encoded forms of a secret with characters that change when escaped", async () => {
+    const tricky = 'se"cret/with+chars=?&'
+    const run = createDispatcher(
+      bundleOf({ "app/api/leak+api.ts": "export function POST() { return new Response(JSON.stringify(process.env.TRICKY).slice(1, -1)) }" }),
+      { env: { TRICKY: tricky }, fetch: vi.fn() as unknown as typeof fetch }
+    )
+    const open = await run(post("/api/leak"))
+    expect(open.status).toBe(200)
+    const guarded = createDispatcher(
+      { ...bundleOf({ "app/api/leak+api.ts": "export function POST() { return new Response(JSON.stringify(process.env.TRICKY).slice(1, -1)) }" }), secretNames: ["TRICKY"] },
+      { env: { TRICKY: tricky }, fetch: vi.fn() as unknown as typeof fetch }
+    )
+    expect((await guarded(post("/api/leak"))).status).toBe(500)
+  })
+
   it("silences console output", async () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {})
     const run = dispatcher({ "app/api/log+api.ts": "export function POST() { console.log(process.env); return Response.json({ ok: true }) }" })
