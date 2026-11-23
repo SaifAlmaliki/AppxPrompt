@@ -67,6 +67,9 @@ These all come from the phase 1 plan:
     It knows nothing about agents. Phase 4 runs its agent steps in `runBuildStep` around the call and passes its rules, file paths and checks through the three `extra` options.
   - Build order: every `function` route is built before any `agent` route (`nextServerRoute(planned, rows)` in `server-builder.ts`), and both come before the screens. Later phases don't reorder.
   - `SERVER_BUILDER_INSTRUCTIONS` says routes of kind `agent` follow the prompt's agent section instead of the `withErrors` / `requireCaller` rules.
+  - Whoever runs an agent with phase 2's research tools must set `maxTurns` and handle the max-turns error the way the planner does (`endRunAtMaxTurns` from `lib/agent/max-turns.ts` as the run's `errorHandlers`), so hitting the limit doesn't lose the work done so far.
+  - Give each build step its own `newResearchBudget()`, so one step can't use up the searches and page reads of the next.
+  - Show stored service notes to models as fenced reference material, never as instructions.
   - `lib/agent/validate-server-route.ts` exports:
   ```ts
   validateServerRoute(code: string, ctx: {
