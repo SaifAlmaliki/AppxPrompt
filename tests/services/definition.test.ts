@@ -108,6 +108,25 @@ describe("normalizeService", () => {
     expect(typeof result).toBe("string")
   })
 
+  it("refuses check, token and auth URLs with a port or userinfo", () => {
+    const api = openaiInput()
+    for (const url of ["https://api.openai.com:8443/v1/models", "https://user:pw@api.openai.com/v1/models"]) {
+      expect(typeof normalizeService(openaiInput({ check: { ...api.check!, url } }))).toBe("string")
+    }
+    const google = googleInput()
+    for (const tokenUrl of ["https://oauth2.googleapis.com:8443/token", "https://a@oauth2.googleapis.com/token"]) {
+      expect(typeof normalizeService(googleInput({ oauth: { ...google.oauth!, tokenUrl } }))).toBe("string")
+    }
+    for (const authUrl of ["https://accounts.google.com:444/auth", "https://a:b@accounts.google.com/auth"]) {
+      expect(typeof normalizeService(googleInput({ oauth: { ...google.oauth!, authUrl } }))).toBe("string")
+    }
+  })
+
+  it("accepts the default port written out", () => {
+    const api = openaiInput()
+    expect(typeof normalizeService(openaiInput({ check: { ...api.check!, url: "https://api.openai.com:443/v1/models" } }))).toBe("object")
+  })
+
   it("refuses refresh token rotation", () => {
     const base = googleInput()
     const result = normalizeService(googleInput({ oauth: { ...base.oauth!, rotatesRefreshToken: true } }))

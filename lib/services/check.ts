@@ -1,8 +1,13 @@
+import * as Sentry from "@sentry/nextjs"
+
+import { resolvesToPublicAddress } from "@/lib/services/public-host"
 import type { ServiceCheck, ServiceDefinition } from "@/lib/services/protocol"
 
 const TIMEOUT_MS = 10_000
 
 export type CheckOutcome = "ok" | "rejected" | "unreachable"
+
+type HostResolver = (host: string) => Promise<boolean>
 
 export function buildCheckRequest(
   check: ServiceCheck,
@@ -21,28 +26,36 @@ export function buildCheckRequest(
   return { url, init: { method: check.method, headers } }
 }
 
-function allowed(definition: ServiceDefinition, url: string): boolean {
+/** The host to call, or null when the URL isn't https on the default port, has userinfo, or isn't an allowed host. */
+function allowedHost(definition: ServiceDefinition, url: string): string | null {
   try {
     const parsed = new URL(url)
-    return parsed.protocol === "https:" && definition.allowedHosts.includes(parsed.hostname.toLowerCase())
+    if (parsed.protocol !== "https:" || parsed.port !== "" || parsed.username !== "" || parsed.password !== "") return null
+    const host = parsed.hostname.toLowerCase()
+    return definition.allowedHosts.includes(host) ? host : null
   } catch {
-    return false
+    return null
   }
 }
 
+// The request carries the owner's credential, so it stays out of traces.
 function send(url: string, init: RequestInit, fetchImpl: typeof fetch): Promise<Response> {
-  return fetchImpl(url, { ...init, redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS) })
+  return Sentry.suppressTracing(() =>
+    fetchImpl(url, { ...init, redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS) }),
+  )
 }
 
 export async function runCheck(
   definition: ServiceDefinition,
   values: Record<string, string>,
   fetchImpl: typeof fetch = fetch,
+  resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<CheckOutcome> {
-  if (!definition.check) return "ok"
+  if (!definition.check) return "unreachable"
   try {
     const { url, init } = buildCheckRequest(definition.check, values)
-    if (!allowed(definition, url)) return "unreachable"
+    const host = allowedHost(definition, url)
+    if (!host || !(await resolver(host))) return "unreachable"
     const response = await send(url, init, fetchImpl)
     if (response.status >= 200 && response.status < 300) return "ok"
     if (response.status === 401 || response.status === 403) return "rejected"
@@ -52,9 +65,11 @@ export async function runCheck(
   }
 }
 
-function tokenRequest(definition: ServiceDefinition, params: Record<string, string>) {
+async function tokenRequest(definition: ServiceDefinition, params: Record<string, string>, resolver: HostResolver) {
   const tokenUrl = definition.oauth?.tokenUrl
-  if (!tokenUrl || !allowed(definition, tokenUrl)) return null
+  if (!tokenUrl) return null
+  const host = allowedHost(definition, tokenUrl)
+  if (!host || !(await resolver(host))) return null
   return {
     url: tokenUrl,
     init: {
@@ -84,15 +99,16 @@ export async function exchangeCode(
     redirectUri: string
   },
   fetchImpl: typeof fetch = fetch,
+  resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<{ refreshToken: string } | { error: "no_refresh_token" | "error" }> {
-  const request = tokenRequest(input.definition, {
+  const request = await tokenRequest(input.definition, {
     grant_type: "authorization_code",
     code: input.code,
     redirect_uri: input.redirectUri,
     client_id: input.clientId,
     client_secret: input.clientSecret,
     code_verifier: input.verifier,
-  })
+  }, resolver)
   if (!request) return { error: "error" }
   try {
     const response = await send(request.url, request.init, fetchImpl)
@@ -110,13 +126,14 @@ export async function exchangeCode(
 export async function refreshAccessToken(
   input: { definition: ServiceDefinition; clientId: string; clientSecret: string; refreshToken: string },
   fetchImpl: typeof fetch = fetch,
+  resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<CheckOutcome> {
-  const request = tokenRequest(input.definition, {
+  const request = await tokenRequest(input.definition, {
     grant_type: "refresh_token",
     refresh_token: input.refreshToken,
     client_id: input.clientId,
     client_secret: input.clientSecret,
-  })
+  }, resolver)
   if (!request) return "unreachable"
   try {
     const response = await send(request.url, request.init, fetchImpl)

@@ -81,13 +81,19 @@ function isHttps(value: string): URL | null {
   }
 }
 
+/** An https URL on the default port without userinfo, the only kind the server will call or send the owner to. */
+function isPlainHttps(value: string): URL | null {
+  const url = isHttps(value)
+  return url && url.port === "" && url.username === "" && url.password === "" ? url : null
+}
+
 function checkReason(
   check: NonNullable<z.infer<typeof serviceDefinitionSchema>["check"]>,
   hosts: string[],
   fields: ServiceField[],
 ): ServiceCheck | string {
-  const url = isHttps(check.url)
-  if (!url) return `The check url must be an https URL, not "${check.url}".`
+  const url = isPlainHttps(check.url)
+  if (!url) return `The check url must be an https URL without a port or login, not "${check.url}".`
   if (!hosts.includes(url.hostname.toLowerCase())) {
     return `The check url host ${url.hostname} isn't in allowedHosts.`
   }
@@ -176,9 +182,11 @@ export function normalizeService(input: z.infer<typeof serviceDefinitionSchema>)
     const config = input.oauth
     if (!config) return "An oauth2 service needs oauth settings."
     if (input.check !== null) return "An oauth2 service must have check set to null."
-    if (!isHttps(config.authUrl)) return `The authUrl must be an https URL, not "${config.authUrl}".`
-    const tokenUrl = isHttps(config.tokenUrl)
-    if (!tokenUrl) return `The tokenUrl must be an https URL, not "${config.tokenUrl}".`
+    if (!isPlainHttps(config.authUrl)) {
+      return `The authUrl must be an https URL without a port or login, not "${config.authUrl}".`
+    }
+    const tokenUrl = isPlainHttps(config.tokenUrl)
+    if (!tokenUrl) return `The tokenUrl must be an https URL without a port or login, not "${config.tokenUrl}".`
     if (!allowedHosts.includes(tokenUrl.hostname.toLowerCase())) {
       return `The tokenUrl host ${tokenUrl.hostname} isn't in allowedHosts.`
     }

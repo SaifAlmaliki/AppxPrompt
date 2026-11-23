@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { buildCheckRequest, exchangeCode, refreshAccessToken, runCheck } from "@/lib/services/check"
+import {
+  buildCheckRequest,
+  exchangeCode as exchangeCodeWith,
+  refreshAccessToken as refreshAccessTokenWith,
+  runCheck as runCheckWith,
+} from "@/lib/services/check"
 import type { ServiceCheck, ServiceDefinition } from "@/lib/services/protocol"
 
 const headerCheck: ServiceCheck = {
@@ -46,6 +51,18 @@ const google: ServiceDefinition = {
   setupSteps: "",
   notes: "",
 }
+
+type Resolver = (host: string) => Promise<boolean>
+
+const publicHost: Resolver = async () => true
+const privateHost: Resolver = async () => false
+
+const runCheck = (definition: ServiceDefinition, values: Record<string, string>, fetchImpl: typeof fetch, resolver = publicHost) =>
+  runCheckWith(definition, values, fetchImpl, resolver)
+const exchangeCode = (input: Parameters<typeof exchangeCodeWith>[0], fetchImpl: typeof fetch, resolver = publicHost) =>
+  exchangeCodeWith(input, fetchImpl, resolver)
+const refreshAccessToken = (input: Parameters<typeof refreshAccessTokenWith>[0], fetchImpl: typeof fetch, resolver = publicHost) =>
+  refreshAccessTokenWith(input, fetchImpl, resolver)
 
 type Call = { url: string; init: RequestInit }
 
@@ -110,9 +127,40 @@ describe("runCheck", () => {
     expect(await runCheck(openai, { OPENAI_API_KEY: "k" }, throwing)).toBe("unreachable")
   })
 
-  it("returns ok without a check", async () => {
+  it("can't test without a check, so it never says ok", async () => {
     const f = fakeFetch(() => json({}, 500))
-    expect(await runCheck({ ...openai, check: null }, {}, f.impl)).toBe("ok")
+    expect(await runCheck({ ...openai, check: null }, {}, f.impl)).toBe("unreachable")
+    expect(f.calls).toHaveLength(0)
+  })
+
+  it("never fetches a non-default port or a URL with userinfo", async () => {
+    const f = fakeFetch(() => json({}))
+    for (const url of [
+      "https://api.openai.com:8443/v1/models",
+      "https://user:pass@api.openai.com/v1/models",
+      "https://user@api.openai.com/v1/models",
+    ]) {
+      const def = { ...openai, check: { ...headerCheck, url } }
+      expect(await runCheck(def, { OPENAI_API_KEY: "sk-x" }, f.impl)).toBe("unreachable")
+    }
+    expect(f.calls).toHaveLength(0)
+  })
+
+  it("accepts the default https port written out", async () => {
+    const f = fakeFetch(() => json({}))
+    const def = { ...openai, check: { ...headerCheck, url: "https://api.openai.com:443/v1/models" } }
+    expect(await runCheck(def, { OPENAI_API_KEY: "sk-x" }, f.impl)).toBe("ok")
+  })
+
+  it("never fetches a host that resolves to an internal address", async () => {
+    const f = fakeFetch(() => json({}))
+    const asked: string[] = []
+    const resolver: Resolver = async (host) => {
+      asked.push(host)
+      return false
+    }
+    expect(await runCheck(openai, { OPENAI_API_KEY: "sk-x" }, f.impl, resolver)).toBe("unreachable")
+    expect(asked).toEqual(["api.openai.com"])
     expect(f.calls).toHaveLength(0)
   })
 
@@ -184,6 +232,28 @@ describe("exchangeCode", () => {
   it("errors without oauth config", async () => {
     const f = fakeFetch(() => json({}))
     expect(await exchangeCode({ ...exchangeInput, definition: openai }, f.impl)).toEqual({ error: "error" })
+    expect(f.calls).toHaveLength(0)
+  })
+})
+
+describe("internal destinations", () => {
+  it("exchangeCode refuses a token host that resolves internally", async () => {
+    const f = fakeFetch(() => json({ refresh_token: "rt" }))
+    expect(await exchangeCode(exchangeInput, f.impl, privateHost)).toEqual({ error: "error" })
+    expect(f.calls).toHaveLength(0)
+  })
+  it("refreshAccessToken refuses a token host that resolves internally", async () => {
+    const f = fakeFetch(() => json({}))
+    const input = { definition: google, clientId: "cid", clientSecret: "csecret", refreshToken: "rt" }
+    expect(await refreshAccessToken(input, f.impl, privateHost)).toBe("unreachable")
+    expect(f.calls).toHaveLength(0)
+  })
+  it("refuses a token URL with a port or userinfo", async () => {
+    const f = fakeFetch(() => json({ refresh_token: "rt" }))
+    for (const tokenUrl of ["https://oauth2.googleapis.com:8443/token", "https://a:b@oauth2.googleapis.com/token"]) {
+      const definition = { ...google, oauth: { ...google.oauth!, tokenUrl } }
+      expect(await exchangeCode({ ...exchangeInput, definition }, f.impl)).toEqual({ error: "error" })
+    }
     expect(f.calls).toHaveLength(0)
   })
 })
