@@ -38,3 +38,14 @@ await build({
   plugins: [ioniconsPlugin],
   logLevel: "warning",
 })
+
+// The server that runs generated apps' API routes inside the sandbox VM.
+await build({
+  entryPoints: ["sandbox-runtime/server.ts"],
+  outfile: "sandbox-runtime/dist/server.mjs",
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node22",
+  logLevel: "warning",
+})

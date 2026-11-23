@@ -38,3 +38,4 @@ next-env.d.ts
 
 # built by scripts/build-preview-runtime.mjs
 /public/preview-runtime/runtime.js
+/sandbox-runtime/dist/
