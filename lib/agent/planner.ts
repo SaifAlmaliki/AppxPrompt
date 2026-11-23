@@ -8,6 +8,7 @@ import { mergePlan, planAppChanges, slugify, type AppChanges } from "@/lib/agent
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
 import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
+import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import type { ProjectRun } from "@/lib/agent/runs"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
@@ -507,7 +508,7 @@ function leakedCallNudge(tool: string | null) {
  * `before` is what the person has already seen, so new text starts a new paragraph.
  */
 async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
-  const result = await run(plannerAgent, input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS })
+  const result = await run(plannerAgent, input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns })
 
   let text = ""
   let responseHasText = false
