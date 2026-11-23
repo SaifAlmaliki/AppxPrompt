@@ -17,6 +17,7 @@ import {
 import type { BackendStatus } from "@/lib/backend-protocol"
 import { isUpgradeReason } from "@/lib/plans"
 import type { ProjectStatus } from "@/lib/projects"
+import type { ServiceSummary } from "@/lib/services/protocol"
 import { useUpgradeDialog } from "@/components/billing/upgrade-dialog"
 
 export type AgentState = {
@@ -25,6 +26,9 @@ export type AgentState = {
   plan: AppPlan | null
   screens: ProjectScreen[]
   backend: BackendStatus
+  services: ServiceSummary[]
+  /** The service the agent asked for, until the dialog has opened for it. */
+  serviceRequest: string | null
   /** True while a request to the agent is open. */
   busy: boolean
   /** What the agent is doing right now, as a status key to word here, or a label saved before there were keys. */
@@ -46,6 +50,8 @@ type Action =
   | { type: "theme"; themeId: string }
   | { type: "theme-failed"; themeId: string; message: string }
   | { type: "backend-changed"; backend: BackendStatus; plan: AppPlan | null }
+  | { type: "service-changed"; slug: string; summary: ServiceSummary | null }
+  | { type: "service-request-handled" }
   | { type: "new-session" }
   | { type: "file-code"; path: string; code: string }
 
@@ -80,6 +86,18 @@ export function reducer(state: AgentState, action: Action): AgentState {
       return { ...withActiveTheme(state, action.themeId), error: action.message }
     case "backend-changed":
       return { ...state, backend: action.backend, plan: action.plan }
+    case "service-changed": {
+      const { summary, slug } = action
+      if (!summary) return { ...state, services: state.services.filter((s) => s.slug !== slug) }
+      return {
+        ...state,
+        services: state.services.some((s) => s.slug === slug)
+          ? state.services.map((s) => (s.slug === slug ? summary : s))
+          : [...state.services, summary],
+      }
+    }
+    case "service-request-handled":
+      return { ...state, serviceRequest: null }
     case "new-session":
       return { ...state, messages: [], streamingText: "", reasoning: "", error: null, sessionRestarted: true }
     case "file-code":
@@ -120,8 +138,9 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
     case "plan":
       return { ...state, plan: event.plan }
     case "services":
+      return { ...state, services: event.services }
     case "service-request":
-      return state
+      return { ...state, serviceRequest: event.slug }
     case "backend":
       return { ...state, backend: event.backend }
     case "project-status":
@@ -181,11 +200,12 @@ async function readEvents(body: NonNullable<Response["body"]>, onEvent: (event: 
  */
 export function useProjectAgent(
   projectId: string,
-  initial: Pick<AgentState, "messages" | "status" | "plan" | "screens" | "backend">,
+  initial: Pick<AgentState, "messages" | "status" | "plan" | "screens" | "backend" | "services">,
   readOnly = false
 ) {
   const [state, dispatch] = React.useReducer(reducer, {
     ...initial,
+    serviceRequest: null,
     busy: false,
     activity: null,
     streamingText: "",
@@ -322,5 +342,11 @@ export function useProjectAgent(
   /** Shows a file's latest code, after an edit made by hand. */
   const setFileCode = React.useCallback((path: string, code: string) => dispatch({ type: "file-code", path, code }), [])
 
-  return { ...state, send, setTheme, changeBackend, startNewSession, setFileCode }
+  const serviceChanged = React.useCallback(
+    (slug: string, summary: ServiceSummary | null) => dispatch({ type: "service-changed", slug, summary }),
+    []
+  )
+  const clearServiceRequest = React.useCallback(() => dispatch({ type: "service-request-handled" }), [])
+
+  return { ...state, send, setTheme, changeBackend, startNewSession, setFileCode, serviceChanged, clearServiceRequest }
 }

@@ -25,6 +25,7 @@ import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
 import { findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
 import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
+import { redactKeys } from "@/lib/services/key-patterns"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -41,6 +42,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { BuildProgress } from "@/components/workspace/build-progress"
 import { PlanCard, type PlanCardState } from "@/components/workspace/plan-card"
+import { ServiceCard } from "@/components/workspace/service-card"
 
 type Agent = ReturnType<typeof useProjectAgent>
 
@@ -55,7 +57,20 @@ export type ChatAsset = {
 // How close to the bottom (px) still counts as "following" the conversation.
 const FOLLOW_THRESHOLD = 120
 
-export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: ChatAsset[]; editor: InlineEditor }) {
+export function ChatPanel({
+  agent,
+  assets,
+  editor,
+  onKeysRemoved,
+  onOpenService,
+}: {
+  agent: Agent
+  assets: ChatAsset[]
+  editor: InlineEditor
+  /** Keys that were taken out of a message before it was sent. */
+  onKeysRemoved: (keys: string[]) => void
+  onOpenService: (slug: string) => void
+}) {
   const t = useTranslations("chat")
   const tCommon = useTranslations("common")
   const elementLabel = useElementLabel()
@@ -114,8 +129,11 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
 
   async function handleSubmit(event?: React.FormEvent) {
     event?.preventDefault()
-    const content = draft.trim()
-    if (!content || inputLocked) return
+    const typed = draft.trim()
+    if (!typed || inputLocked) return
+    // A pasted key never leaves the browser in a message: the dialog takes it instead.
+    const { text: content, keys } = redactKeys(typed)
+    if (keys.length > 0) onKeysRemoved(keys)
     following.current = true
     setDraft("")
     // Put the text back if the agent didn't take it.
@@ -269,6 +287,15 @@ export function ChatPanel({ agent, assets, editor }: { agent: Agent; assets: Cha
               </div>
             </li>
           )}
+
+          {!editor.readOnly &&
+            agent.services
+              .filter((service) => service.status !== "connected")
+              .map((service) => (
+                <li key={service.slug}>
+                  <ServiceCard service={service} onOpen={() => onOpenService(service.slug)} />
+                </li>
+              ))}
 
           {error && (
             <li role="alert" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800">

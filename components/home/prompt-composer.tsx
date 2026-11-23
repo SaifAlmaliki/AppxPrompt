@@ -27,6 +27,7 @@ import {
   PROJECT_PLATFORMS,
   type ProjectPlatform,
 } from "@/lib/projects"
+import { redactKeys } from "@/lib/services/key-patterns"
 import { PENDING_PROMPT_KEY } from "@/lib/social-auth"
 import { cn } from "@/lib/utils"
 import {
@@ -205,7 +206,8 @@ export function PromptComposer() {
 
     // Assets only leave the browser here, once the user has hit Send.
     const body = new FormData()
-    body.append("prompt", draft.prompt.trim())
+    // A key pasted into the prompt is taken out here, before anything is sent or saved.
+    body.append("prompt", redactKeys(draft.prompt.trim()).text)
     body.append("platform", draft.platform)
     draft.files.forEach((f) => body.append("files", f.file))
 
@@ -277,7 +279,7 @@ export function PromptComposer() {
 
   function parkDraft() {
     const { prompt, platform } = draftRef.current
-    sessionStorage.setItem(PENDING_PROMPT_KEY, JSON.stringify({ prompt, platform }))
+    sessionStorage.setItem(PENDING_PROMPT_KEY, JSON.stringify({ prompt: redactKeys(prompt).text, platform }))
   }
 
   function handleSubmit(event?: React.FormEvent) {

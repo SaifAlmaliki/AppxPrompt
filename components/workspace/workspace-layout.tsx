@@ -14,6 +14,7 @@ import { isRunnable, type AppPlan, type ChatMessage, type ProjectScreen } from "
 import type { BackendConnectResult, BackendStatus } from "@/lib/backend-protocol"
 import type { GitHubConnectResult } from "@/lib/github-protocol"
 import type { ProjectPlatform, ProjectStatus } from "@/lib/projects"
+import type { ServiceConnectResult, ServiceSummary } from "@/lib/services/protocol"
 import { cn } from "@/lib/utils"
 import {
   ResizableHandle,
@@ -27,6 +28,7 @@ import { DownloadDialog } from "@/components/workspace/download-dialog"
 import { GitHubDialog } from "@/components/workspace/github-dialog"
 import { PreviewPanel } from "@/components/workspace/preview-panel"
 import { PublishDialog } from "@/components/workspace/publish-dialog"
+import { ServiceDialog } from "@/components/workspace/service-dialog"
 import { ShareDialog } from "@/components/workspace/share-dialog"
 import { WorkspaceHeader } from "@/components/workspace/workspace-header"
 
@@ -55,6 +57,9 @@ export function WorkspaceLayout({
   backend,
   backendConnectResult,
   githubConnectResult,
+  services,
+  integrations,
+  serviceConnect,
   readOnly,
   assets,
 }: {
@@ -73,6 +78,12 @@ export function WorkspaceLayout({
   backendConnectResult: BackendConnectResult | null
   /** How the browser's trip to GitHub went, when it has just come back. */
   githubConnectResult: GitHubConnectResult | null
+  /** The services the app uses. Empty for someone the project was shared with. */
+  services: ServiceSummary[]
+  /** Whether integrations are on for this server. */
+  integrations: boolean
+  /** How the browser's trip to a service's sign-in went, when it has just come back. */
+  serviceConnect: { slug: string; result: ServiceConnectResult } | null
   /** Someone the project was shared with, who can look and download but not change it. */
   readOnly: boolean
   assets: ChatAsset[]
@@ -86,6 +97,7 @@ export function WorkspaceLayout({
     plan: project.plan,
     screens,
     backend,
+    services,
   }, readOnly)
   const editor = useInlineEditor(project.id, agent, imageTools, readOnly)
   const { user, refresh: refreshAccount } = useAuth()
@@ -103,6 +115,34 @@ export function WorkspaceLayout({
   const [githubNotice, setGithubNotice] = React.useState(githubConnectResult)
   const [publishDialogOpen, setPublishDialogOpen] = React.useState(false)
   const webPublish = useWebPublish(project.id, !readOnly, editor.retrySave)
+
+  // Pasted keys live here only while the dialog is open, and go when it closes.
+  const [serviceDialog, setServiceDialog] = React.useState<{ slug: string | null; pastedKeys: string[] } | null>(
+    serviceConnect && !readOnly ? { slug: serviceConnect.slug, pastedKeys: [] } : null
+  )
+  const [serviceNotice, setServiceNotice] = React.useState(serviceConnect)
+  const openService = React.useCallback((slug: string) => {
+    setServiceDialog((current) => ({ slug, pastedKeys: current?.pastedKeys ?? [] }))
+  }, [])
+  const keysRemoved = React.useCallback((keys: string[]) => {
+    setServiceDialog((current) => ({
+      slug: current?.slug ?? null,
+      pastedKeys: [...(current?.pastedKeys ?? []), ...keys.filter((key) => !current?.pastedKeys.includes(key))],
+    }))
+  }, [])
+
+  // Coming back from a service's sign-in shouldn't reopen the dialog on every reload.
+  React.useEffect(() => {
+    if (serviceConnect) window.history.replaceState(null, "", window.location.pathname)
+  }, [serviceConnect])
+
+  // The agent asked for a service: open its dialog once.
+  const { serviceRequest, clearServiceRequest } = agent
+  React.useEffect(() => {
+    if (!serviceRequest) return
+    if (!readOnly) openService(serviceRequest)
+    clearServiceRequest()
+  }, [serviceRequest, readOnly, openService, clearServiceRequest])
 
   // Coming back from GitHub shouldn't reopen the dialog on every reload.
   React.useEffect(() => {
@@ -131,8 +171,11 @@ export function WorkspaceLayout({
       platform={project.platform}
       credits={user?.credits ?? credits}
       backend={agent.backend}
+      services={agent.services}
+      showServices={integrations || agent.services.length > 0}
       readOnly={readOnly}
       onOpenBackend={() => setBackendDialogOpen(true)}
+      onOpenService={openService}
       onShare={() => setShareDialogOpen(true)}
       onDownload={() => setDownloadDialogOpen(true)}
       onPushToGitHub={() => setGithubDialogOpen(true)}
@@ -192,7 +235,23 @@ export function WorkspaceLayout({
       onDisconnect={() => agent.changeBackend("DELETE")}
     />
   )
-  const chat = <ChatPanel agent={agent} assets={assets} editor={editor} />
+  const serviceDialogElement = !readOnly && (
+    <ServiceDialog
+      projectId={project.id}
+      open={serviceDialog !== null}
+      onOpenChange={(open) => {
+        if (open) return
+        setServiceDialog(null)
+        setServiceNotice(null)
+      }}
+      service={agent.services.find((service) => service.slug === serviceDialog?.slug) ?? null}
+      pastedKeys={serviceDialog?.pastedKeys ?? []}
+      services={agent.services}
+      connectResult={serviceNotice && serviceNotice.slug === serviceDialog?.slug ? serviceNotice.result : null}
+      onChanged={agent.serviceChanged}
+    />
+  )
+  const chat = <ChatPanel agent={agent} assets={assets} editor={editor} onKeysRemoved={keysRemoved} onOpenService={openService} />
   // Rebuilt only when what the running app sees changes: not for code still streaming in,
   // or for the active theme, which reaches it on its own so switching never reloads the app.
   // Edits made by hand reach it on their own too, so it runs the code from before them.
@@ -246,6 +305,7 @@ export function WorkspaceLayout({
       <>
         {header}
         {backendDialog}
+        {serviceDialogElement}
         {exportDialogs}
         <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
           <ResizablePanel id="chat" defaultSize="24%" minSize={280} maxSize="40%">
@@ -268,6 +328,7 @@ export function WorkspaceLayout({
     <>
       {header}
       {backendDialog}
+      {serviceDialogElement}
       {exportDialogs}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1">

@@ -11,6 +11,9 @@ import { getBackendStatus } from "@/lib/cloudhike/backend"
 import { GITHUB_CONNECT_RESULTS, type GitHubConnectResult } from "@/lib/github-protocol"
 import { serverT } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
+import { integrationsEnabled } from "@/lib/services/flags"
+import { SERVICE_CONNECT_RESULTS, type ServiceConnectResult } from "@/lib/services/protocol"
+import { listServiceSummaries } from "@/lib/services/store"
 import { getCurrentUser } from "@/lib/session"
 import { getObjectUrl } from "@/lib/storage"
 import { Logo } from "@/components/home/logo"
@@ -22,10 +25,10 @@ export default async function WorkspacePage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>
-  searchParams: Promise<{ backend?: string; github?: string }>
+  searchParams: Promise<{ backend?: string; github?: string; service?: string; serviceResult?: string }>
 }) {
   const { projectId } = await params
-  const { backend: connectResult, github: githubResult } = await searchParams
+  const { backend: connectResult, github: githubResult, service: serviceSlug, serviceResult } = await searchParams
   const user = await getCurrentUser()
 
   if (!user) {
@@ -85,6 +88,16 @@ export default async function WorkspacePage({
   // It's the owner's account that the backend runs on, whoever is looking.
   const backend = await getBackendStatus(project.id, project.userId, await serverT("errors"))
 
+  // Only the owner sees the services an app uses.
+  const isOwner = role === "owner"
+  const services = isOwner ? await listServiceSummaries(project.id) : []
+  const serviceConnect =
+    serviceSlug &&
+    services.some((service) => service.slug === serviceSlug) &&
+    SERVICE_CONNECT_RESULTS.includes(serviceResult as ServiceConnectResult)
+      ? { slug: serviceSlug, result: serviceResult as ServiceConnectResult }
+      : null
+
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
       <WorkspaceLayout
@@ -106,7 +119,10 @@ export default async function WorkspacePage({
         githubConnectResult={
           GITHUB_CONNECT_RESULTS.includes(githubResult as GitHubConnectResult) ? (githubResult as GitHubConnectResult) : null
         }
-        readOnly={role !== "owner"}
+        services={services}
+        integrations={integrationsEnabled()}
+        serviceConnect={serviceConnect}
+        readOnly={!isOwner}
         assets={firstMessage?.archived ? [] : assets.map(({ id, fileName, contentType, url }) => ({ id, fileName, contentType, url }))}
       />
     </div>

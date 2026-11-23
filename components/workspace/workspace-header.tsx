@@ -17,6 +17,7 @@ import {
 
 import { isBackendConnected, type BackendStatus } from "@/lib/backend-protocol"
 import { STATUS_STYLES, type ProjectPlatform, type ProjectStatus } from "@/lib/projects"
+import type { ServiceSummary } from "@/lib/services/protocol"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { LanguageToggle } from "@/components/language-toggle"
 import { Logo } from "@/components/home/logo"
+import { ServicesButton } from "@/components/workspace/services-button"
 
 export function WorkspaceHeader({
   name,
@@ -35,8 +37,11 @@ export function WorkspaceHeader({
   platform,
   credits,
   backend,
+  services,
+  showServices,
   readOnly,
   onOpenBackend,
+  onOpenService,
   onShare,
   onDownload,
   onPushToGitHub,
@@ -47,9 +52,13 @@ export function WorkspaceHeader({
   platform: ProjectPlatform
   credits: number
   backend: BackendStatus
+  services: ServiceSummary[]
+  /** Whether the services menu is offered: integrations are on, or the app already uses a service. */
+  showServices: boolean
   /** Someone the project was shared with, who can look and download but not change it. */
   readOnly: boolean
   onOpenBackend: () => void
+  onOpenService: (slug: string) => void
   onShare: () => void
   onDownload: () => void
   onPushToGitHub: () => void
@@ -110,6 +119,7 @@ export function WorkspaceHeader({
         </Link>
 
         {!readOnly && <BackendButton backend={backend} onClick={onOpenBackend} />}
+        {!readOnly && showServices && <ServicesButton services={services} onOpen={onOpenService} />}
 
         <DropdownMenu>
           <DropdownMenuTrigger

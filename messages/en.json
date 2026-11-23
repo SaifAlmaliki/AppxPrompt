@@ -1322,6 +1322,78 @@
       "open": "Open in CloudHike"
     }
   },
+  "services": {
+    "title": "Connect {name}",
+    "titleKeys": "Keys from your message",
+    "descriptionKeys": "Add the keys your app needs, or skip for now.",
+    "menu": {
+      "label": "Services & keys",
+      "empty": "No services yet. They show up here when your app needs one.",
+      "needsAttention": "Some services need attention"
+    },
+    "status": {
+      "connected": "Connected",
+      "rejected": "Key rejected",
+      "untested": "Saved, not tested",
+      "missing": "Not connected"
+    },
+    "statusLine": {
+      "connected": "Connected. {name} accepted what you saved.",
+      "rejected": "{name} rejected what you saved. Check it and save it again.",
+      "untested": "Saved, but we couldn't reach {name} to test it. It may still work.",
+      "missing": "Not connected yet. Fill in the fields below."
+    },
+    "setup": {
+      "title": "How to get your keys",
+      "redirectLabel": "Redirect URL",
+      "redirectHelp": "Add this as an authorized redirect URL in your {name} settings.",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "field": {
+      "replace": "Replace",
+      "keepCurrent": "Keep current"
+    },
+    "hosts": "Your keys are only sent to: {hosts}",
+    "privacy": "Your keys are stored encrypted and never shown again. The AI agent never sees them.",
+    "budget": "Set a spending limit in your {name} account before you share your app. <link>Open the {name} docs</link>",
+    "connectResult": {
+      "connected": "Connected. Your account is linked.",
+      "denied": "You cancelled, so nothing was connected.",
+      "no_refresh_token": "The account was linked, but it didn't give a lasting login. Remove the app's access in your {name} account settings, then connect again.",
+      "error": "We couldn't finish connecting. Please try again."
+    },
+    "pasted": {
+      "title": "Your key was taken out of the message",
+      "intro": "It looked like a secret key, so it was removed before the message was sent. Choose where to save it.",
+      "keyLabel": "Key {n}",
+      "option": "{service}: {field}",
+      "save": "Save key",
+      "saved": "Saved",
+      "none": "The key wasn't saved. No service is waiting for a key yet. The dialog will ask for it once a feature needs it."
+    },
+    "actions": {
+      "save": "Save",
+      "connect": "Connect",
+      "reconnect": "Connect again",
+      "retest": "Test again",
+      "remove": "Remove keys",
+      "removeFromApp": "Remove from app",
+      "skip": "Skip for now",
+      "close": "Close"
+    },
+    "errors": {
+      "save": "We couldn't save that. Please try again.",
+      "retest": "We couldn't test that. Please try again.",
+      "remove": "We couldn't remove that. Please try again."
+    },
+    "card": {
+      "text": "Connect {name} to finish {purpose}",
+      "rejected": "{name} rejected the saved key. Update it to keep {purpose} working.",
+      "open": "Set up",
+      "fix": "Update key"
+    }
+  },
   "share": {
     "title": "Share project",
     "description": "People you add can view this project and download it, but can't change it.",
