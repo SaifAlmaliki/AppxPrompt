@@ -1496,7 +1496,9 @@
     "backendSlowStart": "يستغرق بدء \u2068{services}\u2069 وقتًا أطول من المتوقع. حاول مرة أخرى بعد دقيقة.",
     "backendDatabaseState": "قاعدة بيانات CloudHike لديك في حالة \u2068{state}\u2069. أعد تشغيلها من لوحة تحكم CloudHike ثم حاول مرة أخرى.",
     "backendSetupFailed": "حدث خطأ أثناء إعداد الواجهة الخلفية. حاول مرة أخرى.",
-    "cloudhikeAuthLost": "لم يعد CloudHike يقبل هذا الربط. اربط حسابك مرة أخرى."
+    "cloudhikeAuthLost": "لم يعد CloudHike يقبل هذا الربط. اربط حسابك مرة أخرى.",
+    "serviceNotFound": "هذه الخدمة ليست جزءًا من التطبيق.",
+    "serviceValuesInvalid": "لا يمكن حفظ بعض هذه القيم."
   },
   "status": {
     "readingMessage": "جارٍ قراءة رسالتك…",

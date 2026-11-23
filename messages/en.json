@@ -1496,7 +1496,9 @@
     "backendSlowStart": "{services} is taking longer than expected to start. Try again in a minute.",
     "backendDatabaseState": "Your CloudHike database is {state}. Start it again from the CloudHike dashboard, then try again.",
     "backendSetupFailed": "Something went wrong while setting up the backend. Please try again.",
-    "cloudhikeAuthLost": "CloudHike no longer accepts this connection. Connect your account again."
+    "cloudhikeAuthLost": "CloudHike no longer accepts this connection. Connect your account again.",
+    "serviceNotFound": "This service isn't part of the app.",
+    "serviceValuesInvalid": "Some of those values can't be saved."
   },
   "status": {
     "readingMessage": "Reading your message…",
