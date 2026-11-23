@@ -90,7 +90,7 @@ export default async function WorkspacePage({
 
   // Only the owner sees the services an app uses.
   const isOwner = role === "owner"
-  const services = isOwner ? await listServiceSummaries(project.id) : []
+  const services = isOwner && integrationsEnabled() ? await listServiceSummaries(project.id) : []
   const serviceConnect =
     serviceSlug &&
     services.some((service) => service.slug === serviceSlug) &&

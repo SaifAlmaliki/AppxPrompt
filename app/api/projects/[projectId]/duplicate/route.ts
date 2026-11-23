@@ -8,6 +8,7 @@ import { getRun } from "@/lib/agent/runs"
 import { errorResponse, serverT, type ErrorKey } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
 import { MAX_PROJECT_NAME_LENGTH } from "@/lib/projects"
+import { integrationsEnabled } from "@/lib/services/flags"
 import { copyServiceDefinitions } from "@/lib/services/store"
 import { getCurrentUser } from "@/lib/session"
 import { copyObject, deleteObjects, safeFileName } from "@/lib/storage"
@@ -79,7 +80,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pr
         status: project.status,
         plan: project.plan && { ...project.plan, appName: name, backend: null, pendingChanges: null },
       })
-      await copyServiceDefinitions(tx, project.id, newId)
+      if (integrationsEnabled()) await copyServiceDefinitions(tx, project.id, newId)
       if (messageRows.length > 0) {
         await tx.insert(messages).values(
           messageRows.map((message) => ({

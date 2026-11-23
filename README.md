@@ -137,6 +137,14 @@ The interface is available in English and Arabic (right to left), with [next-int
 - **Guards.** `npm test` checks that both files have the same keys, that Arabic counts and plurals work, that nothing is double-escaped, that no component hard-codes visible text, and that no physical left or right classes come back.
 - **Deploying this change.** Migration `drizzle/0012_*.sql` adds a nullable `projects.chat_language` column, and every project query now selects it. Apply it to the database (`npm run db:push`, or your own migration process) **before** deploying this code. Applying it first is safe for the version that is running now.
 
+### Deploying the services vault
+
+The services and credentials tables (`drizzle/0014_*.sql`) and the chat-key redaction (`drizzle/0015_redact_message_keys.sql`) go out in this order. Until `APP_INTEGRATIONS=1` is set, the workspace page, the agent, and project duplication don't touch the new tables.
+
+1. Apply the 0014 tables first, with `npm run db:push` or your own migration process. Nothing reads them yet, so this is safe for the version that is running now.
+2. Run `drizzle/0015_redact_message_keys.sql` **by hand** with `psql`, first on a scratch copy of the database and then on production. It rewrites saved chat messages, so check the result on the copy before production. Check that `standard_conforming_strings` is `on` first (`SHOW standard_conforming_strings;`), because the patterns in the file rely on it.
+3. Deploy the code, then set `APP_INTEGRATIONS=1` when you want the feature on.
+
 ## Project structure
 
 ```text
