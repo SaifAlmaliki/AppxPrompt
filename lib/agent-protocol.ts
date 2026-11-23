@@ -63,6 +63,56 @@ export type AppComponent = {
 }
 
 /** Changes to a built app that the current build is still making. */
+/** A server function or agent the app calls, written as an Expo Router API route. */
+export type PlannedServerRoute = {
+  /** kebab-case, matches SERVER_ROUTE_ID. */
+  id: string
+  /** The route file, e.g. "app/api/booking/slots+api.ts". */
+  path: string
+  purpose: string
+  kind: "function" | "agent"
+  /** Slugs of the services it uses, or BACKEND_SERVICE for the app's backend. */
+  services: string[]
+  access: "public" | "signed_in"
+}
+
+export const SERVER_ROUTE_KINDS = ["function", "agent", "helper"] as const
+export type ServerRouteKind = (typeof SERVER_ROUTE_KINDS)[number]
+
+export type ProjectServerRoute = {
+  path: string
+  kind: ServerRouteKind
+  purpose: string
+  status: ScreenStatus
+  code: string | null
+}
+
+/** An API route file: `app/api/<segments>+api.ts`, where a segment is a kebab-case name or `[param]`. */
+export const API_ROUTE_FILE = /^app\/api(?:\/(?:[a-z0-9][a-z0-9-]*|\[[a-z][A-Za-z0-9]*\]))+\+api\.ts$/
+/** A helper the routes import, such as `server/google.ts`. */
+export const SERVER_HELPER_FILE = /^server(?:\/[a-z][a-z0-9-]*)+(?:\.instructions)?\.ts$/
+/** Helpers the agent runtime writes, never the server builder. */
+export const RESERVED_HELPER_FILE = /^server\/(?:agents\/|agent-loop\.ts$)/
+/** Files every app with server routes starts with. */
+export const SYSTEM_SERVER_FILES = ["server/auth.ts", "server/data.ts", "server/respond.ts"] as const
+/** What a route lists in `services` when it uses the app's own backend. */
+export const BACKEND_SERVICE = "backend"
+export const SERVER_ROUTE_ID = /^[a-z][a-z0-9-]{0,39}$/
+
+/** The URL a route file answers on: "app/api/booking/slots+api.ts" is "/api/booking/slots". An `index` is its folder. */
+export function apiRouteUrl(path: string) {
+  return "/" + path.replace(/^app\//, "").replace(/\+api\.ts$/, "").replace(/(?:^|\/)index$/, "")
+}
+
+/** Whether the file is part of the app's server rather than the app itself. */
+export function isServerFile(path: string) {
+  return path.startsWith("app/api/") || path.startsWith("server/")
+}
+
+export function toProjectServerRoute(row: Pick<ProjectServerRoute, keyof ProjectServerRoute>): ProjectServerRoute {
+  return { path: row.path, kind: row.kind, purpose: row.purpose, status: row.status, code: row.code }
+}
+
 export type PendingChanges = {
   /** What to change about the app's data, until that's done. */
   data: string | null
@@ -70,6 +120,8 @@ export type PendingChanges = {
   edits: Record<string, string>
   /** Shared components to write or change, by name, until that's done. */
   components?: Record<string, { purpose: string; request: string }>
+  /** Server routes to write or change, by path, until that's done. The text is the request; an empty one means "write it from its purpose". */
+  serverRoutes?: Record<string, string>
   /** Shared components that couldn't be changed, which stay as they were. */
   failed?: string[]
   added: string[]
@@ -97,6 +149,8 @@ export type AppPlan = {
   collections?: DataCollection[]
   /** What the screens are built from. Set when the build starts. Apps built before these existed have none. */
   components?: AppComponent[]
+  /** The server functions and agents the app calls. Set when the build starts. */
+  serverRoutes?: PlannedServerRoute[]
   pendingChanges?: PendingChanges | null
   /** Set once the app runs on its CloudHike backend. Everything in here ships inside the app. */
   backend?: AppBackend | null
@@ -207,6 +261,8 @@ export type AgentEvent =
   | { type: "project-status"; status: ProjectStatus }
   | { type: "screens"; screens: ProjectScreen[] }
   | { type: "screen"; screen: ProjectScreen }
+  | { type: "server-routes"; routes: ProjectServerRoute[] }
+  | { type: "server-route"; route: ProjectServerRoute }
   | { type: "code-delta"; screenId: string; delta: string }
   | { type: "backend"; backend: BackendStatus }
   | { type: "error"; message: string }
