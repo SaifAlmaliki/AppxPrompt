@@ -7,10 +7,11 @@ import { and, asc, eq, inArray, ne, notInArray } from "drizzle-orm"
 import { db, projectCredentials, projectServices } from "@/db"
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { refreshAccessToken, runCheck, type CheckOutcome } from "@/lib/services/check"
-import { refreshTokenName } from "@/lib/services/protocol"
+import { refreshTokenName, SERVER_KEY_NAME, SYSTEM_SERVICE_SLUG } from "@/lib/services/protocol"
 import type { CheckResult, ServiceDefinition, ServiceSummary } from "@/lib/services/protocol"
 import { canCheck, credentialCollision, definitionNames, staleCredentialNames } from "@/lib/services/rules"
-import { credentialHint, summarizeService, type StoredCredential } from "@/lib/services/status"
+import { ensureServerKey } from "@/lib/services/server-key"
+import { credentialHint, serviceStatus, summarizeService, type StoredCredential } from "@/lib/services/status"
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 type Executor = typeof db | Transaction
@@ -37,7 +38,9 @@ function toSummary(row: ServiceRow, credentials: CredentialRow[]): ServiceSummar
   )
 }
 
+/** The hidden system service is never found, so nothing that works on a service by slug can reach the server key. */
 async function findService(executor: Executor, projectId: string, slug: string): Promise<ServiceRow | null> {
+  if (slug === SYSTEM_SERVICE_SLUG) return null
   const [row] = await executor
     .select()
     .from(projectServices)
@@ -105,10 +108,81 @@ async function checkService(
 
 export async function listServiceSummaries(projectId: string): Promise<ServiceSummary[]> {
   const [services, credentials] = await Promise.all([
-    db.select().from(projectServices).where(eq(projectServices.projectId, projectId)).orderBy(asc(projectServices.createdAt)),
-    db.select().from(projectCredentials).where(eq(projectCredentials.projectId, projectId)),
+    db
+      .select()
+      .from(projectServices)
+      .where(and(eq(projectServices.projectId, projectId), ne(projectServices.slug, SYSTEM_SERVICE_SLUG)))
+      .orderBy(asc(projectServices.createdAt)),
+    db
+      .select()
+      .from(projectCredentials)
+      .where(and(eq(projectCredentials.projectId, projectId), ne(projectCredentials.serviceSlug, SYSTEM_SERVICE_SLUG))),
   ])
   return services.map((service) => toSummary(service, credentials))
+}
+
+/** The project's service definitions, without the hidden system service. */
+export async function listServiceDefinitions(projectId: string): Promise<ServiceDefinition[]> {
+  const rows = await db
+    .select({ definition: projectServices.definition })
+    .from(projectServices)
+    .where(and(eq(projectServices.projectId, projectId), ne(projectServices.slug, SYSTEM_SERVICE_SLUG)))
+    .orderBy(asc(projectServices.createdAt))
+  return rows.map((row) => row.definition)
+}
+
+/**
+ * The credentials that may leave the database: the server key, and those of services that are
+ * connected. A service with an unapproved host or a rejected check keeps its values to itself.
+ * Everything that sends credential values anywhere goes through this.
+ */
+export function connectedServiceCredentials<T extends { serviceSlug: string; name: string }>(
+  services: { slug: string; definition: ServiceDefinition; approvedHosts: string[]; checkResult: CheckResult }[],
+  credentials: T[],
+): T[] {
+  const namesBySlug = new Map<string, Set<string>>()
+  for (const credential of credentials) {
+    const names = namesBySlug.get(credential.serviceSlug) ?? new Set<string>()
+    names.add(credential.name)
+    namesBySlug.set(credential.serviceSlug, names)
+  }
+  const connected = new Set(
+    services
+      .filter(
+        (service) =>
+          service.slug !== SYSTEM_SERVICE_SLUG &&
+          serviceStatus(
+            service.definition,
+            namesBySlug.get(service.slug) ?? new Set<string>(),
+            service.approvedHosts,
+            service.checkResult,
+          ) === "connected",
+      )
+      .map((service) => service.slug),
+  )
+  return credentials.filter(
+    (credential) =>
+      credential.serviceSlug === SYSTEM_SERVICE_SLUG
+        ? credential.name === SERVER_KEY_NAME
+        : connected.has(credential.serviceSlug),
+  )
+}
+
+/** What the app's server needs in its environment, and which of those values are secret. Only the sandbox bundle reads this. */
+export async function loadProjectEnvironment(
+  projectId: string,
+): Promise<{ env: Record<string, string>; secretNames: string[] }> {
+  await ensureServerKey(projectId)
+  const [services, credentials] = await Promise.all([
+    db.select().from(projectServices).where(eq(projectServices.projectId, projectId)),
+    db.select().from(projectCredentials).where(eq(projectCredentials.projectId, projectId)),
+  ])
+  const kept = connectedServiceCredentials(services, credentials)
+  const env = readValues(kept)
+  return {
+    env,
+    secretNames: kept.filter((row) => row.kind !== "public" && row.name in env).map((row) => row.name),
+  }
 }
 
 /** The research notes saved with a service, or null when the project has no such service. Never reads credentials. */
@@ -253,6 +327,7 @@ export async function loadServiceSecrets(
 }
 
 export async function removeServiceValues(projectId: string, slug: string): Promise<void> {
+  if (slug === SYSTEM_SERVICE_SLUG) return
   await db.transaction(async (tx) => {
     await tx
       .delete(projectCredentials)
@@ -265,11 +340,15 @@ export async function removeServiceValues(projectId: string, slug: string): Prom
 }
 
 export async function removeService(projectId: string, slug: string): Promise<void> {
+  if (slug === SYSTEM_SERVICE_SLUG) return
   await db.delete(projectServices).where(and(eq(projectServices.projectId, projectId), eq(projectServices.slug, slug)))
 }
 
 export async function copyServiceDefinitions(tx: Transaction, fromProjectId: string, toProjectId: string): Promise<void> {
-  const rows = await tx.select().from(projectServices).where(eq(projectServices.projectId, fromProjectId))
+  const rows = await tx
+    .select()
+    .from(projectServices)
+    .where(and(eq(projectServices.projectId, fromProjectId), ne(projectServices.slug, SYSTEM_SERVICE_SLUG)))
   if (rows.length === 0) return
   await tx.insert(projectServices).values(
     rows.map((row) => ({

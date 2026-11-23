@@ -127,6 +127,10 @@ describe("normalizeService", () => {
     expect(typeof normalizeService(openaiInput({ check: { ...api.check!, url: "https://api.openai.com:443/v1/models" } }))).toBe("object")
   })
 
+  it("refuses the reserved system slug", () => {
+    expect(normalizeService(openaiInput({ slug: "appxprompt" }))).toBe("The slug appxprompt is reserved.")
+  })
+
   it("refuses refresh token rotation", () => {
     const base = googleInput()
     const result = normalizeService(googleInput({ oauth: { ...base.oauth!, rotatesRefreshToken: true } }))

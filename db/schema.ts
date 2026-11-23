@@ -18,6 +18,7 @@ import {
 import {
   SCREEN_LAYOUTS,
   SCREEN_STATUSES,
+  SERVER_ROUTE_KINDS,
   type AgentEvent,
   type AppPlan,
 } from "@/lib/agent-protocol";
@@ -173,6 +174,49 @@ export const screens = pgTable(
     uniqueIndex("screens_project_slug_idx").on(table.projectId, table.slug),
   ]
 );
+
+export const serverRouteKind = pgEnum("server_route_kind", SERVER_ROUTE_KINDS);
+
+/** One server function, agent or helper of a project's app, written as a file of its server. */
+export const serverRoutes = pgTable(
+  "server_routes",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    kind: serverRouteKind("kind").notNull(),
+    purpose: text("purpose").notNull(),
+    code: text("code"),
+    status: screenStatus("status").default("pending").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [primaryKey({ columns: [table.projectId, table.path] })]
+);
+
+/** The sandbox a project's server routes run in while the owner tests the app, and how long it has run today. */
+export const projectSandboxes = pgTable("project_sandboxes", {
+  projectId: uuid("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  sandboxId: text("sandbox_id"),
+  domain: text("domain"),
+  signature: text("signature"),
+  startingUntil: timestamp("starting_until"),
+  sessionStartedAt: timestamp("session_started_at"),
+  deadlineAt: timestamp("deadline_at"),
+  /** The UTC day `usageMs` counts, as YYYY-MM-DD. */
+  usageDay: text("usage_day"),
+  usageMs: integer("usage_ms").default(0).notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
 
 export const buildStatus = pgEnum("build_status", ["active", "finished"]);
 
@@ -458,6 +502,8 @@ export type Project = typeof projects.$inferSelect;
 export type ProjectAsset = typeof projectAssets.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Screen = typeof screens.$inferSelect;
+export type ServerRoute = typeof serverRoutes.$inferSelect;
+export type ProjectSandbox = typeof projectSandboxes.$inferSelect;
 export type ProjectBackend = typeof projectBackends.$inferSelect;
 export type ProjectService = typeof projectServices.$inferSelect;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;

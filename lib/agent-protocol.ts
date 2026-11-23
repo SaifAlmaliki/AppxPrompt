@@ -1,7 +1,7 @@
 // Types shared by the AppxPrompt agent (server) and the workspace (client).
 // The agent route streams `AgentEvent`s as newline-delimited JSON.
 
-import type { Screen } from "@/db/schema"
+import type { Screen, ServerRoute } from "@/db/schema"
 import type { AppBackend, BackendStatus } from "@/lib/backend-protocol"
 import type { UpgradeReason } from "@/lib/plans"
 import type { ProjectStatus } from "@/lib/projects"
@@ -109,7 +109,7 @@ export function isServerFile(path: string) {
   return path.startsWith("app/api/") || path.startsWith("server/")
 }
 
-export function toProjectServerRoute(row: Pick<ProjectServerRoute, keyof ProjectServerRoute>): ProjectServerRoute {
+export function toProjectServerRoute(row: ServerRoute): ProjectServerRoute {
   return { path: row.path, kind: row.kind, purpose: row.purpose, status: row.status, code: row.code }
 }
 

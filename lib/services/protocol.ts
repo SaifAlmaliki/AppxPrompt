@@ -76,3 +76,9 @@ export function envPrefix(slug: string): string {
 export function refreshTokenName(slug: string): string {
   return `${envPrefix(slug)}_REFRESH_TOKEN`
 }
+
+/** The hidden service that holds the project's server key. It's never shown or listed. */
+export const SYSTEM_SERVICE_SLUG = "appxprompt"
+
+/** The env var the app's server routes read the server key from. */
+export const SERVER_KEY_NAME = "APPXPROMPT_SERVER_KEY"

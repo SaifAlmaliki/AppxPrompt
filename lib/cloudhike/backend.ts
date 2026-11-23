@@ -18,6 +18,7 @@ import {
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { closeAppConnection, prepareAppDatabase } from "@/lib/cloudhike/gateway"
 import { chatLocale, translatorFor, type Translator } from "@/lib/i18n/server"
+import { rotateServerKey } from "@/lib/services/server-key"
 
 const DEPLOY_WAIT_MS = 3 * 60_000
 const DEPLOY_POLL_MS = 3_000
@@ -95,6 +96,7 @@ export async function disconnectProject(projectId: string, userId: number) {
     .set({ state: "disconnected", environment: null, services: [], error: null })
     .where(eq(projectBackends.projectId, projectId))
   closeAppConnection(projectId)
+  await rotateServerKey(projectId)
   await mergePlan(projectId, { backend: null })
 
   const [other] = await db

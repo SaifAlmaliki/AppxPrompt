@@ -83,7 +83,8 @@ describe("server route constants", () => {
   })
 
   it("copies a route row", () => {
-    const row = { path: "app/api/x+api.ts", kind: "function" as const, purpose: "p", status: "done" as const, code: null }
-    expect(toProjectServerRoute(row)).toEqual(row)
+    const route = { path: "app/api/x+api.ts", kind: "function" as const, purpose: "p", status: "done" as const, code: null }
+    const row = { ...route, projectId: "p1", createdAt: new Date(), updatedAt: new Date() }
+    expect(toProjectServerRoute(row)).toEqual(route)
   })
 })
