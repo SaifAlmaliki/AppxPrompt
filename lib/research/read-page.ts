@@ -9,6 +9,7 @@ const MAX_DOC_LINKS = 5
 const BEFORE_MATCH = 1000
 const AFTER_MATCH = 2000
 const MAX_FIND_ECHO = 200
+const MAX_COUNTED_MATCHES = 1000
 const WINDOW_GAP = "\n\n…\n\n"
 
 const TAG = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)(?![a-zA-Z0-9:-])(?:"[^"<]*"|'[^'<]*'|[^'"<>])*>/g
@@ -205,18 +206,26 @@ export function pageExcerpt(text: string, find: string | null, max = MAX_PAGE_CH
   const term = find?.trim() ?? ""
   if (!term) return startOfPage(text, max)
   const shown = redactKeys(term.slice(0, MAX_FIND_ECHO)).text
-  const matches = [...text.matchAll(new RegExp(escapeRegExp(term), "gi"))]
-  if (matches.length === 0) return `[No match for "${shown}". The start of the page follows.]\n\n${startOfPage(text, max)}`
-
+  const pattern = new RegExp(escapeRegExp(term), "gi")
   const windows: Array<[number, number]> = []
-  for (const match of matches) {
+  let covered = 0
+  let count = 0
+  let match: RegExpExecArray | null
+  while (count < MAX_COUNTED_MATCHES && (match = pattern.exec(text))) {
+    count++
+    if (covered >= max) continue
     const start = Math.max(0, match.index - BEFORE_MATCH)
     const end = Math.min(text.length, match.index + match[0].length + AFTER_MATCH)
     const previous = windows[windows.length - 1]
-    if (previous && start <= previous[1]) previous[1] = Math.max(previous[1], end)
-    else windows.push([start, end])
+    if (previous && start <= previous[1]) {
+      covered += Math.max(0, end - previous[1])
+      previous[1] = Math.max(previous[1], end)
+    } else {
+      windows.push([start, end])
+      covered += end - start
+    }
   }
-
+  if (count === 0) return `[No match for "${shown}". The start of the page follows.]\n\n${startOfPage(text, max)}`
   const parts: string[] = []
   let total = 0
   for (const [start, end] of windows) {
@@ -227,7 +236,7 @@ export function pageExcerpt(text: string, find: string | null, max = MAX_PAGE_CH
     parts.push(piece)
     if (total >= max) break
   }
-  return `[Parts of the page containing "${shown}", ${matches.length} matches]\n\n${parts.join(WINDOW_GAP)}`
+  return `[Parts of the page containing "${shown}", ${count}${count >= MAX_COUNTED_MATCHES ? "+" : ""} matches]\n\n${parts.join(WINDOW_GAP)}`
 }
 
 export type LoadedPage = { url: string; title: string; text: string; docLinks: string[] }
@@ -270,8 +279,50 @@ function titleFromUrl(url: string): string {
   }
 }
 
+const MAX_JSON_DEPTH = 16
+const MIN_JSON_ALLOWANCE = 200_000
+
+/** One linear pass: the deepest nesting, and roughly how many characters one-space indenting would add. */
+function jsonShape(body: string): { depth: number; added: number } {
+  let depth = 0
+  let deepest = 0
+  let added = 0
+  let inString = false
+  for (let i = 0; i < body.length; i++) {
+    const char = body.charCodeAt(i)
+    if (inString) {
+      if (char === 92) i++
+      else if (char === 34) inString = false
+      continue
+    }
+    if (char === 34) inString = true
+    else if (char === 91 || char === 123) {
+      depth++
+      if (depth > deepest) deepest = depth
+      added += depth + 1
+    } else if (char === 93 || char === 125) {
+      added += depth
+      depth--
+    } else if (char === 44) added += depth + 1
+    else if (char === 58) added += 1
+  }
+  return { depth: deepest, added }
+}
+
+function prettyJson(body: string): string {
+  const { depth, added } = jsonShape(body)
+  if (depth > MAX_JSON_DEPTH || added > Math.max(body.length, MIN_JSON_ALLOWANCE)) return body
+  try {
+    return JSON.stringify(JSON.parse(body), null, 1)
+  } catch {
+    return body
+  }
+}
+
 const NO_TEXT_ERROR = "The page had no readable text. It may need JavaScript, so try the site's llms.txt, its API reference, or another page."
 const READ_FAILED_ERROR = "Not read: the page couldn't be read."
+
+const SAFE_TYPE = /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i
 
 type Kind = "html" | "text" | "json" | "yaml" | null
 
@@ -322,7 +373,7 @@ async function loadPage(url: string, cache: PageCache): Promise<LoadedPage | { e
   const type = fetched.contentType.split(";")[0].trim().toLowerCase()
   const body = decodeBody(fetched.body, fetched.contentType)
   const kind = kindOf(type, body)
-  if (!kind) return { error: `Not read: this isn't a text page (${type}).` }
+  if (!kind) return { error: `Not read: this isn't a text page (${SAFE_TYPE.test(type) && type.length <= 100 ? type : "an unknown type"}).` }
 
   let title = titleFromUrl(fetched.url)
   let text = body
@@ -333,11 +384,7 @@ async function loadPage(url: string, cache: PageCache): Promise<LoadedPage | { e
     text = converted.text
     links = converted.links
   } else if (kind === "json") {
-    try {
-      text = JSON.stringify(JSON.parse(body), null, 1)
-    } catch {
-      text = body
-    }
+    text = prettyJson(body)
   }
 
   if (!text.trim()) return { error: NO_TEXT_ERROR }
