@@ -119,6 +119,9 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
       }
     case "plan":
       return { ...state, plan: event.plan }
+    case "services":
+    case "service-request":
+      return state
     case "backend":
       return { ...state, backend: event.backend }
     case "project-status":

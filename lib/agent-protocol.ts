@@ -5,6 +5,7 @@ import type { Screen } from "@/db/schema"
 import type { AppBackend, BackendStatus } from "@/lib/backend-protocol"
 import type { UpgradeReason } from "@/lib/plans"
 import type { ProjectStatus } from "@/lib/projects"
+import type { ServiceSummary } from "@/lib/services/protocol"
 import type { ThemePackage } from "@/lib/themes"
 
 export const SCREEN_LAYOUTS = ["home", "list", "detail", "profile"] as const
@@ -201,6 +202,8 @@ export type AgentEvent =
   /** The finished assistant reply, as saved. Ends the streamed text. */
   | { type: "message"; message: ChatMessage }
   | { type: "plan"; plan: AppPlan }
+  | { type: "services"; services: ServiceSummary[] }
+  | { type: "service-request"; slug: string }
   | { type: "project-status"; status: ProjectStatus }
   | { type: "screens"; screens: ProjectScreen[] }
   | { type: "screen"; screen: ProjectScreen }

@@ -43,7 +43,10 @@ function googleInput(overrides: Partial<Input> = {}): Input {
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
       scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
-      params: { access_type: "offline", prompt: "consent" },
+      params: [
+        { key: "access_type", value: "offline" },
+        { key: "prompt", value: "consent" },
+      ],
       clientIdField: "GOOGLE_CALENDAR_CLIENT_ID",
       clientSecretField: "GOOGLE_CALENDAR_CLIENT_SECRET",
       rotatesRefreshToken: false,
@@ -113,8 +116,26 @@ describe("normalizeService", () => {
 
   it("refuses reserved authorization params", () => {
     const base = googleInput()
-    const result = normalizeService(googleInput({ oauth: { ...base.oauth!, params: { redirect_uri: "x" } } }))
+    const result = normalizeService(googleInput({ oauth: { ...base.oauth!, params: [{ key: "redirect_uri", value: "x" }] } }))
     expect(typeof result).toBe("string")
+  })
+
+  it("stores authorization params as a record, with later duplicates winning", () => {
+    const base = googleInput()
+    const result = normalizeService(
+      googleInput({
+        oauth: {
+          ...base.oauth!,
+          params: [
+            { key: "access_type", value: "online" },
+            { key: "prompt", value: "consent" },
+            { key: "access_type", value: "offline" },
+          ],
+        },
+      }),
+    )
+    expect(typeof result).toBe("object")
+    if (typeof result !== "string") expect(result.oauth?.params).toEqual({ access_type: "offline", prompt: "consent" })
   })
 
   it("refuses credentials in service text", () => {

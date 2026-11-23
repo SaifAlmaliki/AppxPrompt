@@ -15,6 +15,10 @@ describe("findLeakedToolCall", () => {
     expect(findLeakedToolCall('Sure.\n<parameter name="addScreens">[]').visible).toBe("Sure.")
   })
 
+  it("recognizes register_service", () => {
+    expect(findLeakedToolCall('Sure.\n<register_service>\n<parameter name="slug">openai</parameter>').tool).toBe("register_service")
+  })
+
   it("leaves an ordinary reply alone, including angle brackets in prose", () => {
     expect(findLeakedToolCall("Use a <Button> and 3 < 5.")).toEqual({ visible: "Use a <Button> and 3 < 5.", tool: null })
   })

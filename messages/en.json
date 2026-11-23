@@ -1512,6 +1512,7 @@
     "workingOutChanges": "Working out the changes…",
     "changingTheme": "Changing the theme…",
     "settingUpBackend": "Setting up your backend…",
+    "registeringService": "Setting up a service…",
     "creatingBackendProject": "Creating your CloudHike project…",
     "deployingBackend": "Deploying your backend services…",
     "connectingApp": "Connecting your app…",

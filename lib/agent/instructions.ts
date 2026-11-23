@@ -13,6 +13,7 @@ import { isBackendConnected, type BackendStatus } from "@/lib/backend-protocol"
 import { DEFAULT_SCREEN_COUNT } from "@/lib/agent/config"
 import { EDIT_CREDITS, PLANS, SCREEN_CREDITS, type PlanId } from "@/lib/plans"
 import { ALLOWED_COMPONENT_MODULES, ALLOWED_PACKAGES, ALLOWED_PROJECT_MODULES } from "@/lib/generated-app/project-files"
+import type { PlannerService } from "@/lib/services/protocol"
 import { PLATFORM_LABELS, type ProjectPlatform, type ProjectStatus } from "@/lib/projects"
 import { BASE_THEME_TOKENS, THEME_TOKENS } from "@/lib/themes"
 import { generatedImageUrlStart, isImageKitEnabled } from "@/lib/imagekit"
@@ -28,6 +29,32 @@ export type PlannerState = {
   backend: BackendStatus
   /** The project owner's AppxPrompt plan, and all the credits they have left. */
   account: { plan: PlanId; credits: number }
+  services: PlannerService[]
+  integrations: boolean
+}
+
+export function servicesDescription(services: PlannerService[]) {
+  if (services.length === 0) return "No outside services are set up."
+  return services
+    .map(
+      (service) =>
+        `- ${service.name} (${service.slug}): ${service.status}. Fields: ${service.fields.map((field) => `${field.name} ${field.set ? "set" : "not set"}`).join(", ")}.`,
+    )
+    .join("\n")
+}
+
+function outsideServicesSection(state: PlannerState) {
+  if (!state.integrations) return ""
+  return `# Outside services
+- When the owner wants something that needs an outside service, like an AI model, their calendar, payments, messaging, or social posting, call \`register_service\` in the same turn as the plan or the change. Work out from the service's official API which credentials the owner must provide, how they're sent, and which hosts the app will call.
+- In one or two plain sentences, say what they need to get and that they'll enter it in the dialog, where it's stored encrypted. Never ask for keys, secrets, or tokens in the chat, and never repeat one.
+- The owner brings their own accounts and keys, and pays for them. AppxPrompt provides none.
+- A message may contain "[key removed and moved to the keys dialog]". That means a key was taken out before it was saved. Tell them it wasn't stored in the chat and that the dialog will ask for it.
+- Screens can't call outside services yet. Register the service so the owner can connect it now, and say the feature that uses it comes in a later update.
+- Services so far:
+${servicesDescription(state.services)}
+
+`
 }
 
 export function plannerInstructions(state: PlannerState) {
@@ -88,7 +115,7 @@ A message can start with a \`<selected-element file="..." line="..." label="..."
 - For each collection, decide whether everyone should see the same records (a public feed, a catalog). Pass those as \`sharedCollections\`. Everything else is private to each person. Only a record's creator can change it.
 - If \`setup_backend\` fails, say why in plain words and what they can do about it. Never show keys, connection strings, or other credentials.
 
-# Planning rules
+${outsideServicesSection(state)}# Planning rules
 - Plan at most ${screenTarget} ${screenTarget === 1 ? "screen" : "screens"}, however big the idea is. Pick the ones that make up the core journey, and fold the rest into them: add and edit forms open as modals, and settings or details become sections of a screen. Plan fewer if the app needs fewer. A default Sign In screen (see below) doesn't count toward this limit, but the whole plan can't go above ${maxScreens}.
 - Only go above ${screenTarget} when the person explicitly asks for more, such as naming a number of screens or asking to add one, and then plan what they asked for, up to ${maxScreens}. A long feature list or a big idea is not asking for more screens.
 - Most apps need a Sign In screen, so include one by default, even when the person doesn't mention it. This covers any app with personal data, saved progress, profiles, bookings, orders, or anything shared between people. Leave it out only for simple tools that keep nothing personal (a calculator, a unit converter, a timer), or when the person says they don't want it. If they name an exact number of screens, it counts as one of them.

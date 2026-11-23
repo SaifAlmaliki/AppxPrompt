@@ -44,8 +44,8 @@ export const serviceDefinitionSchema = z.object({
       tokenUrl: z.string().describe("https URL that exchanges the approval for tokens. Its host must be in allowedHosts"),
       scopes: z.array(z.string()).describe("Scopes to request"),
       params: z
-        .record(z.string(), z.string())
-        .describe("Extra authorization URL params, e.g. access_type offline. Use an empty object for none"),
+        .array(z.object({ key: z.string(), value: z.string() }))
+        .describe("Extra authorization URL params, e.g. key access_type with value offline. Use an empty array for none"),
       clientIdField: z.string().describe("Name of the public field holding the client id"),
       clientSecretField: z.string().describe("Name of the secret field holding the client secret"),
       rotatesRefreshToken: z.boolean().describe("True if the service issues a new refresh token on every refresh"),
@@ -194,14 +194,16 @@ export function normalizeService(input: z.infer<typeof serviceDefinitionSchema>)
     if (config.rotatesRefreshToken) {
       return `${input.name} issues a new refresh token on every refresh, which isn't supported yet.`
     }
-    for (const key of Object.keys(config.params)) {
+    const params: Record<string, string> = {}
+    for (const { key, value } of config.params) {
       if (RESERVED_AUTH_PARAMS.includes(key)) return `The authorization param ${key} is set for you. Remove it from params.`
+      params[key] = value
     }
     oauth = {
       authUrl: config.authUrl,
       tokenUrl: config.tokenUrl,
       scopes: config.scopes,
-      params: config.params,
+      params,
       clientIdField: config.clientIdField,
       clientSecretField: config.clientSecretField,
     }

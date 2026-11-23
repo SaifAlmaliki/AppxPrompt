@@ -15,6 +15,10 @@ import { getBackendStatus, setUpBackend } from "@/lib/cloudhike/backend"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { buildCost, PLANS } from "@/lib/plans"
 import { expandNumberReply } from "@/lib/interview-choices"
+import { normalizeService, serviceDefinitionSchema } from "@/lib/services/definition"
+import { integrationsEnabled } from "@/lib/services/flags"
+import { plannerServices } from "@/lib/services/status"
+import { listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
 
 type PlannerContext = PlannerState & {
@@ -325,11 +329,34 @@ const setupBackend = tool<typeof backendSchema, PlannerContext>({
   },
 })
 
+const registerService = tool<typeof serviceDefinitionSchema, PlannerContext>({
+  name: "register_service",
+  description:
+    "Add or update an outside service the app needs (an AI provider, a calendar, a social API), with the credentials the owner must provide. Opens the dialog where the owner enters them. Never ask for credentials in the chat.",
+  parameters: serviceDefinitionSchema,
+  async execute(input, runContext) {
+    const ctx = runContext!.context
+    const definition = normalizeService(input)
+    if (typeof definition === "string") return `Service not saved: ${definition} Fix it and call register_service again.`
+
+    const summary = await registerServiceDefinition(ctx.projectId, definition)
+    const summaries = await listServiceSummaries(ctx.projectId)
+    ctx.run.emit({ type: "services", services: summaries })
+    ctx.services = plannerServices(summaries)
+
+    if (summary.status !== "connected") {
+      ctx.run.emit({ type: "service-request", slug: definition.slug })
+      return "The dialog is open. The owner adds the values there, never in the chat. Tell them in one or two sentences what to get and that it's stored encrypted."
+    }
+    return "Already connected."
+  },
+})
+
 const plannerAgent = new Agent<PlannerContext>({
   name: "AppxPrompt Planner",
   model: PLANNER_MODEL,
   instructions: (runContext) => plannerInstructions(runContext.context),
-  tools: [proposePlan, confirmPlan, updateApp, setTheme, setupBackend],
+  tools: [proposePlan, confirmPlan, updateApp, setTheme, setupBackend, ...(integrationsEnabled() ? [registerService] : [])],
 })
 
 const TOOL_STATUS: Record<string, StatusKey> = {
@@ -338,6 +365,7 @@ const TOOL_STATUS: Record<string, StatusKey> = {
   update_app: "workingOutChanges",
   set_theme: "changingTheme",
   setup_backend: "settingUpBackend",
+  register_service: "registeringService",
 }
 
 function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {
@@ -376,6 +404,7 @@ export async function runPlannerTurn(
     .from(screens)
     .where(eq(screens.projectId, project.id))
 
+  const integrations = integrationsEnabled()
   const context: PlannerContext = {
     project,
     backend: await getBackendStatus(project.id, project.userId),
@@ -388,6 +417,8 @@ export async function runPlannerTurn(
     builtScreens: rows.filter((row) => row.code).length,
     assetNames,
     account,
+    services: integrations ? plannerServices(await listServiceSummaries(project.id)) : [],
+    integrations,
     proposedPlan: null,
     confirmed: false,
     changes: null,
