@@ -11,6 +11,7 @@ import {
   encodeOAuthState,
 } from "@/lib/services/oauth"
 import { oauthRedirectUri, type ServiceConnectResult } from "@/lib/services/protocol"
+import { unapprovedHosts } from "@/lib/services/rules"
 import { loadServiceSecrets } from "@/lib/services/store"
 import { getCurrentUser } from "@/lib/session"
 
@@ -34,6 +35,7 @@ export async function GET(
   const stored = await loadServiceSecrets(projectId, slug).catch(() => null)
   const oauth = stored?.definition.oauth
   if (!stored || stored.definition.authKind !== "oauth2" || !oauth) return back("error")
+  if (unapprovedHosts(stored.definition, stored.approvedHosts).length > 0) return back("error")
   const clientId = stored.values[oauth.clientIdField]
   const clientSecret = stored.values[oauth.clientSecretField]
   if (!clientId || !clientSecret) return back("error")

@@ -2,13 +2,14 @@
 // only module that reads or writes these tables. Secrets are sealed here and only
 // leave through `loadServiceSecrets`; everything else returns a `ServiceSummary`.
 
-import { and, asc, eq, notInArray } from "drizzle-orm"
+import { and, asc, eq, inArray, ne, notInArray } from "drizzle-orm"
 
 import { db, projectCredentials, projectServices } from "@/db"
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { refreshAccessToken, runCheck, type CheckOutcome } from "@/lib/services/check"
 import { refreshTokenName } from "@/lib/services/protocol"
 import type { CheckResult, ServiceDefinition, ServiceSummary } from "@/lib/services/protocol"
+import { canCheck, credentialCollision, definitionNames, staleCredentialNames } from "@/lib/services/rules"
 import { credentialHint, summarizeService, type StoredCredential } from "@/lib/services/status"
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -78,8 +79,16 @@ function outcomeToResult(outcome: CheckOutcome): CheckResult {
   return outcome === "unreachable" ? null : outcome
 }
 
-/** Checks the saved values against the service. Null means there was nothing complete to check. */
-async function checkService(definition: ServiceDefinition, rows: CredentialRow[]): Promise<CheckOutcome | null> {
+/**
+ * Checks the saved values against the service. Null means nothing was sent: the values are
+ * incomplete, the owner hasn't approved every host, or the service has no way to test them.
+ */
+async function checkService(
+  definition: ServiceDefinition,
+  rows: CredentialRow[],
+  approvedHosts: readonly string[],
+): Promise<CheckOutcome | null> {
+  if (!canCheck(definition, approvedHosts)) return null
   const values = readValues(rows)
   if (definition.authKind === "api_key") {
     if (definition.fields.some((field) => values[field.name] === undefined)) return null
@@ -102,21 +111,41 @@ export async function listServiceSummaries(projectId: string): Promise<ServiceSu
   return services.map((service) => toSummary(service, credentials))
 }
 
-export async function registerService(projectId: string, definition: ServiceDefinition): Promise<ServiceSummary> {
+/** Saves the service, or returns why it can't be saved. */
+export async function registerService(projectId: string, definition: ServiceDefinition): Promise<ServiceSummary | string> {
   return db.transaction(async (tx) => {
+    const keep = definitionNames(definition)
+    const [otherServices, otherCredentials] = await Promise.all([
+      tx
+        .select({ slug: projectServices.slug, definition: projectServices.definition })
+        .from(projectServices)
+        .where(and(eq(projectServices.projectId, projectId), ne(projectServices.slug, definition.slug))),
+      tx
+        .select({ name: projectCredentials.name, serviceSlug: projectCredentials.serviceSlug })
+        .from(projectCredentials)
+        .where(and(eq(projectCredentials.projectId, projectId), inArray(projectCredentials.name, keep))),
+    ])
+    const collision = credentialCollision(definition.slug, keep, [
+      ...otherCredentials,
+      ...otherServices.flatMap((service) =>
+        definitionNames(service.definition).map((name) => ({ name, serviceSlug: service.slug })),
+      ),
+    ])
+    if (collision) return collision
+
     await tx
       .insert(projectServices)
       .values({ projectId, slug: definition.slug, definition })
       .onConflictDoUpdate({
         target: [projectServices.projectId, projectServices.slug],
-        set: { definition },
+        set: { definition, updatedAt: new Date() },
       })
-    const keep = definition.fields.map((field) => field.name)
-    if (definition.authKind === "oauth2") keep.push(refreshTokenName(definition.slug))
     const owned = and(eq(projectCredentials.projectId, projectId), eq(projectCredentials.serviceSlug, definition.slug))
     await tx
       .delete(projectCredentials)
       .where(keep.length > 0 ? and(owned, notInArray(projectCredentials.name, keep)) : owned)
+    const stale = staleCredentialNames(definition.fields, await serviceCredentials(tx, projectId, definition.slug))
+    if (stale.length > 0) await tx.delete(projectCredentials).where(and(owned, inArray(projectCredentials.name, stale)))
     const summary = await summaryOf(tx, projectId, definition.slug)
     if (!summary) throw new Error("The service was not saved.")
     return summary
@@ -142,11 +171,16 @@ export async function saveServiceValues(
     await db
       .insert(projectCredentials)
       .values({ projectId, name: field.name, serviceSlug: slug, ...stored })
-      .onConflictDoUpdate({ target: [projectCredentials.projectId, projectCredentials.name], set: stored })
+      .onConflictDoUpdate({
+        target: [projectCredentials.projectId, projectCredentials.name],
+        set: { ...stored, updatedAt: new Date() },
+        setWhere: eq(projectCredentials.serviceSlug, slug),
+      })
   }
   const update: Partial<typeof projectServices.$inferInsert> = { approvedHosts: definition.allowedHosts }
   if (definition.authKind === "api_key") {
-    const outcome = await checkService(definition, await serviceCredentials(db, projectId, slug))
+    // Saving the values is the owner approving the hosts, so they count as approved here.
+    const outcome = await checkService(definition, await serviceCredentials(db, projectId, slug), definition.allowedHosts)
     if (outcome !== null) {
       update.checkResult = outcomeToResult(outcome)
       update.checkedAt = new Date()
@@ -162,7 +196,11 @@ export async function saveServiceValues(
 export async function retestService(projectId: string, slug: string): Promise<ServiceSummary | null> {
   const service = await findService(db, projectId, slug)
   if (!service) return null
-  const outcome = await checkService(service.definition, await serviceCredentials(db, projectId, slug))
+  const outcome = await checkService(
+    service.definition,
+    await serviceCredentials(db, projectId, slug),
+    service.approvedHosts,
+  )
   if (outcome !== null) {
     await db
       .update(projectServices)
@@ -180,7 +218,11 @@ export async function saveRefreshToken(projectId: string, slug: string, refreshT
     await tx
       .insert(projectCredentials)
       .values({ projectId, name: refreshTokenName(slug), serviceSlug: slug, ...stored })
-      .onConflictDoUpdate({ target: [projectCredentials.projectId, projectCredentials.name], set: stored })
+      .onConflictDoUpdate({
+        target: [projectCredentials.projectId, projectCredentials.name],
+        set: { ...stored, updatedAt: new Date() },
+        setWhere: eq(projectCredentials.serviceSlug, slug),
+      })
     await tx
       .update(projectServices)
       .set({ approvedHosts: service.definition.allowedHosts, checkResult: "ok", checkedAt: new Date() })
@@ -191,10 +233,14 @@ export async function saveRefreshToken(projectId: string, slug: string, refreshT
 export async function loadServiceSecrets(
   projectId: string,
   slug: string,
-): Promise<{ definition: ServiceDefinition; values: Record<string, string> } | null> {
+): Promise<{ definition: ServiceDefinition; approvedHosts: string[]; values: Record<string, string> } | null> {
   const service = await findService(db, projectId, slug)
   if (!service) return null
-  return { definition: service.definition, values: readValues(await serviceCredentials(db, projectId, slug)) }
+  return {
+    definition: service.definition,
+    approvedHosts: service.approvedHosts,
+    values: readValues(await serviceCredentials(db, projectId, slug)),
+  }
 }
 
 export async function removeServiceValues(projectId: string, slug: string): Promise<void> {

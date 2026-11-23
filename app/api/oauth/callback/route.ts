@@ -4,6 +4,7 @@ import { getProjectAccess } from "@/lib/project-access"
 import { exchangeCode } from "@/lib/services/check"
 import { OAUTH_STATE_COOKIE, parseOAuthState, sameState } from "@/lib/services/oauth"
 import { oauthRedirectUri, type ServiceConnectResult } from "@/lib/services/protocol"
+import { unapprovedHosts } from "@/lib/services/rules"
 import { loadServiceSecrets, saveRefreshToken } from "@/lib/services/store"
 import { getCurrentUser } from "@/lib/session"
 
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
     const stored = await loadServiceSecrets(projectId, slug)
     const oauth = stored?.definition.oauth
     if (!stored || stored.definition.authKind !== "oauth2" || !oauth) return finish("error")
+    if (unapprovedHosts(stored.definition, stored.approvedHosts).length > 0) return finish("error")
     const clientId = stored.values[oauth.clientIdField]
     const clientSecret = stored.values[oauth.clientSecretField]
     if (!clientId || !clientSecret) return finish("error")

@@ -340,6 +340,7 @@ const registerService = tool<typeof serviceDefinitionSchema, PlannerContext>({
     if (typeof definition === "string") return `Service not saved: ${definition} Fix it and call register_service again.`
 
     const summary = await registerServiceDefinition(ctx.projectId, definition)
+    if (typeof summary === "string") return `Service not saved: ${summary} Fix it and call register_service again.`
     const summaries = await listServiceSummaries(ctx.projectId)
     ctx.run.emit({ type: "services", services: summaries })
     ctx.services = plannerServices(summaries)
