@@ -442,7 +442,7 @@ function PastedKeys({
   )
 
   async function save(index: number) {
-    const option = options.find((o) => o.id === choices[index]) ?? options[0]
+    const option = options.find((o) => o.id === choices[index])
     if (!option) return
     setPending(index)
     setError(null)
@@ -471,7 +471,7 @@ function PastedKeys({
         keys.map((_key, index) => {
           const id = `pasted-key-${index}`
           const done = saved.has(index)
-          const current = options.find((o) => o.id === choices[index])?.id ?? options[0]?.id ?? ""
+          const current = options.find((o) => o.id === choices[index])?.id ?? ""
           return (
             <div key={index} className="flex flex-wrap items-center gap-2">
               <label htmlFor={id} className="text-xs font-medium">
@@ -492,9 +492,16 @@ function PastedKeys({
                     disabled={pending !== null}
                     className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-white px-2 text-xs"
                   >
+                    <option value="" disabled>
+                      {t("pasted.choose")}
+                    </option>
                     {options.map((option) => (
                       <option key={option.id} value={option.id}>
-                        {t("pasted.option", { service: option.service.name, field: option.field.label })}
+                        {t("pasted.option", {
+                          service: option.service.name,
+                          field: option.field.label,
+                          hosts: option.service.allowedHosts.join(", "),
+                        })}
                       </option>
                     ))}
                   </select>
@@ -502,7 +509,7 @@ function PastedKeys({
                     type="button"
                     size="sm"
                     className="rounded-full"
-                    disabled={pending !== null || options.length === 0}
+                    disabled={pending !== null || current === ""}
                     onClick={() => save(index)}
                   >
                     {pending === index && <Loader2Icon className="animate-spin" />}

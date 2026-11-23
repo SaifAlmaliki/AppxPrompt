@@ -1367,7 +1367,8 @@
       "title": "Your key was taken out of the message",
       "intro": "It looked like a secret key, so it was removed before the message was sent. Choose where to save it.",
       "keyLabel": "Key {n}",
-      "option": "{service}: {field}",
+      "choose": "Choose where to save it",
+      "option": "{service}: {field}. Only sent to: {hosts}",
       "save": "Save key",
       "saved": "Saved",
       "none": "The key wasn't saved. No service is waiting for a key yet. The dialog will ask for it once a feature needs it."
