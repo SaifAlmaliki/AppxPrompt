@@ -130,7 +130,13 @@ export function ensureAppDatabase({ connection, env, collections }: GatewayApp) 
 // --- Records ---------------------------------------------------------------
 
 /** Who a request acts as. Records belong to a person when they're signed in, and otherwise to one install. */
-export type Owner = { id: string; email: string | null; signedIn: boolean }
+export type Owner = {
+  id: string
+  email: string | null
+  signedIn: boolean
+  /** Reaches every record of every collection. Only the app's own server, with its server key, is this. */
+  all?: boolean
+}
 
 export function deviceOwner(deviceId: string): Owner {
   return { id: `device:${createHash("sha256").update(deviceId).digest("hex")}`, email: null, signedIn: false }
@@ -319,7 +325,7 @@ function linkError(error: unknown, table: AppTable) {
 export async function listRecords(client: postgres.Sql, table: AppTable, owner: Owner) {
   const rows = await client<Row[]>`
     select * from ${client(table.name)}
-    ${table.shared ? client`` : client`where owner_id = ${owner.id}`}
+    ${table.shared || owner.all ? client`` : client`where owner_id = ${owner.id}`}
     order by created_at desc, id
     limit ${MAX_LIST}`
   return rows.map((row) => rowToDocument(table, row))
@@ -328,7 +334,7 @@ export async function listRecords(client: postgres.Sql, table: AppTable, owner: 
 export async function getRecord(client: postgres.Sql, table: AppTable, id: string, owner: Owner) {
   const [row] = await client<Row[]>`
     select * from ${client(table.name)}
-    where id = ${id} ${table.shared ? client`` : client`and owner_id = ${owner.id}`}
+    where id = ${id} ${table.shared || owner.all ? client`` : client`and owner_id = ${owner.id}`}
     limit 1`
   return row ? rowToDocument(table, row) : null
 }
@@ -348,13 +354,13 @@ export async function insertRecord(client: postgres.Sql, table: AppTable, id: st
   }
 }
 
-/** Only the owner can change a record, even in a shared collection. */
+/** Only the owner can change a record, even in a shared collection. The app's own server can change any. */
 export async function updateRecord(client: postgres.Sql, table: AppTable, id: string, owner: Owner, fields: Row) {
   const values = columnsFromRequest(table, fields)
   try {
     const [row] = await client<Row[]>`
       update ${client(table.name)} set ${client({ ...values, updated_at: new Date() } as never)}
-      where owner_id = ${owner.id} and id = ${id}
+      where ${owner.all ? client`true` : client`owner_id = ${owner.id}`} and id = ${id}
       returning *`
     return row ? rowToDocument(table, row) : null
   } catch (error) {
@@ -363,7 +369,7 @@ export async function updateRecord(client: postgres.Sql, table: AppTable, id: st
 }
 
 export async function deleteRecord(client: postgres.Sql, table: AppTable, id: string, owner: Owner) {
-  await client`delete from ${client(table.name)} where owner_id = ${owner.id} and id = ${id}`
+  await client`delete from ${client(table.name)} where ${owner.all ? client`true` : client`owner_id = ${owner.id}`} and id = ${id}`
 }
 
 export async function getValue(client: postgres.Sql, key: string, owner: Owner) {

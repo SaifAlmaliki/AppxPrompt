@@ -8,7 +8,6 @@ import {
   deleteFile,
   deleteRecord,
   deleteValue,
-  deviceOwner,
   ensureAppDatabase,
   fileDownloadUrl,
   fileUploadUrl,
@@ -24,8 +23,9 @@ import {
   setValue,
   updateRecord,
   type GatewayApp,
-  type Owner,
 } from "@/lib/cloudhike/gateway"
+import { SERVER_KEY_HEADER, resolveRequestOwner } from "@/lib/cloudhike/gateway-owner"
+import { verifyServerKey } from "@/lib/services/server-key"
 import { safeFileName } from "@/lib/storage"
 
 // Generated apps call this from phones and from the preview's sandboxed frame.
@@ -39,7 +39,6 @@ const CORS_HEADERS = {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const COLLECTION_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
-const DEVICE_ID = /^[a-f0-9]{64}$/
 const MAX_BODY_BYTES = 128 * 1024
 const MAX_ID_LENGTH = 200
 const UPLOAD_TYPE = /^(image|video|audio)\/[\w.+-]+$|^application\/pdf$/
@@ -63,19 +62,14 @@ async function readBody(request: NextRequest) {
   }
 }
 
-/** Who's calling: a signed-in person, or else one install of the app. Null if it's neither. */
-async function resolveOwner(request: NextRequest, app: GatewayApp): Promise<Owner | null> {
-  const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1]
-  if (token) return ownerFromToken(app.env, token)
-  const device = request.headers.get("x-device-id")
-  return device && DEVICE_ID.test(device) ? deviceOwner(device) : null
-}
-
 async function handle(request: NextRequest, { params }: { params: Promise<{ projectId: string; path: string[] }> }) {
   const { projectId, path } = await params
   if (!UUID_PATTERN.test(projectId)) return fail("This app isn't connected to a backend.", 404)
 
-  const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+  // The app's own server calls from one place, so it has its own share. A key that doesn't fit counts against its sender.
+  const serverKey = request.headers.get(SERVER_KEY_HEADER)
+  const serverKeyValid = serverKey ? await verifyServerKey(projectId, serverKey) : false
+  const address = serverKeyValid ? "server" : request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
   if (isRateLimited(projectId, address)) return fail("Too many requests. Try again in a minute.", 429)
 
   const app = await getGatewayApp(projectId)
@@ -94,7 +88,12 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ proj
   // A new install's id comes from here, since not every phone can make a secure random value.
   if (resource === "devices" && method === "POST") return json({ deviceId: randomBytes(32).toString("hex") }, 201)
 
-  const owner = await resolveOwner(request, app)
+  const resolved = await resolveRequestOwner(request.headers, {
+    verifyServerKey: async () => serverKeyValid,
+    fromToken: (token) => ownerFromToken(app.env, token),
+  })
+  if (resolved === "bad-key") return fail("This server key isn't valid.", 401)
+  const owner = resolved.owner
   if (!owner) return fail("Sign in again to continue.", 401)
 
   if (resource === "collections") {
