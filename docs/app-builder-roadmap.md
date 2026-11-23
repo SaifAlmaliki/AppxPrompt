@@ -81,6 +81,7 @@
 - **Storage** (`project_credentials`, `project_services`). Credentials are sealed with `seal()` from `lib/cloudhike/crypto.ts`, and public values are stored plain. Service definitions live in `project_services`. Only the project owner can see or change either.
 - **Flag.** `APP_INTEGRATIONS=1` turns on the planner's `register_service` tool, its instructions, and the "Services & keys" header button. Paste protection, the 0015 chat-history redaction migration, and Sentry scrubbing are always on.
 - **OAuth callback.** Owners register `<NEXT_PUBLIC_APP_URL>/api/oauth/callback` as the redirect URL in their own OAuth client, such as Google Cloud Console.
+- **Research.** The agent researches services with `web_search` (Tavily, `TAVILY_API_KEY`) and `read_page`, which only reads public https addresses and connects through a DNS check that blocks private ones. Research notes are saved on the service (`project_services.definition.notes`), never contain credential values, and are reused by later build steps.
 - **Phase 1.** Screens can't use the credentials yet. Server functions come in phase 3.
 
 ## Planned Chapters
