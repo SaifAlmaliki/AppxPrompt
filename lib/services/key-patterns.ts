@@ -12,14 +12,20 @@ export const KEY_PATTERN_SOURCES = [
 
 export const KEY_REMOVED = "[key removed and moved to the keys dialog]"
 
-const KEY_PATTERN = new RegExp(KEY_PATTERN_SOURCES.join("|"), "g")
+export const KEY_BOUNDARY = "(^|[^A-Za-z0-9_-])"
+
+const KEY_PATTERN = new RegExp(KEY_BOUNDARY + "(" + KEY_PATTERN_SOURCES.join("|") + ")", "g")
+
+function removeKeys(text: string): string {
+  return text.replace(KEY_PATTERN, (_match, prefix: string) => prefix + KEY_REMOVED)
+}
 
 export function findKeys(text: string): string[] {
-  return [...new Set(text.match(KEY_PATTERN) ?? [])]
+  return [...new Set([...text.matchAll(KEY_PATTERN)].map((m) => m[2]))]
 }
 
 export function redactKeys(text: string): { text: string; keys: string[] } {
-  return { text: text.replace(KEY_PATTERN, KEY_REMOVED), keys: findKeys(text) }
+  return { text: removeKeys(text), keys: findKeys(text) }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -29,7 +35,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 export function scrubSecrets<T>(value: T): T {
-  if (typeof value === "string") return value.replace(KEY_PATTERN, KEY_REMOVED) as T
+  if (typeof value === "string") return removeKeys(value) as T
   if (Array.isArray(value)) return value.map(scrubSecrets) as T
   if (isPlainObject(value)) {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrubSecrets(v)])) as T

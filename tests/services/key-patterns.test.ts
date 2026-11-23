@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { KEY_PATTERN_SOURCES, KEY_REMOVED, findKeys, redactKeys, scrubSecrets } from "@/lib/services/key-patterns"
+import { KEY_BOUNDARY, KEY_PATTERN_SOURCES, KEY_REMOVED, findKeys, redactKeys, scrubSecrets } from "@/lib/services/key-patterns"
 
 const openai = "sk-proj-" + "a".repeat(40)
 const zernio = "sk_" + "0123456789abcdef".repeat(4)
@@ -20,6 +20,19 @@ describe("findKeys", () => {
   it("returns each key once", () => {
     expect(findKeys(`${openai} ${openai}`)).toEqual([openai])
   })
+  it("ignores key-like endings inside ordinary words", () => {
+    expect(findKeys("a risk-management-dashboard-app for teams")).toEqual([])
+    expect(findKeys("task_" + "a".repeat(24))).toEqual([])
+  })
+  it("finds a key at the start of the string and after common separators", () => {
+    expect(findKeys(openai)).toEqual([openai])
+    expect(findKeys(`x\n${zernio}`)).toEqual([zernio])
+    expect(findKeys(`x:${googleSecret}`)).toEqual([googleSecret])
+    expect(findKeys(`'${googleKey}'`)).toEqual([googleKey])
+  })
+  it("finds two keys separated by a single character", () => {
+    expect(findKeys(`${openai},${zernio}`)).toEqual([openai, zernio])
+  })
 })
 
 describe("redactKeys", () => {
@@ -28,6 +41,16 @@ describe("redactKeys", () => {
       text: `use ${KEY_REMOVED}\nand ${KEY_REMOVED}.`,
       keys: [openai, zernio],
     })
+  })
+  it("keeps the character before each key", () => {
+    expect(redactKeys("x," + openai + "," + zernio)).toEqual({
+      text: `x,${KEY_REMOVED},${KEY_REMOVED}`,
+      keys: [openai, zernio],
+    })
+  })
+  it("leaves ordinary words untouched", () => {
+    const text = "a risk-management-dashboard-app"
+    expect(redactKeys(text)).toEqual({ text, keys: [] })
   })
 })
 
@@ -40,5 +63,8 @@ describe("scrubSecrets", () => {
 describe("KEY_PATTERN_SOURCES", () => {
   it("uses no syntax Postgres can't run", () => {
     for (const source of KEY_PATTERN_SOURCES) expect(source).not.toMatch(/\\b|\(\?<|\(\?=|\(\?!/)
+  })
+  it("uses a boundary Postgres can run", () => {
+    expect(KEY_BOUNDARY).not.toMatch(/\\b|\(\?<|\(\?=|\(\?!/)
   })
 })
