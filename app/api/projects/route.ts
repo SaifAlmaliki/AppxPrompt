@@ -15,6 +15,7 @@ import {
   MAX_PROMPT_LENGTH,
   projectNameFromPrompt,
 } from "@/lib/projects"
+import { redactKeys } from "@/lib/services/key-patterns"
 import { getCurrentUser } from "@/lib/session"
 import { deleteObjects, safeFileName, uploadObject } from "@/lib/storage"
 
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null)
   if (!form) return badRequest("invalidRequest")
 
-  const prompt = String(form.get("prompt") ?? "").trim()
+  const { text: prompt } = redactKeys(String(form.get("prompt") ?? "").trim())
   if (!prompt) return badRequest("describeApp")
   if (prompt.length > MAX_PROMPT_LENGTH) {
     return badRequest("promptTooLong", { max: MAX_PROMPT_LENGTH })

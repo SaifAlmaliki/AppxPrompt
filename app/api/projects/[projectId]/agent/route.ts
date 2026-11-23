@@ -11,6 +11,7 @@ import { requestLocale } from "@/i18n/request"
 import { detectChatLanguage } from "@/lib/i18n/chat-language"
 import { chatLocale, errorResponse, serverT, translatorFor, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
+import { redactKeys } from "@/lib/services/key-patterns"
 import { getCurrentUser, type SessionUser } from "@/lib/session"
 
 // Planning takes seconds. Following a build's stream can take a few minutes, and the build runs on CloudHike Jobs.
@@ -57,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   }
 
   if (body.action === "message") {
-    const content = String(body.content ?? "").trim()
+    const { text: content } = redactKeys(String(body.content ?? "").trim())
     if (!content) return error("writeMessageFirst", 400)
     if (content.length > MAX_PROMPT_LENGTH) return error("messageTooLong", 400, { max: MAX_PROMPT_LENGTH })
     try {
