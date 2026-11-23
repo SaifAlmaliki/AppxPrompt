@@ -423,6 +423,7 @@ git commit -m "feat(services): credential checks, OAuth code exchange, PKCE and 
   - `loadServiceSecrets(projectId: string, slug: string): Promise<{ definition: ServiceDefinition; values: Record<string, string> } | null>`. It unseals values. Only the OAuth routes and the store's own checks call it.
   - `removeServiceValues(projectId: string, slug: string): Promise<void>` and `removeService(projectId: string, slug: string): Promise<void>`
   - `copyServiceDefinitions(tx, fromProjectId: string, toProjectId: string): Promise<void>`. It copies definitions only, with `approvedHosts = '{}'` and `checkResult = null`, and no credentials.
+  - Later phases add to this store (not part of this plan): phase 3 adds `listServiceDefinitions`, `connectedServiceCredentials` (the one filter that keeps only `"connected"` services' credentials, plus the server key, before any value leaves the store) and `loadProjectEnvironment`. Phase 5 adds `listCredentialValues`, built on the same filter.
 
 - [ ] **Step 1: Write the failing migration test**
 

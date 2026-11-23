@@ -2,19 +2,21 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Contract changes (Task 1 makes them in `docs/superpowers/plans/2026-11-23-integrations-contract.md`):**
+> **Contract changes (already applied to `docs/superpowers/plans/2026-11-23-integrations-contract.md`; Task 1 verifies them):**
 > 1. `syncAppEnvironment` gains a 4th parameter, `managedNames: readonly string[]`. Without it the function can't tell its own variables apart from ones the owner made in the same Expo project, so "deletes the ones it manages" couldn't work safely.
 > 2. `deployServer`'s `reason` gains `"retry"`, which is used by the dialog's retry button and by queued redeploys. It returns `Promise<"started" | "queued" | "skipped" | "failed">`.
-> 3. New phase 5 names: `cancelWorkflowRun` and `AppEnvVar` (expo.ts), `webWorkflow(serverEnv?)`, `lib/publish/snapshots.ts` (where `saveSnapshot` / `loadSnapshot` live), `lib/publish/server-hooks.ts` (`scheduleServerRedeploy`, `onCredentialsChanged`), `loadProjectExport(project, { includeServer })`, and `loadProjectEnvironment` added to the phase 1 store.
-> 4. New names this phase **consumes** from phase 3/4, which their plans must produce or alias:
+> 3. New phase 5 names: `cancelWorkflowRun` and `AppEnvVar` (expo.ts), `webWorkflow(serverEnv?)`, `lib/publish/snapshots.ts` (where `saveSnapshot` / `loadSnapshot` live), `lib/publish/server-hooks.ts` (`scheduleServerRedeploy`, `onCredentialsChanged`), and `listCredentialValues` added to the phase 1 store.
+> 4. New names this phase **consumes** from phase 3/4, which their plans produce:
 >    - `serverSourceFiles(projectId: string): Promise<{ path: string; code: string }[]>` in `lib/sandbox/bundle.ts`. It returns every server-side source file as the sandbox loads it: routes, helpers, `server/data.ts`, `server/auth.ts`, `server/agent-loop.ts` and `server/agents/<id>.instructions.ts`.
 >    - The generated `lib/server/config.ts` exports exactly `SERVER_BASE_URL: string` (no trailing slash; `""` means relative) and `SERVER_TOKEN: string | null`, and `lib/server/index.ts` reads nothing else to decide where to call.
+>    - `loadProjectExport(project, { includeServer: boolean })` (phase 3). This phase only extends what `includeServer: true` adds.
+>    - `isServerFile` (phase 3, `lib/agent-protocol.ts`), `ensureServerKey` (phase 3, `lib/services/server-key.ts`), and `connectedServiceCredentials` (phase 1 store, added by phase 3), so EAS gets the same credentials the sandbox does.
 
 **Goal:** When an app has server functions, every publish deploys them to the owner's own EAS Hosting with the owner's credentials as EAS **sensitive** environment variables. Native builds call that server. Later credential or agent changes redeploy the last published snapshot in the background. ZIP and GitHub exports carry the server code, `.env.example` (names only) and deploy instructions.
 
 **Architecture:**
 - **Expo calls:** every new GraphQL call (listing, creating, updating and deleting environment variables, and cancelling a run) goes in `lib/publish/expo.ts`.
-- **Pure rules** live in `lib/publish/server-files.ts`, so they're unit-tested: which files are server files, the server hash, swapping agent instructions into a snapshot, mapping credentials to variables, the deploy/queue/skip decision, and run → status.
+- **Pure rules** live in `lib/publish/server-files.ts`, so they're unit-tested: whether the app has server routes, the server hash (over phase 3's `isServerFile` paths), swapping agent instructions into a snapshot, mapping credentials to variables, the deploy/queue/skip decision, and run → status.
 - **The snapshot table:** a `published_snapshots` row per project holds the exact files last sent to EAS plus the server deploy's status. `lib/publish/server-deploy.ts` orchestrates deploys, and `lib/publish/server-hooks.ts` runs them in the background through `after()`.
 - **Exports:** `exportedProjectFiles` gains the server files and their config, so the ZIP, GitHub, the website publish and native builds all send the same tree.
 
@@ -80,13 +82,13 @@
 ### Task 1: Spike on a real Expo account, and the contract update
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-11-23-integrations-contract.md` (the Phase 5 section, plus the two consumed names under Phases 3 and 4)
+- Modify: `docs/superpowers/plans/2026-11-23-integrations-contract.md` (the Phase 5 section: the spike's workflow line, plus any name the spike changes)
 - Scratch (not committed): a throwaway Expo SDK 54 app in `C:\Users\lenovo\AppData\Local\Temp\opencode\spike-hosting`
 
 **Interfaces:**
 - Produces: a recorded answer to which deploy YAML gets EAS variables into API routes, which Task 3 encodes as `SERVER_ENV_HOOK`.
 
-- [ ] **Step 1: Update the contract.** Apply the four changes listed at the top of this plan, word for word, to the contract's Phase 5 section, and add the two consumed names to its Phase 3 and Phase 4 sections. Also write out every Phase 5 signature from this plan's Interfaces blocks.
+- [ ] **Step 1: Check the contract.** The contract already has the four changes listed at the top of this plan, the consumed names in its Phase 3 and Phase 4 sections, and every Phase 5 signature from this plan's Interfaces blocks. Confirm each matches this plan, and fix the contract only where a name changed since.
 
 - [ ] **Step 2: Build the spike app**
   - Create it with `npx create-expo-app@latest spike-hosting --template default@sdk-54`.
@@ -222,7 +224,7 @@ git commit -m "feat(publish): sync EAS sensitive environment variables and cance
 - Test: `tests/publish/server-files.test.ts`
 
 **Interfaces:**
-- Consumes: `AppEnvVar` (Task 2), `WebRunState` (expo.ts), and `PublishFailure`, `applicationFailure` and `failureText` (errors.ts).
+- Consumes: `AppEnvVar` (Task 2), `WebRunState` (expo.ts), `PublishFailure`, `applicationFailure` and `failureText` (errors.ts), and phase 3's `isServerFile` (`lib/agent-protocol.ts`, true for `app/api/**` and `server/**`).
 - Produces (`publish-protocol.ts`):
   ```ts
   export const SERVER_DEPLOY_STATUSES = ["deploying", "deployed", "failed"] as const
@@ -232,8 +234,7 @@ git commit -m "feat(publish): sync EAS sensitive environment variables and cance
   ```
 - Produces (`server-files.ts`):
   - `hasServerRoutes(files: { path: string }[]): boolean`. It's true when any path matches `/^app\/api\/.+\+api\.ts$/`.
-  - `isServerFile(path: string): boolean`, which matches `/^(app\/api\/|server\/)/`.
-  - `serverFilesHash(files: { path: string; content: string }[]): string`. It's the SHA-256 hex digest over the server files sorted by path, each fed as `${path}\0${content}\0`.
+  - `serverFilesHash(files: { path: string; content: string }[]): string`. It's the SHA-256 hex digest over the server files (phase 3's `isServerFile`, imported, not redefined here) sorted by path, each fed as `${path}\0${content}\0`.
   - `withAgentInstructions(published: ExportedFile[], current: { path: string; code: string }[]): ExportedFile[]`. Each `published` file matching `/^server\/agents\/[^/]+\.instructions\.ts$/` that has a `current` entry at the same path gets that entry's content. Order is kept, and nothing is added or removed.
   - `environmentVars(credentials: { name: string; value: string; kind: "secret" | "public" | "oauth_token" }[]): AppEnvVar[]`. A `public` credential becomes `plaintext` and everything else `sensitive`. The result is sorted by name.
   - `type DeployState = { serverHash: string; hasServerRoutes: boolean; status: ServerDeployStatus; reason: ServerDeployReason }`
@@ -305,7 +306,7 @@ git commit -m "feat(publish): rules for server deploys, snapshots, and the deplo
 - Create: the generated `drizzle/00NN_*.sql` (the next free number after phases 1 to 4), `lib/publish/snapshots.ts`
 
 **Interfaces:**
-- Consumes: `serverFilesHash` and `hasServerRoutes` (Task 3), `storeFailure` and `PublishFailure`, `unseal`.
+- Consumes: `serverFilesHash` and `hasServerRoutes` (Task 3), `storeFailure` and `PublishFailure`, `unseal`, and `connectedServiceCredentials` (phase 1 store, added by phase 3).
 - Produces (`db/schema.ts`):
   - `serverDeployStatus = pgEnum("server_deploy_status", SERVER_DEPLOY_STATUSES)`.
   - **`projectPublishing`** gains `serverOrigin: text("server_origin")`, nullable. It holds the site address, such as `https://shop-ab12cd34.expo.app`.
@@ -328,14 +329,14 @@ git commit -m "feat(publish): rules for server deploys, snapshots, and the deplo
   - `queueRedeploy(projectId: string): Promise<void>`
   - `loadPublishIdentity(projectId: string): Promise<ProjectPublishing | null>`
   - `saveServerOrigin(projectId: string, origin: string): Promise<void>`
-- Produces (`lib/services/store.ts`, an addition to phase 1's store): `loadProjectEnvironment(projectId: string): Promise<{ name: string; value: string; kind: "secret" | "public" | "oauth_token" }[]>`. It returns every `project_credentials` row of the project, including system ones such as `APPXPROMPT_SERVER_KEY`, with values unsealed unless `kind === "public"`. Only `lib/publish/server-deploy.ts` and `lib/publish/web.ts` call it. Add that to the store's header comment.
+- Produces (`lib/services/store.ts`, an addition to phase 1's store): `listCredentialValues(projectId: string): Promise<{ name: string; value: string; kind: "secret" | "public" | "oauth_token" }[]>`. It loads the project's service and credential rows and keeps them with `connectedServiceCredentials`, the same filter phase 3's `loadProjectEnvironment` uses. So it returns the credentials of services whose status is `"connected"`, plus the system `APPXPROMPT_SERVER_KEY`, with values unsealed unless `kind === "public"`. Credentials of `missing` or `rejected` services are left out, exactly as in the sandbox. Only `lib/publish/server-deploy.ts` calls it (`web.ts` reaches it through `syncServerEnvironment`). Add that to the store's header comment. Phase 3's `loadProjectEnvironment(projectId): Promise<{ env; secretNames }>` stays as it is, for the sandbox.
 
 - [ ] **Step 1: Add the column and table, and generate the migration**
 
 Run: `npm run db:generate`
 Expected: a new `drizzle/00NN_*.sql` that creates `server_deploy_status`, `published_snapshots`, and `ALTER TABLE "project_publishing" ADD COLUMN "server_origin" text`.
 
-- [ ] **Step 2: Implement `lib/publish/snapshots.ts` and `loadProjectEnvironment`**, in the drizzle style of `lib/publish/web.ts`.
+- [ ] **Step 2: Implement `lib/publish/snapshots.ts` and `listCredentialValues`**, in the drizzle style of `lib/publish/web.ts`. Share the row loading with `loadProjectEnvironment` rather than writing a second filter.
 
 - [ ] **Step 3: Verify**
 
@@ -361,9 +362,7 @@ git commit -m "feat(publish): published snapshots table, server origin, and load
 - Modify:
   - `lib/generated-app/export-project.ts`
   - `lib/project-access.ts`
-  - `app/api/projects/[projectId]/export/route.ts`
-  - `lib/github/projects.ts:146`
-  - `lib/publish/web.ts:130,145` and `lib/publish/builds.ts:226,244` (call sites only)
+- Check only (phase 3 already passes the option): `app/api/projects/[projectId]/export/route.ts`, `lib/github/projects.ts`, `lib/publish/web.ts`, `lib/publish/builds.ts`
 - Test: `tests/generated-app/export-server.test.ts`
 
 **Interfaces:**
@@ -377,7 +376,7 @@ git commit -m "feat(publish): published snapshots table, server origin, and load
 - Produces (`export-project.ts`):
   - `PublishIdentity` gains `serverOrigin: string | null`.
   - `exportedProjectFiles(project, screens, publishing?, server?: ExportServer | null)`
-- Produces (`project-access.ts`): `loadProjectExport(project: Project, options: { includeServer: boolean }): Promise<LoadedExport>`. The option is required, so every call site makes the decision. With `includeServer`, it loads `serverSourceFiles(project.id)` and `listServiceSummaries(project.id)`, and passes `{ files, services }`. Otherwise it passes `null`. If phase 3 already filtered server files for viewers in this function or in the export route, replace that with this option.
+- Extends (`project-access.ts`): phase 3's `loadProjectExport(project: Project, options: { includeServer: boolean }): Promise<LoadedExport>`. The signature and the call sites don't change. This task only extends what `includeServer: true` adds: it loads `serverSourceFiles(project.id)` and `listServiceSummaries(project.id)`, and passes `{ files, services }` to `exportedProjectFiles`. With `includeServer: false` it passes `null`, and phase 3's viewer filtering stays as it is.
 
 **What `exportedProjectFiles` changes.** Let `routes = server && hasServerRoutes(server.files)` and `origin = publishing?.serverOrigin ?? null`.
 - If the sources contain `lib/server/config.ts` (phase 3 generates it whenever the plan has server routes), drop it and add `{ path: "lib/server/config.ts", content: publishedServerConfig(origin) }`. This applies to viewers too, so no sandbox config ever leaves.
@@ -471,9 +470,8 @@ Tests:
 Run: `npx vitest run --configLoader runner tests/generated-app/export-server.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement `server-export.ts` and the `exportedProjectFiles` changes**, then `loadProjectExport`'s option, and update the call sites:
-  - The export route passes `{ includeServer: access.role === "owner" }`.
-  - `lib/github/projects.ts`, `web.ts` and `builds.ts` pass `{ includeServer: true }`. These routes are owner-only.
+- [ ] **Step 3: Implement `server-export.ts` and the `exportedProjectFiles` changes**, then extend `loadProjectExport`'s `includeServer: true` branch:
+  - Check that the call sites still pass what phase 3 set: the export route `{ includeServer: access.role === "owner" }`, and `lib/github/projects.ts`, `web.ts` and `builds.ts` `{ includeServer: true }` (owner-only flows).
   - `loadProjectExport` maps the `projectPublishing` row's `serverOrigin` into `PublishIdentity`.
 
 - [ ] **Step 4: Run the tests, the full suite, and the typecheck**
@@ -484,7 +482,7 @@ Expected: PASS, PASS, no errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/generated-app lib/project-access.ts app/api/projects/[projectId]/export lib/github/projects.ts lib/publish/web.ts lib/publish/builds.ts tests/generated-app/export-server.test.ts
+git add lib/generated-app lib/project-access.ts tests/generated-app/export-server.test.ts
 git commit -m "feat(export): server functions, .env.example, server output and origin in ZIP, GitHub and publishes"
 ```
 
@@ -501,11 +499,15 @@ git commit -m "feat(export): server functions, .env.example, server output and o
 - Consumes:
   - Task 2: `syncAppEnvironment`, `cancelWorkflowRun`. Also from expo.ts: `ensureExpoApp`, `ensureWebDomain`, `startWorkflowRun`, `readWebRun`.
   - Task 3: `nextServerDeploy`, `withAgentInstructions`, `environmentVars`, `serverFilesHash`, `hasServerRoutes`, `serverReport`, `summarizeServerDeploy`, `webWorkflow(true)`, `EAS_JSON`.
-  - Task 4: all of `snapshots.ts`, and `loadProjectEnvironment`.
+  - Task 4: all of `snapshots.ts`, and `listCredentialValues`.
   - Task 5: `loadProjectExport(project, { includeServer: true })`.
-  - Others: `serverSourceFiles` (phase 3), `projectTarball`, and from builds.ts `loadExpoConnection`, `withProjectId`, `friendlyStartError`, `PublishBlockedError`, `CHECK_EVERY_MS` and `NEVER_STARTED_AFTER_MS`.
+  - Others: `serverSourceFiles` and `ensureServerKey` (phase 3), `projectTarball`, and from builds.ts `loadExpoConnection`, `withProjectId`, `friendlyStartError`, `PublishBlockedError`, `CHECK_EVERY_MS` and `NEVER_STARTED_AFTER_MS`.
 - Produces (`server-deploy.ts`, server only):
-  - `syncServerEnvironment(expoToken: string, appId: string, projectId: string, previous: PublishedSnapshot | null): Promise<string[]>`. It calls `syncAppEnvironment(expoToken, appId, environmentVars(await loadProjectEnvironment(projectId)), previous?.envNames ?? [])` and returns the names it set.
+  - `syncServerEnvironment(expoToken: string, appId: string, project: Pick<Project, "id" | "plan">, previous: PublishedSnapshot | null): Promise<string[]>`.
+    1. When `project.plan?.backend` is set, it first calls `await ensureServerKey(project.id)`, so `APPXPROMPT_SERVER_KEY` exists before the credentials are listed, even if the sandbox never ran.
+    2. It calls `syncAppEnvironment(expoToken, appId, environmentVars(await listCredentialValues(project.id)), previous?.envNames ?? [])` and returns the names it set.
+
+    Every sync goes through this function, both `deployServer` and `web.ts`, so neither lists credentials without the key check.
   - `deployServer(project: Project, userId: number, reason: ServerDeployReason): Promise<"started" | "queued" | "skipped" | "failed">`
   - `getServerDeploy(projectId: string, userId: number, t: Translator<"errors">): Promise<ServerDeploySummary | null>`
 - **Imports:** `builds.ts` imports `deployServer` with a dynamic `await import("@/lib/publish/server-deploy")` inside `sendToExpo`, because `server-deploy.ts` imports from `builds.ts`. `web.ts` imports it statically.
@@ -521,7 +523,7 @@ git commit -m "feat(export): server functions, .env.example, server output and o
 6. **The files:**
    - `publish`: reload the export (it now carries the origin) and map `app.json` through `withProjectId(…, appId)`.
    - Other reasons: `withAgentInstructions(snapshot.files, await serverSourceFiles(project.id))`.
-7. `envNames = syncServerEnvironment(token, appId, project.id, snapshot)`.
+7. `envNames = syncServerEnvironment(token, appId, project, snapshot)`.
 8. If the decision is `cancel_and_start` and `snapshot.easRunId` is set, run `await cancelWorkflowRun(token, snapshot.easRunId).catch(() => {})`.
 9. Start the run: `easRunId = startWorkflowRun(token, { appId, accountId, workflow: webWorkflow(true), tarball: projectTarball(files), easJson: EAS_JSON, packageJson })`, where `packageJson` is the `package.json` content in `files`.
 10. `saveSnapshot(project.id, files, { easRunId, reason, envNames })`, then return `"started"`.
@@ -540,16 +542,17 @@ git commit -m "feat(export): server functions, .env.example, server output and o
 - **`web.ts` `sendToExpo`:**
   1. After `ensureWebDomain`, call `saveServerOrigin`.
   2. Load the files with `includeServer: true`, then `previous = loadSnapshot(project.id)`.
-  3. If `hasServerRoutes(files) || previous?.envNames.length`, set `envNames = syncServerEnvironment(...)`. Otherwise `envNames = []`.
+  3. If `hasServerRoutes(files) || previous?.envNames.length`, set `envNames = syncServerEnvironment(token, appId, project, previous)`, which runs `ensureServerKey` for a backend. Otherwise `envNames = []`. `web.ts` never calls `listCredentialValues` itself.
   4. Start the run with `webWorkflow(hasServerRoutes(files))`.
   5. Call `saveSnapshot(project.id, sentFiles, { easRunId, reason: "publish", envNames })`, where `sentFiles` are the files after `withProjectId`.
 - **`builds.ts` `sendToExpo`:** after `ensureIdentity`, call `await deployServer(project, build.userId, "publish")`, then load the files for the build. Its errors fail the build start the way the others do. Widen `friendlyStartError`'s fallback to `"buildStartFailed" | "publishStartFailed" | "serverDeployFailed"`.
 
 - [ ] **Step 1: Write the failing tests**
 
-Use `vi.mock` for `@/lib/publish/expo`, `@/lib/publish/snapshots`, `@/lib/publish/builds` (`loadExpoConnection`, plus the real `withProjectId` and `friendlyStartError` via `vi.importActual`), `@/lib/project-access`, `@/lib/sandbox/bundle`, `@/lib/services/store`, `@/lib/publish/tarball` (which records the files it's given) and `@/lib/cloudhike/crypto` (`unseal`, which returns its input). Fixtures:
+Use `vi.mock` for `@/lib/publish/expo`, `@/lib/publish/snapshots`, `@/lib/publish/builds` (`loadExpoConnection`, plus the real `withProjectId` and `friendlyStartError` via `vi.importActual`), `@/lib/project-access`, `@/lib/sandbox/bundle`, `@/lib/services/store`, `@/lib/services/server-key` (`ensureServerKey`), `@/lib/publish/tarball` (which records the files it's given) and `@/lib/cloudhike/crypto` (`unseal`, which returns its input). Fixtures:
 - `snapshot` has `hasServerRoutes: true`, `status: "deployed"`, `reason: "publish"`, `envNames: ["OLD_KEY"]`, `easRunId: "run-old"` and the published files from the Task 3 Review Focus 1 test.
-- `loadProjectEnvironment` returns `[{ name: "OPENAI_API_KEY", value: "sk-x", kind: "secret" }]`.
+- `listCredentialValues` returns `[{ name: "OPENAI_API_KEY", value: "sk-x", kind: "secret" }]`.
+- `project.plan.backend` is set.
 
 Tests:
 - **Review Focus 1:** `"redeploys the published files, not the current project"`. `deployServer(project, 7, "credentials")`:
@@ -559,6 +562,8 @@ Tests:
 - `"syncs keys before starting the run"`:
   - `syncAppEnvironment` is called with `[{ name: "OPENAI_API_KEY", value: "sk-x", visibility: "sensitive" }]` and `["OLD_KEY"]`, before `startWorkflowRun` (compare `mock.invocationCallOrder`).
   - `startWorkflowRun`'s `workflow` equals `webWorkflow(true)`.
+  - `ensureServerKey` is called once with `project.id`, before `listCredentialValues` (compare `mock.invocationCallOrder`).
+  - With `project.plan.backend` unset, `ensureServerKey` isn't called, and `syncAppEnvironment` still is.
 - `"skips projects never published with server functions"`: `loadSnapshot` gives null, which returns `"skipped"`, and no expo mock is called.
 - **Review Focus 4:** `"queues behind a running publish"`: `status: "deploying", reason: "publish"` with reason `"agent"` returns `"queued"`. `queueRedeploy` is called, and `startWorkflowRun` and `cancelWorkflowRun` aren't.
 - **Review Focus 4:** `"cancels an older redeploy first"`: `status: "deploying", reason: "credentials"` makes `cancelWorkflowRun("t", "run-old")` happen before `startWorkflowRun`.
@@ -594,7 +599,7 @@ git commit -m "feat(publish): deploy server functions with the owner's keys on p
 - Create: `lib/publish/server-hooks.ts`
 - Modify:
   - `lib/services/store.ts`: `saveServiceValues`, `saveRefreshToken`, `removeServiceValues`, `removeService`, `registerService` (when it deletes dropped fields), and phase 3's server key rotation.
-  - Phase 4's `onAgentChanged`, wherever phase 4 put it.
+  - Phase 4's `onAgentChanged` in `lib/agents/on-changed.ts`. Agent route builds call `getSandboxRunner().reload` directly, not this hook, so a build never redeploys.
 - Test: `tests/publish/server-hooks.test.ts`
 
 **Interfaces:**

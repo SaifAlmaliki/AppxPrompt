@@ -2,13 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Contract changes (made in Task 1, in `docs/superpowers/plans/2026-11-23-integrations-contract.md`):**
+> **Contract changes (already applied to `docs/superpowers/plans/2026-11-23-integrations-contract.md`; Task 1 verifies them):**
 > - **Phase 4:** `project_agents` gains a `service` column (the slug of the AI service whose key the agent uses). Without it, the generated config file can't tell which provider and host to call. The phase 4 section also lists every name this plan produces.
-> - **Phase 3 gets four additions it must provide.** Phase 4 can't work without them:
+> - **Phase 3 additions this plan relies on.** Phase 4 can't work without them:
 >   1. `SandboxRunner.reload(projectId: string): Promise<void>`. Phase 4 writes server files outside the server builder, so it needs a way to make the sandbox load them.
 >   2. `getCaller(request)` resolves to `null` when nobody is signed in.
 >   3. `server/auth.ts` is generated whenever the plan has a route of kind `agent`.
 >   4. `validateServerRoute` accepts an import of `@/<path without .ts>` for every entry of `helperPaths`, including `app/api/**` paths.
+>   5. `buildServerRoute`'s options take `extraPrompt`, `extraHelperPaths` and `extraValidate`, so the agent steps live in `runBuildStep` and `buildServerRoute` stays agent-free.
+>   6. Phase 3's `apiRouteUrl`, `SERVER_ROUTE_ID` and `nextServerRoute` (which builds `function` routes before `agent` routes) are reused here, not redefined.
 
 **Goal:** An app's AI agent runs on the server with the owner's own AI key. Its owner-written instructions live only in a generated server file. The owner edits the instructions, the model, and who may use the agent in a new Agent tab, and can test it with "Try it". They can also ask the AppxPrompt agent in the chat to change it. App users only ever get `{ reply, results }`.
 
@@ -82,7 +84,7 @@
 **Interfaces:**
 - Consumes:
   - `findKeys` (`lib/services/key-patterns.ts`).
-  - `AppPlan.serverRoutes` and `PlannedServerRoute` (phase 3, `lib/agent-protocol.ts`).
+  - `AppPlan.serverRoutes`, `PlannedServerRoute` and `SERVER_ROUTE_ID` (phase 3, `lib/agent-protocol.ts`).
 - Produces (`lib/agents/protocol.ts`):
 
 ```ts
@@ -90,7 +92,7 @@ export const AGENT_ACCESS = ["public", "signed_in"] as const
 export type AgentAccess = (typeof AGENT_ACCESS)[number]
 export const AGENT_ERROR_CODES = ["not_connected", "sign_in", "bad_request", "unavailable"] as const
 export type AgentErrorCode = (typeof AGENT_ERROR_CODES)[number]
-export const AGENT_ID: RegExp                 // /^[a-z][a-z0-9-]{0,39}$/
+export const AGENT_ID: RegExp                 // = SERVER_ROUTE_ID, /^[a-z][a-z0-9-]{0,39}$/
 export const MAX_AGENT_INSTRUCTIONS = 20_000
 export const MAX_AGENT_NAME = 60
 export const AGENT_LOOP_PATH = "server/agent-loop.ts"
@@ -117,8 +119,9 @@ export function validateAgentSettings(service: string, input: unknown): { settin
 export function summarizeAgent(agent: AgentRecord, plan: AppPlan | null): ProjectAgentSummary
 export function plannerAgents(agents: AgentRecord[]): PlannerAgent[]
 export function hasAgentRoute(plan: AppPlan | null): boolean
-export function routeUrlPath(filePath: string): string                // "app/api/booking/chat+api.ts" -> "/api/booking/chat"
 ```
+
+A route's URL comes from phase 3's `apiRouteUrl(path)` (`lib/agent-protocol.ts`). This module doesn't define its own.
 
 **`AGENT_PROVIDERS`, exactly for v1:**
 
@@ -153,19 +156,19 @@ Before committing, confirm these ids are still listed at https://developers.open
   - `tools` maps each id through `plan.serverRoutes` to `{ id, purpose }`, and drops unknown ids.
   - `serviceLabel` and `models` come from the provider, or the slug and `[]` if there's none.
   - `updatedAt` is ISO.
-- **`routeUrlPath`** strips the leading `app`, strips `+api.ts`, and drops a trailing `/index`.
 
-- [ ] **Step 1: Update the contract file**
+- [ ] **Step 1: Check the contract file**
 
-1. In the Phase 3 section, add an "Also produces (required by phase 4)" list with the four additions from the note at the top of this plan.
-2. In the Phase 4 section:
-   - Add `service` to `project_agents`.
-   - Name `lib/agents/protocol.ts`, `lib/agents/files.ts` (`AGENT_LOOP_FILE` and `agentConfigFile`), `lib/agents/store.ts` and `lib/agents/route-rules.ts`.
-   - Say that `onAgentChanged(projectId)` lives in `lib/agents/on-changed.ts`.
-   - Add the `AgentEvent` `{ type: "agents-changed" }`.
-   - Add the owner routes `GET /api/projects/[projectId]/agents` and `PUT /api/projects/[projectId]/agents/[agentId]`.
-   - Say the generated config exports `agentConfig`, and the loop exports `handleAgentRequest` and `callRoute`.
-3. In the Phase 5 section, note that a redeploy swaps instructions files in with `agentConfigFile(agent)` at `agentInstructionsPath(id)`.
+The contract already has these. Confirm each, and change the contract only if this plan's names changed:
+1. The Phase 3 section lists the phase 3 additions from the note at the top of this plan.
+2. The Phase 4 section:
+   - has `service` in `project_agents`;
+   - names `lib/agents/protocol.ts`, `lib/agents/files.ts` (`AGENT_LOOP_FILE` and `agentConfigFile`), `lib/agents/store.ts` and `lib/agents/route-rules.ts`;
+   - says that `onAgentChanged(projectId)` lives in `lib/agents/on-changed.ts`;
+   - has the `AgentEvent` `{ type: "agents-changed" }`;
+   - has the owner routes `GET /api/projects/[projectId]/agents` and `PUT /api/projects/[projectId]/agents/[agentId]`;
+   - says the generated config exports `agentConfig`, and the loop exports `handleAgentRequest` and `callRoute`.
+3. The Phase 5 section says a redeploy swaps in the current `server/agents/<id>.instructions.ts` rows, which `writeAgentFiles` writes with `agentConfigFile(agent)` at `agentInstructionsPath(id)`.
 
 - [ ] **Step 2: Write the failing tests** (`tests/agents/protocol.test.ts`)
 
@@ -199,7 +202,7 @@ const plan = { serverRoutes: [
   - With `plan` set to `null`, `routePath` is `null` and `tools` is `[]`.
 - `plannerAgents([openaiAgent])` gives `[{ id, name, model, access, instructions }]` only.
 - `hasAgentRoute(plan)` is true, and `hasAgentRoute(null)` and `hasAgentRoute({ serverRoutes: [] } as unknown as AppPlan)` are false.
-- `routeUrlPath("app/api/assistant+api.ts")` gives `"/api/assistant"`, `routeUrlPath("app/api/booking/chat+api.ts")` gives `"/api/booking/chat"`, and `routeUrlPath("app/api/help/index+api.ts")` gives `"/api/help"`.
+- `AGENT_ID.source` equals `SERVER_ROUTE_ID.source`.
 
 - [ ] **Step 3: Run the tests and confirm they fail**
 
@@ -471,7 +474,7 @@ Expected: a new `drizzle/<next>_*.sql` that creates `project_agents` with the co
 
 - [ ] **Step 3: Copy agents when duplicating**
 
-In the duplicate route's transaction, call `copyAgents(tx, project.id, newId)` after the project row is inserted. Phase 3 already copies `server_routes`, so the helper files come along.
+In the duplicate route's transaction, call `copyAgents(tx, project.id, newId)` after the project row is inserted. Phase 3's `copyServerRoutes` already copies `server_routes` in the same transaction, so the helper files come along.
 
 - [ ] **Step 4: Verify**
 
@@ -546,22 +549,20 @@ git commit -m "feat(agents): owner routes to read and save agent settings"
 **Files:**
 - Create: `lib/agents/route-rules.ts`
 - Modify:
-  - `lib/agent/server-builder.ts` (phase 3)
-  - Phase 3's server-route build-step queueing: wherever it orders server routes before screens.
+  - `lib/agent/builder.ts` (phase 3's server route step in `runBuildStep`): the agent steps go around its `buildServerRoute` call. `lib/agent/server-builder.ts` isn't changed.
   - Phase 3's code that finishes a build or removes server routes: call `syncAgentsWithPlan` there.
 - Test: `tests/agents/route-rules.test.ts`
 
 **Interfaces:**
 - Consumes:
   - Tasks 1 to 3.
-  - Phase 3's `buildServerRoute(...)` and `validateServerRoute(code, ctx)`.
+  - Phase 3's `buildServerRoute(ctx, { ..., extraPrompt, extraHelperPaths, extraValidate })`, `validateServerRoute(code, ctx)`, `nextServerRoute` and `getSandboxRunner`.
   - Phase 1's `listServiceSummaries`, to get the AI service's secret field names.
 - Produces (`lib/agents/route-rules.ts`):
   - `type AgentToolRoute = { id: string; path: string; purpose: string; code: string }`
   - `agentRouteRules(input: { agent: Pick<AgentRecord, "id" | "name" | "service">; keyNames: string[]; toolRoutes: AgentToolRoute[] }): string`. It's appended to the server builder's prompt for `kind: "agent"`.
   - `validateAgentRoute(code: string, ctx: { agentId: string; keyNames: string[]; toolPaths: string[] }): string[]`
   - `agentToolIds(code: string, serverRoutes: PlannedServerRoute[]): string[]`. It returns the ids of the `kind: "function"` routes the code imports, as `@/<path without .ts>`, in import order with no duplicates.
-  - `orderServerRoutes<T extends { kind: string }>(routes: T[]): T[]`. It's a stable sort with non-agent routes first.
   - `routeImportPath(path: string): string`, which turns `"app/api/booking/slots+api.ts"` into `"@/app/api/booking/slots+api"`.
 
 **`agentRouteRules` text**, with values filled in:
@@ -593,6 +594,7 @@ export async function POST(request: Request) {
 }
 ```
 - Never read or return `agentConfig.instructions`, and never write instructions of your own. The owner's text is the only one, and the loop already uses it.
+- Don't call `requireCaller` and don't wrap the handler in `withErrors`. Who may use the agent comes from `agentConfig`, and `handleAgentRequest` checks it with `getCaller`.
 - The key is `process.env.<one of the key names>`. Never call `fetch` in this file, and import no other route than the functions below.
 - One tool per function below that this agent needs. `name` is snake_case and at most 64 characters. `description` says in one sentence what it does and when to use it. `parameters` is a JSON Schema object matching exactly the JSON body that function reads, with `additionalProperties: false`.
 - Set `returnsToApp: true` on a tool whose result the app's screen should show, such as a confirmed booking. Leave it out for lookups.
@@ -617,18 +619,16 @@ export async function POST(request: Request) {
 | Imports a `+api` module not in `toolPaths.map(routeImportPath)` | `Only import these functions: <list>.` |
 | Has no `export async function POST` | `Export async function POST(request: Request).` |
 
-**In `buildServerRoute`, when `route.kind === "agent"`:**
-1. Set `service = agentServiceFor(route.services)`. If it's null, fail the step with the problem `"Agents can only use OpenAI for now."`, which phase 3's normal failure path refunds.
-2. Run `ensureAgent`, then `writeAgentFiles`.
-3. The tool routes are the plan's `kind: "function"` routes that already have code.
+**In `runBuildStep` (`lib/agent/builder.ts`), around phase 3's `buildServerRoute` call, when `route.kind === "agent"`.** `buildServerRoute` itself stays agent-free.
+1. Set `service = agentServiceFor(route.services)`. If it's null, fail the step with the problem `"Agents can only use OpenAI for now."` without calling `buildServerRoute`, through phase 3's normal failure path, which refunds.
+2. Before the call, run `ensureAgent`, then `writeAgentFiles`.
+3. The tool routes are the plan's `kind: "function"` routes that already have code. Phase 3's `nextServerRoute` has already built every function route first, so no reordering is needed here.
 4. `keyNames` are the `secret` field names of the service's `ServiceSummary`.
-5. Append `agentRouteRules(...)` to the builder prompt.
-6. Validate with `validateServerRoute`, where `helperPaths` adds `agentInstructionsPath(id)`, `AGENT_LOOP_PATH` and every tool route path. Then add the problems from `validateAgentRoute`.
-7. On success, run `setAgentTools(projectId, id, agentToolIds(code, plan.serverRoutes))`, then `onAgentChanged(projectId)`.
+5. Call `buildServerRoute(ctx, { ...phase 3's options, extraPrompt: agentRouteRules(...), extraHelperPaths: [agentInstructionsPath(id), AGENT_LOOP_PATH, ...toolRoutes.map((r) => r.path)], extraValidate: (code) => validateAgentRoute(code, { agentId: id, keyNames, toolPaths: toolRoutes.map((r) => r.path) }) })`.
+6. On `{ code }`, after phase 3 saves the row as `done`, run `setAgentTools(projectId, id, agentToolIds(code, plan.serverRoutes))`.
+7. Then call `getSandboxRunner().reload(projectId)` directly, not `onAgentChanged`. A build isn't an agent settings change, so it must not trigger phase 5's redeploy.
 
-**Elsewhere in phase 3's code:**
-- Queue server routes through `orderServerRoutes`.
-- Call `syncAgentsWithPlan(projectId, plan)` after phase 3 removes server routes, and when a build finishes.
+**Elsewhere in phase 3's code:** call `syncAgentsWithPlan(projectId, plan)` after phase 3 removes server routes, and when a build finishes.
 
 - [ ] **Step 1: Write the failing tests** (`tests/agents/route-rules.test.ts`)
 
@@ -640,8 +640,7 @@ Use a fixture `GOOD`: the route from the rules text, for agent `assistant`, key 
 - `GOOD` with `process.env.OPENAI_API_KEY` replaced by `"sk"` gives `"Pass apiKey: process.env.OPENAI_API_KEY."`.
 - `GOOD` with the instructions import path changed to `other` gives the import line for `assistant`.
 - `agentToolIds(GOOD + '\nimport { POST as b } from "@/app/api/booking/book+api";', routes)` gives `["slots", "book"]`, and an import of an unknown route is ignored.
-- `orderServerRoutes([{ kind: "agent", id: "a" }, { kind: "function", id: "f1" }, { kind: "function", id: "f2" }])` gives the ids `["f1", "f2", "a"]`.
-- `agentRouteRules(...)` contains `"@/server/agents/assistant.instructions"`, `"process.env.OPENAI_API_KEY"`, each tool route's path and code, and never the agent's instructions. Pass the record with sentinel instructions through a cast to check this.
+- `agentRouteRules(...)` contains `"@/server/agents/assistant.instructions"`, `"process.env.OPENAI_API_KEY"`, `"Don't call \`requireCaller\`"`, each tool route's path and code, and never the agent's instructions. Pass the record with sentinel instructions through a cast to check this.
 - `routeImportPath("app/api/booking/slots+api.ts")` gives `"@/app/api/booking/slots+api"`.
 
 - [ ] **Step 2: Run the tests and confirm they fail**
@@ -649,7 +648,7 @@ Use a fixture `GOOD`: the route from the rules text, for agent `assistant`, key 
 Run: `npx vitest run --configLoader runner tests/agents/route-rules.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement `route-rules.ts`, then wire `server-builder.ts` and phase 3's build flow** as listed above.
+- [ ] **Step 3: Implement `route-rules.ts`, then wire `runBuildStep` in `lib/agent/builder.ts` and phase 3's build flow** as listed above.
 
 - [ ] **Step 4: Run the tests, the full suite, and the typecheck**
 
@@ -725,7 +724,7 @@ What `execute` does:
 
   Blocks are joined by a blank line.
 
-**The instructions section,** added right after `# Outside services` when `state.integrations` is true:
+**The instructions section,** added right after phase 3's `# Server functions` (which itself follows `# Outside services`) when `state.integrations` is true:
 
 ```
 # AI agents
@@ -791,7 +790,7 @@ git commit -m "feat(agent): update_agent_instructions tool and AI agents planner
 **Interfaces:**
 - Consumes:
   - The routes from Task 4.
-  - `routeUrlPath`, `hasAgentRoute`, `ProjectAgentSummary` and `AgentErrorCode` (Task 1).
+  - `hasAgentRoute`, `ProjectAgentSummary` and `AgentErrorCode` (Task 1), and phase 3's `apiRouteUrl` (`lib/agent-protocol.ts`).
   - The `agents-changed` event (Task 6).
   - Phase 1's service dialog state in `workspace-layout.tsx`.
 - Produces:
@@ -799,7 +798,7 @@ git commit -m "feat(agent): update_agent_instructions tool and AI agents planner
   - **`lib/agents/try.ts`:**
     - `type AgentReply = { ok: true; reply: string; results: unknown[] } | { ok: false; code: AgentErrorCode | "preview"; service: string | null }`
     - `readAgentReply(status: number, body: unknown): AgentReply`
-    - `tryAgent(input: { projectId: string; routePath: string; token: string; messages: { role: "user" | "assistant"; content: string }[] }): Promise<AgentReply>`. It POSTs to `/api/apps/${projectId}/server${routeUrlPath(routePath)}` with the header `x-appxprompt-sandbox: token`, `credentials: "omit"` and the body `{ messages }`. A network failure gives `{ ok: false, code: "unavailable", service: null }`.
+    - `tryAgent(input: { projectId: string; routePath: string; token: string; messages: { role: "user" | "assistant"; content: string }[] }): Promise<AgentReply>`. It POSTs to `/api/apps/${projectId}/server${apiRouteUrl(routePath)}` with the header `x-appxprompt-sandbox: token`, `credentials: "omit"` and the body `{ messages }`. A network failure gives `{ ok: false, code: "unavailable", service: null }`.
   - **`useAgentSettings(projectId: string, version: number)`** loads `GET /agents` on mount and whenever `version` changes. It returns:
     - `agents`, `sandboxToken`, `loading` and `error`
     - `reload(): Promise<void>`
