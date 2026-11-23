@@ -1,4 +1,4 @@
-import { redactKeys } from "@/lib/services/key-patterns"
+import { findKeys, redactKeys } from "@/lib/services/key-patterns"
 
 export type SearchResult = { title: string; url: string; snippet: string }
 
@@ -55,12 +55,12 @@ export async function webSearch(query: string, fetchImpl: typeof fetch = fetch):
 
   const results: SearchResult[] = []
   for (const item of data.results as Array<Record<string, unknown> | null>) {
-    if (!item || !isHttps(item.url)) continue
+    if (!item || !isHttps(item.url) || findKeys(item.url).length > 0) continue
     results.push({
       title: clean(item.title),
       url: item.url,
       snippet: clean(item.content).slice(0, SNIPPET_LIMIT),
     })
   }
-  return results
+  return results.slice(0, SEARCH_RESULTS)
 }

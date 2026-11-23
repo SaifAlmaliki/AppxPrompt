@@ -48,6 +48,23 @@ describe("webSearch", () => {
     expect(first.snippet.length).toBeLessThanOrEqual(500)
   })
 
+  it("drops results whose url contains a key", async () => {
+    vi.stubEnv("TAVILY_API_KEY", "tvly-test")
+    const fetchImpl = vi.fn(async () => json({ results: [
+      { title: "Leaky", url: `https://x.com/?api_key=${key}`, content: "leak" },
+      { title: "Fine", url: "https://x.com/docs", content: "ok" },
+    ] }))
+    const results = await webSearch("x", fetchImpl)
+    expect(results.map((r) => r.title)).toEqual(["Fine"])
+  })
+
+  it("returns at most five results", async () => {
+    vi.stubEnv("TAVILY_API_KEY", "tvly-test")
+    const many = Array.from({ length: 8 }, (_, i) => ({ title: `T${i}`, url: `https://x.com/${i}`, content: "c" }))
+    const results = await webSearch("x", vi.fn(async () => json({ results: many })))
+    expect(results).toHaveLength(5)
+  })
+
   it("gives an empty list when results is missing or not an array", async () => {
     vi.stubEnv("TAVILY_API_KEY", "tvly-test")
     expect(await webSearch("x", vi.fn(async () => json({})))).toEqual([])
