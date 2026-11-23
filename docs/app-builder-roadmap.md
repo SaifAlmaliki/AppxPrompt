@@ -76,6 +76,13 @@
 - **Sync.** Screens load their records when they open. Only preview frames poll, every 5 seconds, and only while the agent is building or changing screens. Writes need a connection: there's no offline queue.
 - **Local development.** Open the workspace at `NEXT_PUBLIC_APP_URL`, since that's where the state cookie has to be, and register that exact callback URL in CloudHike.
 
+## How services and credentials work
+
+- **Storage** (`project_credentials`, `project_services`). Credentials are sealed with `seal()` from `lib/cloudhike/crypto.ts`, and public values are stored plain. Service definitions live in `project_services`. Only the project owner can see or change either.
+- **Flag.** `APP_INTEGRATIONS=1` turns on the planner's `register_service` tool, its instructions, and the "Services & keys" header button. Paste protection, the 0015 chat-history redaction migration, and Sentry scrubbing are always on.
+- **OAuth callback.** Owners register `<NEXT_PUBLIC_APP_URL>/api/oauth/callback` as the redirect URL in their own OAuth client, such as Google Cloud Console.
+- **Phase 1.** Screens can't use the credentials yet. Server functions come in phase 3.
+
 ## Planned Chapters
 
 ### Chapter 3: Project Creation + Save to Database
