@@ -139,6 +139,15 @@ export type PinnedInit = {
   redirect?: "manual"
 }
 
+const DEFAULT_REQUEST_HEADERS: Record<string, string> = { "user-agent": "AppxPrompt", accept: "*/*" }
+
+function requestHeaders(custom: Record<string, string> = {}): Record<string, string> {
+  const given = new Set(Object.keys(custom).map((name) => name.toLowerCase()))
+  const defaults = Object.fromEntries(Object.entries(DEFAULT_REQUEST_HEADERS).filter(([name]) => !given.has(name)))
+  const rest = Object.fromEntries(Object.entries(custom).filter(([name]) => name.toLowerCase() !== "accept-encoding"))
+  return { ...defaults, ...rest, "accept-encoding": "identity" }
+}
+
 /**
  * One https request whose connection is made only to public addresses (checked at connect time by safeLookup),
  * so the address that was checked is the address that is used. No redirects, no decompression, 1 MB body cap.
@@ -160,7 +169,7 @@ export function pinnedFetch(
         url,
         {
           method: init.method ?? "GET",
-          headers: { ...init.headers, "accept-encoding": "identity" },
+          headers: requestHeaders(init.headers),
           lookup: safeLookup,
           agent: false,
           signal: init.signal ?? AbortSignal.timeout(PAGE_TIMEOUT_MS),

@@ -139,8 +139,18 @@ describe("pinnedFetch", () => {
     expect(options.method).toBe("POST")
     expect(options.agent).toBe(false)
     expect(options.signal).toBe(signal)
-    expect(options.headers).toEqual({ Authorization: "Bearer k", "accept-encoding": "identity" })
+    expect(options.headers).toEqual({ Authorization: "Bearer k", "user-agent": "AppxPrompt", accept: "*/*", "accept-encoding": "identity" })
     expect(written.join("")).toBe("a=b")
+  })
+
+  it("sends default user-agent and accept headers, which caller headers override", async () => {
+    const plain = fakeRequest(200, {}, [])
+    await pinnedFetch("https://api.example.com/", {}, plain.impl)
+    expect(plain.calls[0].options.headers).toMatchObject({ "user-agent": "AppxPrompt", accept: "*/*", "accept-encoding": "identity" })
+
+    const custom = fakeRequest(200, {}, [])
+    await pinnedFetch("https://api.example.com/", { headers: { Accept: "application/json", "Accept-Encoding": "gzip" } }, custom.impl)
+    expect(custom.calls[0].options.headers).toEqual({ "user-agent": "AppxPrompt", Accept: "application/json", "accept-encoding": "identity" })
   })
 
   it("defaults to GET with a timeout signal", async () => {
