@@ -4,8 +4,9 @@ import { and, count, eq, sql } from "drizzle-orm"
 
 import { builds, creditTransactions, db, projects, screens, users, type Project } from "@/db"
 import type { AppPlan } from "@/lib/agent-protocol"
+import { listServerRoutes } from "@/lib/server-routes/store"
 import { translatorFor, type Translator } from "@/lib/i18n/server"
-import { EDIT_CREDITS, PLANS, PRO_MONTHLY_CREDITS, buildCost, type CreditReason, type PlanId, type UpgradeReason } from "@/lib/plans"
+import { EDIT_CREDITS, PLANS, PRO_MONTHLY_CREDITS, buildCostParts, buildCost, type CreditReason, type PlanId, type UpgradeReason } from "@/lib/plans"
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
@@ -44,31 +45,45 @@ export function assertCanUseAgent(credits: number, t: ErrorsT) {
   if (credits < EDIT_CREDITS) throw notEnoughCredits(EDIT_CREDITS, t)
 }
 
-/** Takes `amount`, this month's credits first, or throws without taking any. */
-export async function spendCredits(
+/** Takes what the parts add up to, this month's credits first, or throws without taking any. One transaction row per part. */
+export async function spendCreditParts(
   userId: number,
-  amount: number,
-  entry: { reason: CreditReason; projectId: string; reference: string },
+  projectId: string,
+  parts: { amount: number; reason: CreditReason; reference: string }[],
   t: ErrorsT
 ) {
+  const charged = parts.filter((part) => part.amount > 0)
+  const total = charged.reduce((sum, part) => sum + part.amount, 0)
+  if (total === 0) return
   await db.transaction(async (tx) => {
     // The row is checked and changed in one statement, so spending at once from two tabs can't go below zero.
     const [user] = await tx
       .update(users)
       .set({
-        monthlyCredits: sql`${users.monthlyCredits} - least(${users.monthlyCredits}, ${amount}::int)`,
-        credits: sql`${users.credits} - greatest(${amount}::int - ${users.monthlyCredits}, 0)`,
+        monthlyCredits: sql`${users.monthlyCredits} - least(${users.monthlyCredits}, ${total}::int)`,
+        credits: sql`${users.credits} - greatest(${total}::int - ${users.monthlyCredits}, 0)`,
       })
-      .where(and(eq(users.id, userId), sql`${users.credits} + ${users.monthlyCredits} >= ${amount}::int`))
+      .where(and(eq(users.id, userId), sql`${users.credits} + ${users.monthlyCredits} >= ${total}::int`))
       .returning({ credits: users.credits, monthlyCredits: users.monthlyCredits })
-    if (!user) throw notEnoughCredits(amount, t)
-    await tx.insert(creditTransactions).values({
-      ...entry,
-      userId,
-      amount: -amount,
-      balanceAfter: user.credits + user.monthlyCredits,
-    })
+    if (!user) throw notEnoughCredits(total, t)
+    let balance = user.credits + user.monthlyCredits + total
+    await tx.insert(creditTransactions).values(
+      charged.map((part) => {
+        balance -= part.amount
+        return { userId, projectId, reason: part.reason, reference: part.reference, amount: -part.amount, balanceAfter: balance }
+      })
+    )
   })
+}
+
+/** Takes `amount`, this month's credits first, or throws without taking any. */
+export function spendCredits(
+  userId: number,
+  amount: number,
+  entry: { reason: CreditReason; projectId: string; reference: string },
+  t: ErrorsT
+) {
+  return spendCreditParts(userId, entry.projectId, [{ amount, reason: entry.reason, reference: entry.reference }], t)
 }
 
 /**
@@ -95,6 +110,7 @@ export type BuildCharge = { id: string; credits: number }
 /** Charges for what a build of `plan` still has to do, before anything about the build is saved. */
 export async function chargeForBuild(project: Pick<Project, "id" | "userId">, plan: AppPlan, userPlan: PlanId, t: ErrorsT): Promise<BuildCharge> {
   const rows = await db.select({ slug: screens.slug, code: screens.code }).from(screens).where(eq(screens.projectId, project.id))
+  const serverRows = await listServerRoutes(project.id)
   // Someone who has downgraded keeps a bigger app they've built, but can't build more of it.
   const hasUnbuilt = plan.screens.some((screen) => !rows.some((row) => row.slug === screen.id && row.code))
   if (hasUnbuilt && plan.screens.length > PLANS[userPlan].maxScreens) {
@@ -102,14 +118,17 @@ export async function chargeForBuild(project: Pick<Project, "id" | "userId">, pl
   }
 
   const id = randomUUID()
-  const credits = buildCost(plan, rows)
-  if (credits > 0) {
-    await spendCredits(project.userId, credits, {
-      reason: plan.pendingChanges ? "edit" : "build",
-      projectId: project.id,
-      reference: `build:${id}`,
-    }, t)
-  }
+  const parts = buildCostParts(plan, rows, serverRows)
+  const credits = parts.screens + parts.serverRoutes + parts.edit
+  await spendCreditParts(
+    project.userId,
+    project.id,
+    [
+      { amount: parts.screens + parts.edit, reason: plan.pendingChanges ? "edit" : "build", reference: `build:${id}` },
+      { amount: parts.serverRoutes, reason: "server-route", reference: `build:${id}:server` },
+    ],
+    t
+  )
   return { id, credits }
 }
 
@@ -131,7 +150,8 @@ export async function refundUnfinishedBuild(buildId: string) {
   if (!build?.charged || !build.project.plan) return 0
 
   const rows = await db.select({ slug: screens.slug, code: screens.code }).from(screens).where(eq(screens.projectId, build.project.id))
-  const amount = Math.min(build.charged, buildCost(build.project.plan, rows))
+  const serverRows = await listServerRoutes(build.project.id)
+  const amount = Math.min(build.charged, buildCost(build.project.plan, rows, serverRows))
   const refunded = await refundCredits(build.project.userId, amount, { projectId: build.project.id, reference: `refund:${buildId}` })
   return refunded ? amount : 0
 }

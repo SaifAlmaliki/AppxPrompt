@@ -32,7 +32,7 @@ export function isUpgradeReason(value: unknown): value is UpgradeReason {
   return UPGRADE_REASONS.includes(value as UpgradeReason)
 }
 
-export const CREDIT_REASONS = ["build", "edit", "image", "refund", "renewal", "plan-ended", "topup"] as const
+export const CREDIT_REASONS = ["build", "edit", "server-route", "image", "refund", "renewal", "plan-ended", "topup"] as const
 
 /** One-time packs. The price ids live in the matching STRIPE_TOPUP_* env vars. */
 export const TOPUP_PACKS = [
@@ -59,10 +59,29 @@ export function topupPriceId(id: TopupId) {
 export type CreditReason = (typeof CREDIT_REASONS)[number]
 
 /**
- * What a build of `plan` costs: each screen with no code yet, and the round of changes if it's one.
+ * What a build of `plan` costs, in parts: each screen with no code yet, each planned server function or agent
+ * with no code yet, and the round of changes if it's one (route edits are part of that round).
  * What a failed build didn't finish is refunded by this same sum, and trying again charges it again.
  */
-export function buildCost(plan: Pick<AppPlan, "screens" | "pendingChanges">, rows: { slug: string; code: string | null }[]) {
-  const unbuilt = plan.screens.filter((screen) => !rows.some((row) => row.slug === screen.id && row.code)).length
-  return unbuilt * SCREEN_CREDITS + (plan.pendingChanges ? EDIT_CREDITS : 0)
+export function buildCostParts(
+  plan: Pick<AppPlan, "screens" | "pendingChanges" | "serverRoutes">,
+  rows: { slug: string; code: string | null }[],
+  serverRows: { path: string; code: string | null }[] = []
+) {
+  const unbuiltScreens = plan.screens.filter((screen) => !rows.some((row) => row.slug === screen.id && row.code)).length
+  const unbuiltRoutes = (plan.serverRoutes ?? []).filter((route) => !serverRows.some((row) => row.path === route.path && row.code)).length
+  return {
+    screens: unbuiltScreens * SCREEN_CREDITS,
+    serverRoutes: unbuiltRoutes * SCREEN_CREDITS,
+    edit: plan.pendingChanges ? EDIT_CREDITS : 0,
+  }
+}
+
+export function buildCost(
+  plan: Pick<AppPlan, "screens" | "pendingChanges" | "serverRoutes">,
+  rows: { slug: string; code: string | null }[],
+  serverRows: { path: string; code: string | null }[] = []
+) {
+  const parts = buildCostParts(plan, rows, serverRows)
+  return parts.screens + parts.serverRoutes + parts.edit
 }

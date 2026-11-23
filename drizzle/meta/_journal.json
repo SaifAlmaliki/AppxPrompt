@@ -120,6 +120,13 @@
       "when": 1795459636226,
       "tag": "0016_brown_multiple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795459962950,
+      "tag": "0017_heavy_mandarin",
+      "breakpoints": true
     }
   ]
 }

@@ -189,7 +189,8 @@ function screenLimitReached(ctx: PlannerContext) {
 
 /** Checks there's enough for this work, so the reply can say so. The build itself is what charges for it. */
 function creditsMissing(ctx: PlannerContext, plan: AppPlan) {
-  const cost = buildCost(plan, ctx.rows)
+  // Task 13 puts the project's server rows in PlannerContext; until then no route counts as built.
+  const cost = buildCost(plan, ctx.rows, [])
   if (cost <= ctx.account.credits) return null
   ctx.run.emit({ type: "upgrade", reason: "credits" })
   return `This costs ${cost} credits and the person has ${ctx.account.credits}. ${UPGRADE_NOTE}`
