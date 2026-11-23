@@ -1,9 +1,10 @@
+import { EventEmitter } from "node:events"
 import { Readable } from "node:stream"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("node:dns", async (importOriginal) => ({ ...(await importOriginal<typeof import("node:dns")>()), lookup: vi.fn() }))
 const dns = await import("node:dns")
-const { fetchPublic, isPrivateAddress, isPublicHttpsUrl, readLimited, safeLookup } = await import("@/lib/research/safe-fetch")
+const { fetchPublic, isPrivateAddress, isPublicHttpsUrl, pinnedFetch, readLimited, safeLookup } = await import("@/lib/research/safe-fetch")
 
 describe("isPrivateAddress", () => {
   it.each(["127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0",
@@ -99,5 +100,88 @@ describe("fetchPublic", () => {
     const requestOnce = vi.fn().mockResolvedValueOnce(redirect("/b")).mockResolvedValueOnce(ok())
     await fetchPublic("https://x.com/a", requestOnce)
     expect(requestOnce.mock.calls[0][1]).toBe(requestOnce.mock.calls[1][1])
+  })
+})
+
+describe("pinnedFetch", () => {
+  function fakeRequest(status: number, headers: Record<string, string>, chunks: Buffer[]) {
+    const calls: { url: unknown; options: any; written: string[] }[] = []
+    const impl = vi.fn((url: unknown, options: any, onResponse: (res: any) => void) => {
+      const call = { url, options, written: [] as string[] }
+      calls.push(call)
+      return Object.assign(new EventEmitter(), {
+        write: (data: string) => {
+          call.written.push(data)
+          return true
+        },
+        end: (data?: string) => {
+          if (data) call.written.push(data)
+          onResponse(Object.assign(Readable.from(chunks), { statusCode: status, headers }))
+        },
+      })
+    })
+    return { impl: impl as never, calls }
+  }
+
+  it.each(["http://example.com", "https://127.0.0.1/"])("refuses %s without making a request", async (url) => {
+    const fake = fakeRequest(200, {}, [])
+    await expect(pinnedFetch(url, {}, fake.impl)).rejects.toThrow("This address can't be reached.")
+    expect(fake.calls).toHaveLength(0)
+  })
+
+  it("connects through safeLookup with the method, headers and body", async () => {
+    const fake = fakeRequest(200, { "content-type": "application/json" }, [Buffer.from("{}")])
+    const signal = new AbortController().signal
+    await pinnedFetch("https://api.example.com/token", { method: "POST", headers: { Authorization: "Bearer k" }, body: "a=b", signal }, fake.impl)
+    expect(fake.calls).toHaveLength(1)
+    const { options, written } = fake.calls[0]
+    expect(options.lookup).toBe(safeLookup)
+    expect(options.method).toBe("POST")
+    expect(options.agent).toBe(false)
+    expect(options.signal).toBe(signal)
+    expect(options.headers).toEqual({ Authorization: "Bearer k", "accept-encoding": "identity" })
+    expect(written.join("")).toBe("a=b")
+  })
+
+  it("defaults to GET with a timeout signal", async () => {
+    const fake = fakeRequest(200, {}, [])
+    await pinnedFetch("https://api.example.com/", undefined, fake.impl)
+    expect(fake.calls[0].options.method).toBe("GET")
+    expect(fake.calls[0].options.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it("returns a redirect as is, without a second request", async () => {
+    const fake = fakeRequest(302, { location: "https://elsewhere.example.com/" }, [])
+    const response = await pinnedFetch("https://api.example.com/", {}, fake.impl)
+    expect(response.status).toBe(302)
+    expect(fake.calls).toHaveLength(1)
+  })
+
+  it("keeps at most 1,000,000 bytes of the body", async () => {
+    const fake = fakeRequest(200, {}, [Buffer.alloc(750_000, "a"), Buffer.alloc(750_000, "a")])
+    const response = await pinnedFetch("https://api.example.com/", {}, fake.impl)
+    expect((await response.text()).length).toBe(1_000_000)
+  })
+
+  it("carries over the status and content-type", async () => {
+    const fake = fakeRequest(401, { "content-type": "application/json" }, [Buffer.from('{"e":1}')])
+    const response = await pinnedFetch("https://api.example.com/", {}, fake.impl)
+    expect(response.status).toBe(401)
+    expect(response.headers.get("content-type")).toBe("application/json")
+    expect(await response.json()).toEqual({ e: 1 })
+  })
+
+  it("rejects without the query, headers or body in the error", async () => {
+    const impl = vi.fn(() => {
+      const request = Object.assign(new EventEmitter(), {
+        write: () => true,
+        end: () => {
+          request.emit("error", new Error("ECONNRESET"))
+        },
+      })
+      return request
+    })
+    const error = await pinnedFetch("https://api.example.com/?key=SECRET", { headers: { a: "SECRET" }, body: "SECRET" }, impl as never).catch((e) => e)
+    expect(String(error.message)).not.toContain("SECRET")
   })
 })

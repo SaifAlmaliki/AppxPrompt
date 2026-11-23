@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
+import { pinnedFetch } from "@/lib/research/safe-fetch"
 import {
+  DEFAULT_CHECK_FETCH,
   buildCheckRequest,
   exchangeCode as exchangeCodeWith,
   refreshAccessToken as refreshAccessTokenWith,
@@ -293,5 +295,11 @@ describe("refreshAccessToken", () => {
     const definition = { ...google, oauth: { ...google.oauth!, tokenUrl: "http://oauth2.googleapis.com/token" } }
     expect(await refreshAccessToken({ ...input, definition }, f.impl)).toBe("unreachable")
     expect(f.calls).toHaveLength(0)
+  })
+})
+
+describe("default sender", () => {
+  it("connects through the pinned public-address connector", () => {
+    expect(DEFAULT_CHECK_FETCH).toBe(pinnedFetch)
   })
 })

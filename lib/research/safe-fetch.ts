@@ -126,6 +126,71 @@ export const httpsRequestOnce: RequestOnce = (url, signal) =>
     request.end()
   })
 
+const PINNED_MAX_BODY_BYTES = 1_000_000
+const NULL_BODY_STATUSES = new Set([101, 204, 205, 304])
+const unreachableMessage = "This address can't be reached."
+
+export type PinnedInit = {
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+  signal?: AbortSignal
+  /** Accepted for fetch compatibility; redirects are never followed. */
+  redirect?: "manual"
+}
+
+/**
+ * One https request whose connection is made only to public addresses (checked at connect time by safeLookup),
+ * so the address that was checked is the address that is used. No redirects, no decompression, 1 MB body cap.
+ */
+export function pinnedFetch(
+  url: string,
+  init: PinnedInit = {},
+  requestImpl: typeof https.request = https.request,
+): Promise<Response> {
+  if (!isPublicHttpsUrl(url)) return Promise.reject(new Error(unreachableMessage))
+  return new Promise<Response>((resolve, reject) => {
+    // Only the error's name and code survive: its message can carry the URL.
+    const fail = (error: unknown) => {
+      const { code, name } = (error ?? {}) as { code?: string; name?: string }
+      reject(Object.assign(new Error(unreachableMessage), { ...(code ? { code } : {}), ...(name ? { name } : {}) }))
+    }
+    try {
+      const request = requestImpl(
+        url,
+        {
+          method: init.method ?? "GET",
+          headers: { ...init.headers, "accept-encoding": "identity" },
+          lookup: safeLookup,
+          agent: false,
+          signal: init.signal ?? AbortSignal.timeout(PAGE_TIMEOUT_MS),
+        },
+        (response) => {
+          const status = response.statusCode ?? 0
+          const headers = new Headers()
+          for (const [name, value] of Object.entries(response.headers)) {
+            if (typeof value === "string") headers.set(name, value)
+            else if (Array.isArray(value)) headers.set(name, value.join(", "))
+          }
+          readLimited(response, PINNED_MAX_BODY_BYTES)
+            .then(({ body }) => {
+              response.destroy()
+              resolve(new Response(NULL_BODY_STATUSES.has(status) ? null : new Uint8Array(body), { status, headers }))
+            })
+            .catch((error) => {
+              response.destroy()
+              fail(error)
+            })
+        },
+      )
+      request.on("error", fail)
+      request.end(init.body)
+    } catch (error) {
+      fail(error)
+    }
+  })
+}
+
 const errors = {
   onlyPublic: "Not read: only public https pages can be read.",
   badRedirect: "Not read: the page redirected to an address that isn't public https.",

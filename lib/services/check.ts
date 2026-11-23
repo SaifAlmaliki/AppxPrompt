@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs"
 
+import { pinnedFetch, type PinnedInit } from "@/lib/research/safe-fetch"
 import { resolvesToPublicAddress } from "@/lib/services/public-host"
 import type { ServiceCheck, ServiceDefinition } from "@/lib/services/protocol"
 
@@ -8,11 +9,15 @@ const TIMEOUT_MS = 10_000
 export type CheckOutcome = "ok" | "rejected" | "unreachable"
 
 type HostResolver = (host: string) => Promise<boolean>
+type CheckFetch = (url: string, init: PinnedInit) => Promise<Response>
+
+// Connects only to public addresses, checked at connect time, closing the gap a pre-check alone leaves.
+export const DEFAULT_CHECK_FETCH: CheckFetch = pinnedFetch
 
 export function buildCheckRequest(
   check: ServiceCheck,
   values: Record<string, string>,
-): { url: string; init: RequestInit } {
+): { url: string; init: PinnedInit } {
   const value = values[check.credential] ?? ""
   const headers: Record<string, string> = {}
   let url = check.url
@@ -39,7 +44,7 @@ function allowedHost(definition: ServiceDefinition, url: string): string | null 
 }
 
 // The request carries the owner's credential, so it stays out of traces.
-function send(url: string, init: RequestInit, fetchImpl: typeof fetch): Promise<Response> {
+function send(url: string, init: PinnedInit, fetchImpl: CheckFetch): Promise<Response> {
   return Sentry.suppressTracing(() =>
     fetchImpl(url, { ...init, redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS) }),
   )
@@ -48,7 +53,7 @@ function send(url: string, init: RequestInit, fetchImpl: typeof fetch): Promise<
 export async function runCheck(
   definition: ServiceDefinition,
   values: Record<string, string>,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: CheckFetch = DEFAULT_CHECK_FETCH,
   resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<CheckOutcome> {
   if (!definition.check) return "unreachable"
@@ -76,7 +81,7 @@ async function tokenRequest(definition: ServiceDefinition, params: Record<string
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
       body: new URLSearchParams(params).toString(),
-    } satisfies RequestInit,
+    } satisfies PinnedInit,
   }
 }
 
@@ -98,7 +103,7 @@ export async function exchangeCode(
     verifier: string
     redirectUri: string
   },
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: CheckFetch = DEFAULT_CHECK_FETCH,
   resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<{ refreshToken: string } | { error: "no_refresh_token" | "error" }> {
   const request = await tokenRequest(input.definition, {
@@ -125,7 +130,7 @@ export async function exchangeCode(
 
 export async function refreshAccessToken(
   input: { definition: ServiceDefinition; clientId: string; clientSecret: string; refreshToken: string },
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: CheckFetch = DEFAULT_CHECK_FETCH,
   resolver: HostResolver = resolvesToPublicAddress,
 ): Promise<CheckOutcome> {
   const request = await tokenRequest(input.definition, {
