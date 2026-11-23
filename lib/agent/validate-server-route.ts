@@ -11,29 +11,51 @@ export type ServerRouteContext = {
 
 const HANDLER = /\bexport\s+(?:async\s+function\s+(?:GET|POST|PUT|PATCH|DELETE)\s*\(|const\s+(?:GET|POST|PUT|PATCH|DELETE)\s*[=:])/
 
-const IMPORT_SOURCE = /\bfrom\s+["']([^"']+)["']|\bimport\s+["']([^"']+)["']/g
-
-const ENV_NAME = /\bprocess\.env\.([A-Za-z_$][\w$]*)/g
-
-const ENV_LITERAL_KEY = /\bprocess\.env\[\s*(["'])([^"'\\]*)\1\s*\]/g
-
-const ENV_OTHER_USE = /\bprocess\.env(?!\.[A-Za-z_$]|\[\s*(["'])[^"'\\]*\1\s*\])/
+const IMPORT_SOURCE = /\bfrom\s*["']([^"']+)["']|\bimport\s*["']([^"']+)["']/g
 
 const URL_LITERAL = /https:\/\/[^\s"'`]+/g
 
+const PROCESS = /\bprocess\b/g
+
+// `process.env.NAME`, with whitespace, newlines and `?.` allowed between the tokens.
+const ENV_DOT = /^\s*(?:\?\.|\.)\s*env\s*(?:\?\.|\.)\s*([A-Za-z_$][\w$]*)/
+
+// `process.env["NAME"]`
+const ENV_BRACKET = /^\s*(?:\?\.|\.)\s*env\s*(?:\?\.)?\s*\[\s*(["'])([^"'\\\n]*)\1\s*\]/
+
+// How `process` can be used other than by name: `process.x`, `process["x"]`.
+const PROCESS_MEMBER = /^\s*(?:(?:\?\.|\.)\s*[A-Za-z_$]|\??\.?\s*\[)/
+
+// What comes before `process` when it's passed around or stored: `= process`, `(process`, `{ process`.
+const PROCESS_VALUE = /(?:[=(\[{,]|\.\.\.|\|\||&&|\?\?|\breturn)\s*$/
+
+const PROCESS_KEY = /\[\s*["'`]process["'`]\s*\]/
+
+const ENV_MESSAGE = "Read each credential as process.env.NAME."
+
 const FORBIDDEN: [string, RegExp][] = [
-  ["eval(", /\beval\s*\(/],
+  ["eval", /\beval\b|\[\s*["'`]eval["'`]\s*\]/],
   ["new Function", /\bnew\s+Function\b/],
-  ["Function(", /(?<!\bnew\s+)\bFunction\s*\(/],
+  ["Function", /(?<!\bnew\s+)\bFunction\b|\[\s*["'`]Function["'`]\s*\]/],
   ["require(", /\brequire\s*\(/],
   ["import(", /\bimport\s*\(/],
-  ["process.binding", /\bprocess\.binding\b/],
-  ["process.dlopen", /\bprocess\.dlopen\b/],
-  ["globalThis.fetch =", /\bglobalThis\.fetch\s*=(?!=)/],
-  [".constructor.constructor", /\.constructor\.constructor\b/],
+  ["process.binding", /\bprocess\s*\??\.\s*binding\b/],
+  ["process.dlopen", /\bprocess\s*\??\.\s*dlopen\b/],
+  ["globalThis.fetch =", /\bglobalThis\s*\.\s*fetch\s*=(?!=)/],
+  [".constructor.constructor", /\.\s*constructor\s*\.\s*constructor\b/],
+  [".constructor(", /\.\s*constructor\s*\(/],
 ]
 
-/** The code with comments blanked out, so that a mention in a comment isn't taken for a use. */
+const REGEX_AFTER_WORD = /(?:^|[^\w$.])(?:return|typeof|case|in|of|delete|void|throw|new|else|do|yield|await)$/
+
+/** Whether a `/` here starts a regular expression, going by what comes right before it. */
+function startsRegex(before: string) {
+  const trimmed = before.trimEnd()
+  if (trimmed === "") return true
+  return /[(,=:\[!&|?{};+\-*%<>~^]$/.test(trimmed) || REGEX_AFTER_WORD.test(trimmed)
+}
+
+/** The code with comments blanked out, leaving strings and regular expressions as they are. */
 function withoutComments(code: string) {
   let out = ""
   let i = 0
@@ -60,6 +82,27 @@ function withoutComments(code: string) {
       const end = code.indexOf("*/", i + 2)
       i = end === -1 ? code.length : end + 2
       out += " "
+    } else if (char === "/" && startsRegex(out)) {
+      let j = i + 1
+      let inClass = false
+      let closed = false
+      while (j < code.length && code[j] !== "\n") {
+        if (code[j] === "\\") j++
+        else if (code[j] === "[") inClass = true
+        else if (code[j] === "]") inClass = false
+        else if (code[j] === "/" && !inClass) {
+          closed = true
+          break
+        }
+        j++
+      }
+      if (closed) {
+        out += code.slice(i, j + 1)
+        i = j + 1
+      } else {
+        out += char
+        i++
+      }
     } else {
       out += char
       i++
@@ -98,19 +141,28 @@ function importProblems(code: string, ctx: ServerRouteContext) {
   return [`It imports ${unique(unknown).join(", ")}, which isn't available. Server code may only import: ${allowed.join(", ")}.`]
 }
 
+/** `process` may only appear as `process.env.NAME` or `process.env["NAME"]`. */
 function envProblems(code: string, credentialNames: string[]) {
+  const names: string[] = []
+  let misused = PROCESS_KEY.test(code)
+  for (const match of code.matchAll(PROCESS)) {
+    const after = code.slice(match.index + match[0].length)
+    const name = ENV_DOT.exec(after)?.[1] ?? ENV_BRACKET.exec(after)?.[2]
+    if (name !== undefined) names.push(name)
+    else if (PROCESS_MEMBER.test(after) || PROCESS_VALUE.test(code.slice(0, match.index))) misused = true
+  }
+
   const problems: string[] = []
-  const names = unique([...code.matchAll(ENV_NAME)].map((m) => m[1]).concat([...code.matchAll(ENV_LITERAL_KEY)].map((m) => m[2])))
   const ownNames = [...credentialNames, "NODE_ENV"]
-  for (const name of names.filter((name) => !ownNames.includes(name))) {
+  for (const name of unique(names).filter((name) => !ownNames.includes(name))) {
     problems.push(
       name.startsWith("APPXPROMPT_")
         ? `Don't read APPXPROMPT_ values. Use data from "@/server/data" instead.`
         : `It reads process.env.${name}, which isn't one of its credentials: ${credentialNames.join(", ") || "none"}.`
     )
   }
-  if (ENV_OTHER_USE.test(code)) problems.push("Read each credential as process.env.NAME.")
-  return unique(problems)
+  if (misused) problems.push(ENV_MESSAGE)
+  return problems
 }
 
 function urlProblems(code: string, allowedHosts: string[]) {
@@ -130,7 +182,11 @@ function urlProblems(code: string, allowedHosts: string[]) {
   return problems
 }
 
-/** Everything in a generated server route or helper that breaks the rules, as instructions for rewriting it. Empty means valid. */
+/**
+ * Everything in a generated server route or helper that breaks the rules, as instructions for rewriting it. Empty means valid.
+ * Imports, `process` and forbidden names are checked in the code as written, comments included, so a
+ * regular expression can never hide them. Only URLs skip comments.
+ */
 export function validateServerRoute(code: string, ctx: ServerRouteContext): string[] {
   const isRoute = API_ROUTE_FILE.test(ctx.path)
   const isHelper = SERVER_HELPER_FILE.test(ctx.path)
@@ -156,15 +212,15 @@ export function validateServerRoute(code: string, ctx: ServerRouteContext): stri
     problems.push("Helpers can't handle requests. Move the handler into an app/api route.")
   }
 
-  problems.push(...importProblems(source, ctx))
-  problems.push(...envProblems(source, ctx.credentialNames))
+  problems.push(...importProblems(code, ctx))
+  problems.push(...envProblems(code, ctx.credentialNames))
   problems.push(...urlProblems(source, ctx.allowedHosts))
 
   if (findKeys(code).length > 0) {
     problems.push("It contains what looks like a credential. Read it from process.env instead.")
   }
 
-  const forbidden = FORBIDDEN.filter(([, pattern]) => pattern.test(source)).map(([token]) => token)
+  const forbidden = FORBIDDEN.filter(([token, pattern]) => pattern.test(code) && !(token === "Function" && /\bnew\s+Function\b/.test(code))).map(([token]) => token)
   for (const token of forbidden) problems.push(`It uses ${token}, which isn't allowed in server code.`)
 
   return problems

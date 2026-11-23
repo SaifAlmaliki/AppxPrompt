@@ -62,8 +62,74 @@ describe("validateServerRoute", () => {
     expect(validateServerRoute(route('await fetch("https://oauth2.googleapis.com/token")'), ctx)).toEqual([])
   })
 
-  it("ignores hosts and imports mentioned in comments", () => {
-    const code = route('// see https://evil.example.com/x and process.env.OTHER\n/* import x from "openai" */')
+  it("ignores hosts mentioned in comments", () => {
+    const code = route("// see https://evil.example.com/x\n/* and https://other.example.com */")
+    expect(validateServerRoute(code, ctx)).toEqual([])
+  })
+
+  it("still sees a host after a regular expression containing //", () => {
+    const code = route('const r = /\\//\nawait fetch("https://evil.example.com/x")')
+    expect(validateServerRoute(code, ctx).join()).toContain("evil.example.com")
+  })
+
+  it("rejects imports written without spaces", () => {
+    for (const imports of ['import x from"openai"', 'import{x}from"openai"', 'import"x"']) {
+      expect(validateServerRoute(route("", imports), ctx).join(), imports).toContain("which isn't available")
+    }
+  })
+
+  it("rejects other ways of reaching process.env", () => {
+    const shapes = [
+      'const k = process["env"].SECRET',
+      "const k = process?.env.SECRET",
+      "const p = process\nconst k = p.env.SECRET",
+      "const k = process\n.env.SECRET",
+      "const k = globalThis.process.env.SECRET",
+      "const p = { process }\nconst k = p.process.env.SECRET",
+      'const k = globalThis["process"].env.SECRET',
+    ]
+    for (const shape of shapes) {
+      expect(validateServerRoute(route(shape), ctx).length, shape).toBeGreaterThan(0)
+    }
+    expect(validateServerRoute(route("const k = process?.env.GOOGLE_CALENDAR_CLIENT_ID\nconst n = process\n.env.NODE_ENV"), ctx)).toEqual([])
+  })
+
+  it("is not fooled by a regular expression before dynamic code", () => {
+    expect(validateServerRoute(route('const r = /\\//; eval("1")'), ctx).join()).toContain("eval")
+    expect(validateServerRoute(route('const r = /\\//; const p = process; p.env.X'), ctx).length).toBeGreaterThan(0)
+    expect(validateServerRoute(route('const r = /\\//; const m = require("fs")'), ctx).length).toBeGreaterThan(0)
+  })
+
+  it("rejects indirect ways of running code", () => {
+    const shapes = [
+      '(0, eval)("1")',
+      'globalThis["eval"]("1")',
+      "const e = globalThis.eval",
+      'const F = globalThis["Function"]',
+      "const F = Function",
+      '(async () => {}).constructor("return process")()',
+    ]
+    for (const shape of shapes) {
+      expect(validateServerRoute(route(shape), ctx).length, shape).toBeGreaterThan(0)
+    }
+  })
+
+  it("accepts ordinary server code", () => {
+    const code = `
+import { accessToken } from "@/server/google"
+import { ok } from "../../../server/respond"
+import { rows } from "@/server/data"
+
+export async function POST(request: Request): Promise<Response> {
+  const body = (await request.json()) as { day: string }
+  const id = process.env.GOOGLE_CALENDAR_CLIENT_ID
+  const mode = process.env.NODE_ENV
+  const clean = body.day.replace(/[^0-9-]/g, "").split("/")
+  const res = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body: id + mode + clean })
+  if (!res.ok) return new Response("Could not process the request", { status: 502 })
+  return ok(await res.json())
+}
+`
     expect(validateServerRoute(code, ctx)).toEqual([])
   })
 
@@ -75,9 +141,9 @@ describe("validateServerRoute", () => {
   })
 
   it("rejects dynamic code", () => {
-    expect(validateServerRoute(route('eval("1")'), ctx).join()).toContain("eval(")
+    expect(validateServerRoute(route('eval("1")'), ctx).join()).toContain("eval")
     expect(validateServerRoute(route('new Function("x")'), ctx).join()).toContain("new Function")
-    expect(validateServerRoute(route('Function("x")()'), ctx).join()).toContain("Function(")
+    expect(validateServerRoute(route('Function("x")()'), ctx).join()).toContain("Function")
     expect(validateServerRoute(route('({}).constructor.constructor("return process")()'), ctx).join()).toContain(".constructor.constructor")
     expect(validateServerRoute(route('const m = require("fs")'), ctx).join()).toContain("require(")
     expect(validateServerRoute(route('const m = await import("x")'), ctx).join()).toContain("import(")
