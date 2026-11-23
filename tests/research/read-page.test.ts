@@ -70,11 +70,32 @@ describe("htmlToText", () => {
 })
 
 describe("htmlToText on hostile input", () => {
-  it("stays fast on unclosed or repeated openings", () => {
-    const start = Date.now()
-    for (const piece of ["<a ", "<a \"", "<main ", "<title>", "<nav>", "<pre>", "<!--"]) htmlToText(piece.repeat(100_000), "https://x.com")
-    expect(Date.now() - start).toBeLessThan(5000)
-  })
+  const hostile: Record<string, string> = {
+    "unclosed anchors": "<a ".repeat(100_000),
+    "unclosed quotes": '<a "'.repeat(100_000),
+    "unclosed main": "<main ".repeat(100_000),
+    "unclosed title": "<title>".repeat(100_000),
+    "unclosed nav": "<nav>".repeat(100_000),
+    "unclosed pre": "<pre>".repeat(100_000),
+    "unclosed comments": "<!--".repeat(100_000),
+    "declarations": "<!".repeat(40_000),
+    "instructions": "<?".repeat(40_000),
+    "one long tag name": "<" + "a".repeat(40_000),
+    "one long attribute list": "<a " + "x=y ".repeat(40_000),
+    "blank space then text in pre": "<pre>" + " ".repeat(100_000) + "x</pre>",
+    "blank space then text": " ".repeat(100_000) + "x",
+    "unclosed hrefs": "<a href=".repeat(50_000),
+    "unclosed entities": "&#".repeat(100_000) + "&#" + "1".repeat(100_000),
+    "unclosed br": "<br" + " ".repeat(100_000),
+    "unclosed pre end": "</pre ".repeat(50_000),
+  }
+  for (const [name, html] of Object.entries(hostile)) {
+    it(`stays fast on ${name}`, () => {
+      const start = performance.now()
+      htmlToText(html, "https://x.com")
+      expect(performance.now() - start).toBeLessThan(200)
+    })
+  }
 })
 
 describe("pageExcerpt", () => {

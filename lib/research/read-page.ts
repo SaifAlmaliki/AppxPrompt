@@ -11,7 +11,7 @@ const AFTER_MATCH = 2000
 const MAX_FIND_ECHO = 200
 const WINDOW_GAP = "\n\n…\n\n"
 
-const TAG = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)(?:"[^"<]*"|'[^'<]*'|[^'"<>])*>/g
+const TAG = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)(?![a-zA-Z0-9:-])(?:"[^"<]*"|'[^'<]*'|[^'"<>])*>/g
 const DOC_LINK = /(llms(-full)?\.txt|openapi|swagger|api-docs|\.ya?ml)(?:$|[?#/.])/i
 const RAW_TEXT = new Set(["script", "style"])
 const HARD_REMOVED = new Set(["head", "script", "style", "noscript", "template", "svg", "iframe", "canvas"])
@@ -88,7 +88,7 @@ function pickRegion(html: string): string {
 
 function preText(inner: string): string {
   const text = decodeEntities(stripTags(inner.replace(/<br\s*\/?>/gi, "\n")))
-  return text.replace(/^\r?\n/, "").replace(/\s+$/, "")
+  return text.replace(/^\r?\n/, "").trimEnd()
 }
 
 function tagText(name: string, closing: boolean): string {
@@ -178,7 +178,7 @@ function tagContent(html: string, tag: string): string | null {
 }
 
 export function htmlToText(html: string, baseUrl: string): { title: string; text: string; links: string[] } {
-  const source = html.replace(/\u0000/g, "").replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(/<![^>]*>|<\?[^>]*>/g, "")
+  const source = html.replace(/\u0000/g, "").replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(/<[!?][^<>]*>/g, "")
   const titleText = tagContent(source, "title")
   const cleaned = dropElements(source, HARD_REMOVED)
   const region = pickRegion(cleaned)
