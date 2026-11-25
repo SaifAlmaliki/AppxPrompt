@@ -28,6 +28,7 @@ const UNAVAILABLE_MESSAGES = {
 
 /** What the Activity panel is told about one call. It never holds a body, a header or a query string. */
 export type ServerCall = {
+  projectId: string
   path: string
   method: string
   status: number
@@ -67,7 +68,7 @@ export function createServerProxy({ onCall = () => {} }: ServerProxyOptions = {}
 
     const finish = (response: Response, errorCode: string | null, service: string | null = null) => {
       try {
-        const result = onCall({ path: callPath, method, status: response.status, errorCode, service, durationMs: Date.now() - startedAt })
+        const result = onCall({ projectId, path: callPath, method, status: response.status, errorCode, service, durationMs: Date.now() - startedAt })
         if (result) result.catch(() => {})
       } catch {
         // Recording a call must never change its answer.

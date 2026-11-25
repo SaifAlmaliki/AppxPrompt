@@ -26,6 +26,7 @@ import type { Locale } from "@/i18n/config";
 import { BACKEND_STATES, type BackendServiceStatus } from "@/lib/backend-protocol";
 import { CREDIT_REASONS, FREE_SIGNUP_CREDITS, PLAN_IDS } from "@/lib/plans";
 import { PROJECT_PLATFORMS, PROJECT_STATUSES } from "@/lib/projects";
+import type { ServerCallErrorCode } from "@/lib/server-routes/activity-protocol";
 import type { ServiceDefinition } from "@/lib/services/protocol";
 import { APP_BUILD_FORMATS, APP_BUILD_PLATFORMS, APP_BUILD_STATUSES, WEB_PUBLISH_STATUSES } from "@/lib/publish-protocol";
 
@@ -196,6 +197,30 @@ export const serverRoutes = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [primaryKey({ columns: [table.projectId, table.path] })]
+);
+
+/**
+ * The owner's recent server function calls, for the Activity panel. A row holds nothing
+ * from the call itself: no body, header, query string, address or token. The newest 200
+ * per project are kept.
+ */
+export const serverRouteCalls = pgTable(
+  "server_route_calls",
+  {
+    id: serial("id").primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /** The API URL's path, never with a query string. */
+    path: text("path").notNull(),
+    method: text("method").notNull(),
+    status: integer("status").notNull(),
+    errorCode: text("error_code").$type<ServerCallErrorCode>(),
+    service: text("service"),
+    durationMs: integer("duration_ms").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("server_route_calls_project_id_idx").on(table.projectId, table.id)]
 );
 
 /** The sandbox a project's server routes run in while the owner tests the app, and how long it has run today. */
@@ -503,6 +528,7 @@ export type ProjectAsset = typeof projectAssets.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Screen = typeof screens.$inferSelect;
 export type ServerRoute = typeof serverRoutes.$inferSelect;
+export type ServerRouteCall = typeof serverRouteCalls.$inferSelect;
 export type ProjectSandbox = typeof projectSandboxes.$inferSelect;
 export type ProjectBackend = typeof projectBackends.$inferSelect;
 export type ProjectService = typeof projectServices.$inferSelect;

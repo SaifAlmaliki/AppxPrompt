@@ -167,6 +167,7 @@ describe("server proxy onCall", () => {
 
     expect(onCall).toHaveBeenCalledTimes(1)
     expect(onCall).toHaveBeenCalledWith({
+      projectId: PROJECT,
       path: "/api/pay",
       method: "POST",
       status: 502,

@@ -872,7 +872,8 @@
   "preview": {
     "tabs": {
       "preview": "App Preview",
-      "code": "Code"
+      "code": "Code",
+      "activity": "Activity"
     },
     "resetData": "Reset app data",
     "reload": "Reload preview",
@@ -901,6 +902,28 @@
       "filesLabel": "Project files",
       "files": "Files",
       "beingWritten": "Being written"
+    },
+    "activity": {
+      "description": "The latest calls your app made to its server functions. Nothing but the address and the result is kept.",
+      "refresh": "Refresh",
+      "loadFailed": "We couldn't load the activity. Please try again.",
+      "emptyTitle": "No calls yet",
+      "emptyBody": "Open the App Preview and use a part of your app that needs its server, such as signing in or saving something. Each call shows up here within a few seconds.",
+      "time": "Time",
+      "function": "Function",
+      "result": "Result",
+      "duration": "Duration",
+      "milliseconds": "{count} ms",
+      "service": "Service: {service}",
+      "results": {
+        "ok": "OK",
+        "failed": "Failed (error {status})",
+        "not_connected": "A service isn't connected",
+        "sign_in": "Sign-in needed",
+        "bad_request": "The request was not valid",
+        "unavailable": "The test server isn't available",
+        "preview": "Only works in your preview"
+      }
     }
   },
   "expoQr": {

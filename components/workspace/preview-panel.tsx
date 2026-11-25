@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import {
   AlertCircleIcon,
   ChevronRightIcon,
+  ActivityIcon,
   Code2Icon,
   ExternalLinkIcon,
   FileCodeIcon,
@@ -29,6 +30,7 @@ import { isWebPublishActive } from "@/lib/publish-protocol"
 import { activeTheme } from "@/lib/themes"
 import { buildFileTree, languageForPath, type FileNode } from "@/lib/workspace-data"
 import { cn } from "@/lib/utils"
+import { ActivityPanel } from "@/components/workspace/activity-panel"
 import { AppFrame } from "@/components/workspace/app-frame"
 import { CopyLinkButton, ExpoQrPopover } from "@/components/workspace/expo-qr-popover"
 import { Button } from "@/components/ui/button"
@@ -58,6 +60,7 @@ export function PreviewPanel({
   edits,
   webPublish,
   onOpenPublish,
+  showActivity,
 }: {
   projectId: string
   plan: AppPlan | null
@@ -80,6 +83,8 @@ export function PreviewPanel({
   edits: ElementEdits
   webPublish: WebPublishState
   onOpenPublish: () => void
+  /** The owner's Activity tab. Anyone else only looks at the app. */
+  showActivity: boolean
 }) {
   const t = useTranslations("preview")
   const [reloadSignal, setReloadSignal] = React.useState(0)
@@ -97,6 +102,12 @@ export function PreviewPanel({
             <Code2Icon />
             {t("tabs.code")}
           </TabsTrigger>
+          {showActivity && (
+            <TabsTrigger value="activity" className="rounded-full px-3 data-active:text-violet-700">
+              <ActivityIcon />
+              {t("tabs.activity")}
+            </TabsTrigger>
+          )}
         </TabsList>
         {hasApp && (
           <div className="flex items-center gap-1">
@@ -129,6 +140,11 @@ export function PreviewPanel({
       <TabsContent value="code" className="min-h-0">
         <CodeView screens={screens} appFiles={appFiles} serverFiles={serverFiles} />
       </TabsContent>
+      {showActivity && (
+        <TabsContent value="activity" className="min-h-0">
+          <ActivityPanel projectId={projectId} />
+        </TabsContent>
+      )}
     </Tabs>
   )
 }

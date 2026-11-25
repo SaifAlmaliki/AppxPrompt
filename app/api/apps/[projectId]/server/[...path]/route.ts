@@ -1,8 +1,11 @@
+import { after } from "next/server"
+
 import { createServerProxy, sandboxPreflight } from "@/lib/sandbox/proxy"
+import { recordServerCall } from "@/lib/server-routes/activity"
 
 export const maxDuration = 60
 
-const proxy = createServerProxy()
+const proxy = createServerProxy({ onCall: (call) => after(() => recordServerCall(call)) })
 
 export const GET = proxy
 export const POST = proxy

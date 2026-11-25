@@ -1,0 +1,116 @@
+"use client"
+
+import * as React from "react"
+import { useFormatter, useTranslations } from "next-intl"
+import { ActivityIcon, RefreshCwIcon } from "lucide-react"
+
+import { serverCallResult, type ServerCallEntry } from "@/lib/server-routes/activity-protocol"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+const REFRESH_MS = 5000
+
+/** The owner's view of their app's recent server function calls. Mounted only while its tab is open. */
+export function ActivityPanel({ projectId }: { projectId: string }) {
+  const t = useTranslations("preview.activity")
+  const format = useFormatter()
+  const [calls, setCalls] = React.useState<ServerCallEntry[] | null>(null)
+  const [failed, setFailed] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  const refresh = React.useCallback(async () => {
+    setLoading(true)
+    const response = await fetch(`/api/projects/${projectId}/activity`, { cache: "no-store" }).catch(() => null)
+    const body = await response?.json().catch(() => null)
+    if (response?.ok && Array.isArray(body?.calls)) {
+      setCalls(body.calls)
+      setFailed(false)
+    } else {
+      setFailed(true)
+    }
+    setLoading(false)
+  }, [projectId])
+
+  React.useEffect(() => {
+    void refresh()
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh()
+    }, REFRESH_MS)
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [refresh])
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
+        <p className="text-xs text-muted-foreground">{t("description")}</p>
+        <Button variant="ghost" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => void refresh()} disabled={loading}>
+          <RefreshCwIcon className={cn(loading && "animate-spin")} />
+          {t("refresh")}
+        </Button>
+      </div>
+
+      {failed && (
+        <p role="alert" className="shrink-0 px-3 py-2 text-xs text-destructive">
+          {t("loadFailed")}
+        </p>
+      )}
+
+      {calls && calls.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-100 to-fuchsia-100 text-violet-600">
+            <ActivityIcon className="size-5" />
+          </span>
+          <p className="text-sm font-medium">{t("emptyTitle")}</p>
+          <p className="max-w-xs text-xs text-muted-foreground">{t("emptyBody")}</p>
+        </div>
+      ) : (
+        calls && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-start">{t("time")}</TableHead>
+                  <TableHead className="text-start">{t("function")}</TableHead>
+                  <TableHead className="text-start">{t("result")}</TableHead>
+                  <TableHead className="text-end">{t("duration")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {calls.map((call) => {
+                  const result = serverCallResult(call)
+                  return (
+                    <TableRow key={call.id}>
+                      <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                        {format.dateTime(new Date(call.createdAt), { timeStyle: "medium" })}
+                      </TableCell>
+                      <TableCell dir="ltr" className="text-start font-mono text-xs break-all">
+                        {call.method} {call.path}
+                      </TableCell>
+                      <TableCell className={cn("text-xs", result === "ok" ? "text-emerald-700" : "text-destructive")}>
+                        {t(`results.${result}`, { status: call.status })}
+                        {call.service && (
+                          <span className="block text-muted-foreground">{t("service", { service: call.service })}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-end text-xs whitespace-nowrap text-muted-foreground">
+                        {t("milliseconds", { count: call.durationMs })}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )
+      )}
+    </div>
+  )
+}

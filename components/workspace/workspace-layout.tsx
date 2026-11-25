@@ -333,6 +333,7 @@ export function WorkspaceLayout({
       edits={editor.edits}
       webPublish={webPublish}
       onOpenPublish={() => setPublishDialogOpen(true)}
+      showActivity={!readOnly}
     />
   )
 
