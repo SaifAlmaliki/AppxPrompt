@@ -476,6 +476,13 @@ export async function applyAppChanges(projectId: string, { plan, removed, remove
       .returning({ plan: projects.plan })
     return project.plan!
   })
-  for (const slug of removedServices) await removeService(projectId, slug)
+  // The changes are saved, so a service that can't be removed must not fail them: it stays registered.
+  for (const slug of removedServices) {
+    try {
+      await removeService(projectId, slug)
+    } catch (cause) {
+      console.error(`Removing a service failed (${cause instanceof Error ? cause.name : "Error"}).`)
+    }
+  }
   return saved
 }

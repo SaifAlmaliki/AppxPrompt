@@ -168,4 +168,23 @@ describe("removing a service", () => {
     expect(updates).toContainEqual({ status: "pending" })
     expect(removeServerRoutes).toHaveBeenCalledWith(expect.anything(), "p1", [])
   })
+
+  it("resolves when a service can't be removed, and still removes the others", async () => {
+    const result = planAppChanges(built, rows, request({ removeServices: ["google-calendar", "stripe"] }), 10, {
+      ...options,
+      services: ["google-calendar", "stripe"],
+    })
+    if (typeof result === "string") throw new Error(result)
+    vi.mocked(removeService).mockClear()
+    vi.mocked(removeService).mockRejectedValueOnce(new Error("connection string postgres://user:secret@host"))
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    await expect(applyAppChanges("p1", result)).resolves.toBeDefined()
+
+    expect(removeService).toHaveBeenCalledTimes(2)
+    expect(removeService).toHaveBeenLastCalledWith("p1", "stripe")
+    expect(log).toHaveBeenCalledTimes(1)
+    expect(String(log.mock.calls[0][0])).not.toMatch(/secret|postgres|google-calendar|p1/)
+    log.mockRestore()
+  })
 })
