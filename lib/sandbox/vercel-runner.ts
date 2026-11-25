@@ -49,6 +49,12 @@ export type VercelRunnerDeps = {
   secret(projectId: string): string
   /** Waits between polls. Tests replace it. */
   sleep?(ms: number): Promise<void>
+  /** How long one invoke may take in all. Defaults to SANDBOX_LIMITS.invokeBudgetMs. */
+  invokeBudgetMs?: number
+  /** Calls `fire` after `ms`, and returns what cancels it. Tests replace it. */
+  startTimer?(ms: number, fire: () => void): () => void
+  /** Asks the platform to keep the function running until `work` settles, which a start the invoke gave up on needs. */
+  keepAlive?(work: Promise<unknown>): void
 }
 
 type Running = { sandboxId: string; domain: string; deadlineAt: Date; sessionStartedAt: Date | null }
@@ -65,9 +71,21 @@ function isSafePath(value: string) {
 
 const sleepFor = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+function timerFor(ms: number, fire: () => void) {
+  const timer = setTimeout(fire, ms)
+  timer.unref?.()
+  return () => clearTimeout(timer)
+}
+
+/** What a gateway or the platform answers when the VM behind it is gone. The runtime's own errors are JSON. */
+function isPlatformFailure(response: SandboxResponse) {
+  return [502, 503, 504].includes(response.status) && !/json/i.test(response.headers["content-type"] ?? "")
+}
+
 export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
   const { sdk, state, bundles } = deps
   const sleep = deps.sleep ?? sleepFor
+  const startTimer = deps.startTimer ?? timerFor
   const refused = new Map<string, { signature: string; until: number }>()
 
   const day = () => new Date(deps.now()).toISOString().slice(0, 10)
@@ -76,6 +94,13 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     if (!st || !st.sandboxId || !st.domain || !st.deadlineAt || st.signature !== signature) return null
     if (st.deadlineAt.getTime() - deps.now() <= SOON_MS) return null
     return { sandboxId: st.sandboxId, domain: st.domain, deadlineAt: st.deadlineAt, sessionStartedAt: st.sessionStartedAt }
+  }
+
+  /** Gives back the part of a session's charge that the VM never used. */
+  async function refundUnused(projectId: string, deadlineAt: Date | null | undefined) {
+    if (!deadlineAt) return
+    const unused = deadlineAt.getTime() - deps.now()
+    if (unused > 0) await state.addUsage(projectId, -unused, day()).catch(() => {})
   }
 
   async function discard(name: string, handle?: SandboxHandle) {
@@ -119,8 +144,12 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
   }
 
   async function start(projectId: string, old: SandboxState | null): Promise<Ensured> {
-    if (old?.sandboxId) await discard(old.sandboxId)
+    if (old?.sandboxId) {
+      await discard(old.sandboxId)
+      await refundUnused(projectId, old.deadlineAt)
+    }
     let handle: SandboxHandle | null = null
+    let charged = false
     try {
       const b = await bundles.build(projectId)
       if (b.runtime.routes.length === 0) {
@@ -128,6 +157,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
         return { response: errorResponse(404, "bad_request", "This app has no server functions.") }
       }
       const used = await state.addUsage(projectId, SANDBOX_LIMITS.sessionMs, day())
+      charged = true
       if (used > SANDBOX_LIMITS.dailyMs) {
         await state.clear(projectId)
         throw new SandboxUnavailableError("limit")
@@ -172,13 +202,38 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     } catch (error) {
       if (handle) await discard(handle.name, handle)
       await state.clear(projectId).catch(() => {})
+      // Nothing was served from this session, so none of it is charged.
+      if (charged) await state.addUsage(projectId, -SANDBOX_LIMITS.sessionMs, day()).catch(() => {})
       if (error instanceof SandboxUnavailableError) throw error
       throw new SandboxUnavailableError("failed")
     }
   }
 
-  async function waitForStart(projectId: string, signature: string): Promise<Ensured> {
-    const until = deps.now() + SANDBOX_LIMITS.startWaitMs
+  /**
+   * Runs a start for the caller, who stops waiting at `deadline`. The start itself isn't stopped then: it
+   * saves its VM for the next call, or stops and deletes it, whichever way it ends.
+   */
+  function startWithin(projectId: string, old: SandboxState | null, deadline: number): Promise<Ensured> {
+    const remaining = deadline - deps.now()
+    if (remaining <= 0) throw new SandboxUnavailableError("starting")
+    const work = start(projectId, old)
+    const settled = work.then(
+      () => {},
+      () => {},
+    )
+    try {
+      deps.keepAlive?.(settled)
+    } catch {
+      // Outside a request there is nothing to extend.
+    }
+    return new Promise<Ensured>((resolve, reject) => {
+      const cancel = startTimer(remaining, () => reject(new SandboxUnavailableError("starting")))
+      work.then(resolve, reject).finally(cancel)
+    })
+  }
+
+  async function waitForStart(projectId: string, signature: string, deadline: number): Promise<Ensured> {
+    const until = Math.min(deps.now() + SANDBOX_LIMITS.startWaitMs, deadline)
     for (;;) {
       const running = runningOf(await state.get(projectId), signature)
       if (running) return { running }
@@ -189,7 +244,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     }
   }
 
-  async function ensureRunning(projectId: string): Promise<Ensured> {
+  async function ensureRunning(projectId: string, deadline: number): Promise<Ensured> {
     const signature = await bundles.signature(projectId)
     const block = refused.get(projectId)
     if (block && block.signature === signature && block.until > deps.now()) throw new SandboxUnavailableError("failed")
@@ -199,7 +254,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     if (running) return { running }
 
     if (!(await state.claimStart(projectId, new Date(deps.now() + SANDBOX_LIMITS.startClaimMs)))) {
-      return waitForStart(projectId, signature)
+      return waitForStart(projectId, signature, deadline)
     }
     // Another request may have finished a start between the read above and the claim.
     const latest = await state.get(projectId)
@@ -214,10 +269,10 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
       })
       return { running: fresh }
     }
-    return start(projectId, latest)
+    return startWithin(projectId, latest, deadline)
   }
 
-  async function forward(projectId: string, running: Running, request: SandboxRequest): Promise<SandboxResponse> {
+  async function forward(projectId: string, running: Running, request: SandboxRequest, deadline: number): Promise<SandboxResponse> {
     const headers: Record<string, string> = {}
     for (const [name, value] of Object.entries(request.headers)) if (name.toLowerCase() !== INTERNAL_HEADER) headers[name] = value
     headers[INTERNAL_HEADER] = deps.secret(projectId)
@@ -229,7 +284,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
       headers,
       body: hasBody ? request.body : undefined,
       redirect: "manual",
-      signal: AbortSignal.timeout(SANDBOX_LIMITS.proxyTimeoutMs),
+      signal: AbortSignal.timeout(Math.min(SANDBOX_LIMITS.proxyTimeoutMs, Math.max(1, deadline - deps.now()))),
     })
     const body = await response.text()
     const out = Object.fromEntries(response.headers)
@@ -241,11 +296,12 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
   }
 
   /** Stops a VM that stopped answering, unless a newer one has already replaced it. */
-  async function dropDead(projectId: string, sandboxId: string) {
+  async function dropDead(projectId: string, running: Running) {
     const latest = await state.get(projectId).catch(() => null)
-    if (latest && latest.sandboxId !== sandboxId) return
-    await discard(sandboxId)
+    if (latest && latest.sandboxId !== running.sandboxId) return
+    await discard(running.sandboxId)
     await state.clear(projectId).catch(() => {})
+    await refundUnused(projectId, latest?.deadlineAt ?? running.deadlineAt)
   }
 
   async function keepWarm(projectId: string, running: Running) {
@@ -274,17 +330,25 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
   return {
     async invoke(projectId, request) {
       if (!isSafePath(request.path)) throw new SandboxUnavailableError("failed")
+      const deadline = deps.now() + (deps.invokeBudgetMs ?? SANDBOX_LIMITS.invokeBudgetMs)
       let restarted = false
       for (;;) {
-        const ensured = await ensureRunning(projectId)
+        const ensured = await ensureRunning(projectId, deadline)
         if ("response" in ensured) return ensured.response
         const { running } = ensured
-        let response: SandboxResponse
+        if (deadline - deps.now() <= 0) throw new SandboxUnavailableError("starting")
+        let response: SandboxResponse | null
         try {
-          response = await forward(projectId, running, request)
+          response = await forward(projectId, running, request, deadline)
+          if (isPlatformFailure(response)) response = null
         } catch {
-          await dropDead(projectId, running.sandboxId)
+          response = null
+        }
+        if (!response) {
+          await dropDead(projectId, running)
           if (restarted) throw new SandboxUnavailableError("failed")
+          // The next call starts a new VM, so there is no need to risk the time this one has left.
+          if (deadline - deps.now() < SANDBOX_LIMITS.restartMinMs) throw new SandboxUnavailableError("starting")
           restarted = true
           continue
         }
@@ -301,7 +365,10 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     async stop(projectId) {
       refused.delete(projectId)
       const st = await state.get(projectId)
-      if (st?.sandboxId) await discard(st.sandboxId)
+      if (st?.sandboxId) {
+        await discard(st.sandboxId)
+        await refundUnused(projectId, st.deadlineAt)
+      }
       await state.clear(projectId)
     },
   }
@@ -309,11 +376,12 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
 
 /** The real thing: the Vercel SDK, the database state and the bundle builder. Loaded on first use. */
 export async function createProductionVercelRunner(): Promise<SandboxRunner> {
-  const [{ Sandbox }, { dbSandboxState }, { buildSandboxBundle, sandboxSignature }, { sandboxInternalSecret }] = await Promise.all([
+  const [{ Sandbox }, { dbSandboxState }, { buildSandboxBundle, sandboxSignature }, { sandboxInternalSecret }, { after }] = await Promise.all([
     import("@vercel/sandbox"),
     import("@/lib/sandbox/state"),
     import("@/lib/sandbox/bundle"),
     import("@/lib/sandbox/token"),
+    import("next/server"),
   ])
   const { VERCEL_TEAM_ID: teamId, VERCEL_PROJECT_ID: projectId, VERCEL_TOKEN: token } = process.env
   const auth = teamId && projectId && token ? { teamId, projectId, token } : {}
@@ -342,5 +410,6 @@ export async function createProductionVercelRunner(): Promise<SandboxRunner> {
     now: () => Date.now(),
     runtimeSource: () => (source ??= readFile(path.join(process.cwd(), "sandbox-runtime/dist/server.mjs"), "utf8")),
     secret: sandboxInternalSecret,
+    keepAlive: (work) => after(() => work),
   })
 }

@@ -96,6 +96,7 @@
 - **Sandbox token.** Only the owner gets one. It lasts 1 hour and the workspace renews it. Shared viewers and public visitors never get a token and never see server code.
 - **Server key and gateway.** `APPXPROMPT_SERVER_KEY` is sealed and lives in the hidden service `appxprompt`. The gateway mode is set by `x-appxprompt-as: caller|app`.
 - **Fair-use caps.** 60 requests per minute per project, 30 seconds per request in the VM, 1 MB bodies, and 3 hours of sandbox time per project per day. Vercel Hobby plan sessions last at most 45 minutes.
+- **Time limits.** The proxy route runs for up to 300 seconds. One call gets 270 seconds in all: a dead VM is only restarted when at least 80 seconds are left, and if a VM is still starting at the deadline the call answers "starting" while the start finishes and saves its VM for the next call. A VM that is discarded before its session ends gives its unused time back to the day's total.
 - **Activity tab.** Owner-only list of recent calls: time, function, result, service, and duration. The newest 200 are kept. Bodies, headers, and queries are never stored.
 - **Local development.** Data functions need a public `NEXT_PUBLIC_APP_URL` (a tunnel, e.g. `ngrok http 3000`), since the sandbox has to call back to the app.
 

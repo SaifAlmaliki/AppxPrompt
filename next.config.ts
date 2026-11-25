@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev"],
   // The sandbox runner reads this file at runtime, so the trace has to ship it with the route.
   outputFileTracingIncludes: {
-    "/api/apps/[projectId]/server/[...path]": ["./sandbox-runtime/dist/server.mjs"],
+    // Keys are picomatch route globs, and `[` is a glob character, so the dynamic segments are `*` and `**`.
+    "/api/apps/*/server/**": ["./sandbox-runtime/dist/server.mjs"],
   },
   async headers() {
     return [

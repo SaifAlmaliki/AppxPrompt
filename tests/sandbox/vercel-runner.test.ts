@@ -55,7 +55,9 @@ function memoryState() {
 
 type Fake = SandboxHandle & { stdin: string; stops: number; deletes: number; extended: number[]; files: Record<string, string>; runArgs: unknown }
 
-function setup(options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?: { egressBlocked: boolean; envKeys: number } } = {}) {
+function setup(
+  options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?: { egressBlocked: boolean; envKeys: number }; budget?: number; holdCreate?: boolean } = {},
+) {
   let now = T0
   const state = memoryState()
   state.useClock(() => now)
@@ -68,13 +70,19 @@ function setup(options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?
     signature,
   })
   const selfcheck = { value: options.selfcheck ?? { egressBlocked: true, envKeys: 1 } }
-  const forwardFailures = { count: 0 }
+  const forwardFailures = { count: 0, afterMs: 0 }
+  const forwardAnswers: Response[] = []
+  const kept: Promise<unknown>[] = []
+  const timers: { ms: number; fire: () => void; cancelled: boolean }[] = []
+  let releaseCreate: () => void = () => {}
+  const createGate = options.holdCreate ? new Promise<void>((resolve) => (releaseCreate = resolve)) : null
   const fetchCalls: { url: string; init: RequestInit }[] = []
 
   const sdk = {
     async create(opts: object) {
       createCalls.push(opts as Record<string, unknown>)
       const name = (opts as { name: string }).name
+      if (createGate) await createGate
       const fake: Fake = {
         name,
         stdin: "",
@@ -120,8 +128,11 @@ function setup(options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?
     if (url.endsWith("/__selfcheck")) return Response.json(selfcheck.value)
     if (forwardFailures.count > 0) {
       forwardFailures.count--
+      now += forwardFailures.afterMs
       throw new TypeError("fetch failed")
     }
+    const queued = forwardAnswers.shift()
+    if (queued) return queued
     return new Response(JSON.stringify({ hello: "world" }), { status: 201, headers: { "content-type": "application/json", "x-custom": "1" } })
   }) as typeof fetch
 
@@ -133,6 +144,15 @@ function setup(options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?
     now: () => now,
     runtimeSource: async () => "// runtime",
     secret: (id) => `secret-${id}`,
+    invokeBudgetMs: options.budget,
+    keepAlive: (work) => kept.push(work),
+    startTimer: (ms, fire) => {
+      const timer = { ms, fire, cancelled: false }
+      timers.push(timer)
+      return () => {
+        timer.cancelled = true
+      }
+    },
     sleep: async (ms) => {
       await new Promise((resolve) => setImmediate(resolve))
       now += ms
@@ -140,7 +160,7 @@ function setup(options: { bundle?: Partial<SandboxBundle["runtime"]>; selfcheck?
   })
 
   return {
-    runner, state, handles, createCalls, fetchCalls, forwardFailures, selfcheck,
+    runner, state, handles, createCalls, fetchCalls, forwardFailures, forwardAnswers, selfcheck, timers, kept, releaseCreate: () => releaseCreate(),
     setSignature: (value: string) => { signature = value },
     advance: (ms: number) => { now += ms },
     now: () => now,
@@ -426,5 +446,183 @@ describe("self-checks", () => {
     const response = await t.runner.invoke("p1", request)
     expect(response.status).toBe(201)
     expect(t.fetchCalls.some((c) => c.url.endsWith("/__selfcheck"))).toBe(true)
+  })
+})
+
+const MIN = 60_000
+const settle = async () => {
+  for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve))
+}
+
+describe("usage refunds", () => {
+  it("gives back the unused time when a signature change replaces the VM two minutes in", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.advance(2 * MIN)
+    t.setSignature("sig-2")
+    await t.runner.invoke("p1", request)
+    expect((await t.state.get("p1"))!.usageMs).toBe(2 * MIN + SANDBOX_LIMITS.sessionMs)
+  })
+
+  it("gives back the unused time of a VM that stopped answering", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.advance(2 * MIN)
+    t.forwardFailures.count = 1
+    await t.runner.invoke("p1", request)
+    expect((await t.state.get("p1"))!.usageMs).toBe(2 * MIN + SANDBOX_LIMITS.sessionMs)
+  })
+
+  it("gives back a whole session when the self-check refuses the VM", async () => {
+    const t = setup({ selfcheck: { egressBlocked: false, envKeys: 1 } })
+    await t.runner.invoke("p1", request).catch(() => {})
+    expect((await t.state.get("p1"))!.usageMs).toBe(0)
+  })
+
+  it("gives back the rest of the session on stop", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.advance(5 * MIN)
+    await t.runner.stop("p1")
+    expect((await t.state.get("p1"))!.usageMs).toBe(5 * MIN)
+  })
+
+  it("gives nothing back once the session has run out, and never goes below zero", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.advance(SANDBOX_LIMITS.sessionMs + MIN)
+    await t.runner.stop("p1")
+    expect((await t.state.get("p1"))!.usageMs).toBe(SANDBOX_LIMITS.sessionMs)
+    await t.state.addUsage("p1", -10 * SANDBOX_LIMITS.sessionMs, DAY)
+    expect((await t.state.get("p1"))!.usageMs).toBe(0)
+  })
+})
+
+describe("a VM that answers with a platform error", () => {
+  const html = (status: number) => new Response("<html>bad gateway</html>", { status, headers: { "content-type": "text/html" } })
+
+  it.each([502, 503, 504])("treats a non-JSON %i as a dead VM: drops it, restarts once and serves", async (status) => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    const first = [...t.handles.values()][0]
+    t.forwardAnswers.push(html(status))
+    const response = await t.runner.invoke("p1", request)
+    expect(response.status).toBe(201)
+    expect(first.stops).toBe(1)
+    expect(t.createCalls).toHaveLength(2)
+  })
+
+  it("answers failed when the restarted VM answers the same way", async () => {
+    const t = setup()
+    t.forwardAnswers.push(html(502), html(502))
+    const error = await t.runner.invoke("p1", request).catch((e) => e)
+    expect(error).toBeInstanceOf(SandboxUnavailableError)
+    expect(error.reason).toBe("failed")
+    expect(t.createCalls).toHaveLength(2)
+    for (const handle of t.handles.values()) expect(handle.stops).toBe(1)
+  })
+
+  it("passes the runtime's own JSON 5xx through without a restart", async () => {
+    const t = setup()
+    t.forwardAnswers.push(new Response('{"error":{"code":"unavailable","message":"m"}}', { status: 502, headers: { "content-type": "application/json" } }))
+    const response = await t.runner.invoke("p1", request)
+    expect(response.status).toBe(502)
+    expect(t.createCalls).toHaveLength(1)
+  })
+})
+
+describe("the time budget of one invoke", () => {
+  it("is 270 s by default, and a fresh start is timed against it", async () => {
+    const t = setup({ holdCreate: true })
+    const pending = t.runner.invoke("p1", request).catch((e) => e)
+    await settle()
+    expect(t.timers).toHaveLength(1)
+    expect(t.timers[0].ms).toBe(270_000)
+    t.releaseCreate()
+    await pending
+    expect(t.timers[0].cancelled).toBe(true)
+  })
+
+  it("skips the restart of a dead VM when less than 80 s are left, and still cleans up", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    const first = [...t.handles.values()][0]
+    t.forwardFailures.count = 1
+    t.forwardFailures.afterMs = 200_000
+    const error = await t.runner.invoke("p1", request).catch((e) => e)
+    expect(error).toBeInstanceOf(SandboxUnavailableError)
+    expect(error.reason).toBe("starting")
+    expect(t.createCalls).toHaveLength(1)
+    expect(first.stops).toBe(1)
+    expect((await t.state.get("p1"))?.sandboxId).toBeNull()
+  })
+
+  it("restarts a dead VM while 80 s or more are left", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.forwardFailures.count = 1
+    t.forwardFailures.afterMs = 180_000
+    expect((await t.runner.invoke("p1", request)).status).toBe(201)
+    expect(t.createCalls).toHaveLength(2)
+  })
+
+  it("answers starting when the deadline passes during a start, then the next call reuses the VM", async () => {
+    const t = setup({ holdCreate: true, budget: 100_000 })
+    const pending = t.runner.invoke("p1", request).catch((e) => e)
+    await settle()
+    t.timers[0].fire()
+    const error = await pending
+    expect(error).toBeInstanceOf(SandboxUnavailableError)
+    expect(error.reason).toBe("starting")
+
+    t.releaseCreate()
+    await settle()
+    const stored = (await t.state.get("p1"))!
+    expect(stored.sandboxId).toBe([...t.handles.keys()][0])
+    expect(stored.startingUntil).toBeNull()
+    expect([...t.handles.values()][0].stops).toBe(0)
+
+    const response = await t.runner.invoke("p1", request)
+    expect(response.status).toBe(201)
+    expect(t.createCalls).toHaveLength(1)
+  })
+
+  it("still stops and deletes a VM whose start fails after the deadline", async () => {
+    const t = setup({ holdCreate: true, budget: 100_000, selfcheck: { egressBlocked: false, envKeys: 1 } })
+    const pending = t.runner.invoke("p1", request).catch((e) => e)
+    await settle()
+    t.timers[0].fire()
+    expect((await pending).reason).toBe("starting")
+
+    t.releaseCreate()
+    await settle()
+    const handle = [...t.handles.values()][0]
+    expect(handle.stops).toBe(1)
+    expect(handle.deletes).toBe(1)
+    expect((await t.state.get("p1"))?.sandboxId).toBeNull()
+    expect((await t.state.get("p1"))!.usageMs).toBe(0)
+  })
+
+  it("does not start a VM when the budget is already spent", async () => {
+    const t = setup({ budget: 0 })
+    const error = await t.runner.invoke("p1", request).catch((e) => e)
+    expect(error.reason).toBe("starting")
+    expect(t.createCalls).toHaveLength(0)
+  })
+
+  it("hands every start to keepAlive, so the platform keeps the function running while it finishes", async () => {
+    const t = setup({ holdCreate: true, budget: 100_000 })
+    const pending = t.runner.invoke("p1", request).catch((e) => e)
+    await settle()
+    expect(t.kept).toHaveLength(1)
+    t.timers[0].fire()
+    await pending
+    let done = false
+    void t.kept[0].then(() => (done = true))
+    await settle()
+    expect(done).toBe(false)
+    t.releaseCreate()
+    await settle()
+    expect(done).toBe(true)
   })
 })

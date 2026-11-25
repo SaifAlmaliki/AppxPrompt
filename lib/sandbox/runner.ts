@@ -27,6 +27,10 @@ export const SANDBOX_LIMITS = {
   startWaitMs: 25_000,
   startClaimMs: 60_000,
   proxyTimeoutMs: 35_000,
+  /** How long one invoke may take in all. The proxy route allows 300 s, and this leaves room to answer. */
+  invokeBudgetMs: 270_000,
+  /** A dead VM is only restarted when at least this much of the budget is left. */
+  restartMinMs: 80_000,
   dailyMs: 3 * 3_600_000,
   requestsPerMinute: 60,
 }
