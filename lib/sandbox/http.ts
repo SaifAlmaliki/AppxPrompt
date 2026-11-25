@@ -1,0 +1,74 @@
+// The parts of the server-function proxy that need no database, no sandbox and no Next.js.
+
+export type ServerErrorCode = "not_connected" | "sign_in" | "bad_request" | "unavailable" | "preview"
+
+export const MAX_SERVER_BODY_BYTES = 1_048_576
+
+export const SANDBOX_CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type, x-device-id, x-appxprompt-sandbox",
+  "access-control-max-age": "86400",
+}
+
+const FORWARDED_REQUEST_HEADERS = ["content-type", "accept", "accept-language", "authorization", "x-device-id"]
+const KEPT_RESPONSE_HEADERS = ["content-type", "cache-control", "content-language"]
+
+export function serverErrorBody(code: ServerErrorCode, message: string, service?: string) {
+  return { error: { code, message, ...(service ? { service } : {}) } }
+}
+
+/** Cookies, the sandbox token and anything the platform added never reach the VM. */
+export function forwardRequestHeaders(headers: Headers): Record<string, string> {
+  const kept: Record<string, string> = {}
+  for (const name of FORWARDED_REQUEST_HEADERS) {
+    const value = headers.get(name)
+    if (value !== null) kept[name] = value
+  }
+  return kept
+}
+
+export function safeResponseHeaders(headers: Record<string, string>): Record<string, string> {
+  const kept: Record<string, string> = {}
+  for (const [name, value] of Object.entries(headers)) {
+    if (KEPT_RESPONSE_HEADERS.includes(name.toLowerCase())) kept[name.toLowerCase()] = value
+  }
+  return kept
+}
+
+/** The request's body as text (null when there is none), or "too-large" without reading past the limit. */
+export async function readCappedBody(request: Request, limit = MAX_SERVER_BODY_BYTES): Promise<string | null | "too-large"> {
+  if (!request.body) return null
+  const declared = Number(request.headers.get("content-length"))
+  if (Number.isFinite(declared) && declared > limit) return "too-large"
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > limit) {
+      await reader.cancel().catch(() => {})
+      return "too-large"
+    }
+    chunks.push(value)
+  }
+  if (size === 0) return null
+  return Buffer.concat(chunks).toString("utf8")
+}
+
+/** The error the sandbox's own response carries, if it is one: only the code and service are read. */
+export function readSandboxError(status: number, headers: Record<string, string>, body: string): { code: string | null; service: string | null } {
+  if (status < 400 || !/json/i.test(headers["content-type"] ?? "")) return { code: null, service: null }
+  try {
+    const error = (JSON.parse(body) as { error?: { code?: unknown; service?: unknown } } | null)?.error
+    return {
+      code: typeof error?.code === "string" ? error.code : null,
+      service: typeof error?.service === "string" ? error.service : null,
+    }
+  } catch {
+    return { code: null, service: null }
+  }
+}

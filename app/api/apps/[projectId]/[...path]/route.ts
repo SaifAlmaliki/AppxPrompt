@@ -66,11 +66,14 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ proj
   const { projectId, path } = await params
   if (!UUID_PATTERN.test(projectId)) return fail("This app isn't connected to a backend.", 404)
 
-  // The app's own server calls from one place, so it has its own share. A key that doesn't fit counts against its sender.
+  // Every request counts against its sender first, so a made-up key can't force a lookup per request.
+  const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+  if (isRateLimited(projectId, address)) return fail("Too many requests. Try again in a minute.", 429)
+
+  // The app's own server calls from one place, so it has its own share too.
   const serverKey = request.headers.get(SERVER_KEY_HEADER)
   const serverKeyValid = serverKey ? await verifyServerKey(projectId, serverKey) : false
-  const address = serverKeyValid ? "server" : request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
-  if (isRateLimited(projectId, address)) return fail("Too many requests. Try again in a minute.", 429)
+  if (serverKeyValid && isRateLimited(projectId, "server")) return fail("Too many requests. Try again in a minute.", 429)
 
   const app = await getGatewayApp(projectId)
   if (!app) return fail("This app isn't connected to a backend.", 404)

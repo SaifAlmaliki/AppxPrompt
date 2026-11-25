@@ -13,6 +13,8 @@ import { SERVER_KEY_NAME, SYSTEM_SERVICE_SLUG, type ServiceDefinition } from "@/
 const HASH_PREFIX = "sha256:"
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/
 const CACHE_MS = 60_000
+const MISS_CACHE_MS = 30_000
+const MAX_CACHED_MISSES = 10_000
 
 const SYSTEM_SERVICE: ServiceDefinition = {
   slug: SYSTEM_SERVICE_SLUG,
@@ -30,6 +32,9 @@ const SYSTEM_SERVICE: ServiceDefinition = {
 
 /** Keyed by project id. Each process keeps its own, so a rotation reaches other processes within `CACHE_MS`. */
 const hashCache = new Map<string, { hint: string; expiresAt: number }>()
+
+/** Projects with no key, so requests with a made-up key don't each cost a database read. */
+const missCache = new Map<string, number>()
 
 export function newServerKey(): string {
   return randomBytes(32).toString("base64url")
@@ -75,6 +80,7 @@ export async function ensureServerKey(projectId: string): Promise<void> {
       })
       .onConflictDoNothing()
   })
+  missCache.delete(projectId)
 }
 
 /** Replaces the project's server key, so the old one stops working. Does nothing if there isn't one. */
@@ -85,17 +91,23 @@ export async function rotateServerKey(projectId: string): Promise<void> {
     .set({ value: seal(key), hint: hashServerKey(key) })
     .where(serverKeyRow(projectId))
   hashCache.delete(projectId)
+  missCache.delete(projectId)
 }
 
 export async function verifyServerKey(projectId: string, given: string): Promise<boolean> {
   const now = Date.now()
+  const missUntil = missCache.get(projectId)
+  if (missUntil !== undefined && missUntil > now) return false
   let entry = hashCache.get(projectId)
   if (!entry || entry.expiresAt <= now) {
     const [row] = await db.select({ hint: projectCredentials.hint }).from(projectCredentials).where(serverKeyRow(projectId))
     if (!row?.hint) {
       hashCache.delete(projectId)
+      if (missCache.size >= MAX_CACHED_MISSES) missCache.clear()
+      missCache.set(projectId, now + MISS_CACHE_MS)
       return false
     }
+    missCache.delete(projectId)
     entry = { hint: row.hint, expiresAt: now + CACHE_MS }
     hashCache.set(projectId, entry)
   }
