@@ -29,10 +29,12 @@ describe("firstPlanGate", () => {
     expect(firstPlanGate({ ...ask, confidence: Number.NaN })).toContain("not sure enough")
   })
 
-  it("keeps asking until the tenth answer, then allows the plan", () => {
+  it("keeps asking until the tenth answer, then allows the plan even if the interview is blocked", () => {
     expect(MAX_INTERVIEW_REPLIES).toBe(10)
     expect(firstPlanGate({ ...ask, replies: 9, confidence: 80 })).toContain("not sure enough")
+    expect(firstPlanGate({ ...ask, replies: 9, blocked: true, confidence: 100 })).toContain("Ask exactly one question now")
     expect(firstPlanGate({ ...ask, replies: 10, confidence: 60, openDecisions: ["x"] })).toBeNull()
+    expect(firstPlanGate({ ...ask, replies: 10, blocked: true, confidence: 60, openDecisions: ["x"] })).toBeNull()
   })
 
   it("still requires the first three answers, and stays blocked once refused", () => {

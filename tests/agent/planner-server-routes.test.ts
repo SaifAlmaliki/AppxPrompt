@@ -104,6 +104,19 @@ describe("propose_plan confidence", () => {
     expect(ctx.proposedPlan).toBeNull()
   })
 
+  it("saves a plan once the interview cap is reached, even after an earlier refusal this turn", async () => {
+    const { propose_plan } = await tools()
+    const { db } = await import("@/db")
+    const set = vi.fn(() => ({ where: vi.fn() }))
+    ;(db as unknown as { update: unknown }).update = () => ({ set })
+    const ctx = context({ ...later, priorAssistantReplies: 10, interviewBlocked: true }) as ReturnType<typeof context> & {
+      proposedPlan: Record<string, unknown> | null
+    }
+    const result = await propose_plan.execute({ ...planInput([]), confidence: 60, openDecisions: ["x"] }, { context: ctx })
+    expect(result).toContain("Plan saved")
+    expect(ctx.proposedPlan).not.toBeNull()
+  })
+
   it("saves a sure plan without the confidence or the open decisions", async () => {
     const { propose_plan } = await tools()
     const { db } = await import("@/db")

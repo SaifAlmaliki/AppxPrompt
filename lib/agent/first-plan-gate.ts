@@ -1,7 +1,7 @@
 /** Answers required before the first plan, one question per reply. */
 export const MIN_INTERVIEW_REPLIES = 3
 
-/** A safety net: how many questions the interview may take before the plan is allowed whatever the confidence. */
+/** A safety net: how many questions the interview may take before the plan is allowed, even if confidence is low or an earlier attempt this turn was refused. */
 export const MAX_INTERVIEW_REPLIES = 10
 
 /** How sure the planner must be, from 0 to 100, before the first plan. */
@@ -19,17 +19,15 @@ type FirstPlanGate = {
   openDecisions: string[]
 }
 
-/** Why the first plan can't be shown yet, or null when it can. Revisions and a person who declined the interview are never held back. */
+/** Why the first plan can't be shown yet, or null when it can. Revisions, a person who declined the interview, and an interview that has already reached the reply cap are never held back. */
 export function firstPlanGate({ hasPlan, declined, replies, blocked = false, confidence, openDecisions }: FirstPlanGate): string | null {
-  if (hasPlan || declined) return null
+  if (hasPlan || declined || replies >= MAX_INTERVIEW_REPLIES) return null
 
   if (replies < MIN_INTERVIEW_REPLIES || blocked) {
     const remaining = MIN_INTERVIEW_REPLIES - replies
     const left = remaining > 0 ? ` ${remaining} more ${remaining === 1 ? "answer is" : "answers are"} required before the first plan.` : ""
     return `Plan not saved. Ask exactly one question now.${left} Don't call propose_plan again in this turn.`
   }
-
-  if (replies >= MAX_INTERVIEW_REPLIES) return null
 
   const open = openDecisions
     .map((decision) => decision.trim().slice(0, MAX_OPEN_DECISION_LENGTH))
