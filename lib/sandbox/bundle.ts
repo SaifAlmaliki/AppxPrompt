@@ -127,17 +127,12 @@ export async function sandboxSignature(projectId: string): Promise<string> {
 }
 
 export async function buildSandboxBundle(projectId: string): Promise<SandboxBundle> {
+  // The key first, since creating it changes the signature. Then the signature, before anything it describes is read:
+  // a change after it leaves the VM labelled with an older signature, so it restarts once more instead of never.
+  await ensureServerKey(projectId)
+  const signature = await sandboxSignature(projectId)
   const [plan, rows, services] = await Promise.all([projectPlan(projectId), listServerRoutes(projectId), listServiceSummaries(projectId)])
   if (!plan) throw new Error("The project has no plan.")
-  await ensureServerKey(projectId)
   const { env, secretNames } = await loadProjectEnvironment(projectId)
-  return assembleBundle({
-    plan,
-    rows,
-    systemFiles: generatedServerFiles(plan),
-    services,
-    env,
-    secretNames,
-    signature: await sandboxSignature(projectId),
-  })
+  return assembleBundle({ plan, rows, systemFiles: generatedServerFiles(plan), services, env, secretNames, signature })
 }

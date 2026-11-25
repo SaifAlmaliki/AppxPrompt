@@ -22,7 +22,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/db", () => ({
   db: {
-    select: () => ({ from: () => ({ where: async () => [{ plan: mocks.plan }] }) }),
+    select: () => ({
+      from: () => ({
+        where: async () => {
+          calls.order.push("plan")
+          return [{ plan: mocks.plan }]
+        },
+      }),
+    }),
     execute: calls.execute,
   },
   serverRoutes: {},
@@ -30,9 +37,17 @@ vi.mock("@/db", () => ({
   projectCredentials: {},
   projectServices: {},
 }))
-vi.mock("@/lib/server-routes/store", () => ({ listServerRoutes: async () => mocks.rows }))
+vi.mock("@/lib/server-routes/store", () => ({
+  listServerRoutes: async () => {
+    calls.order.push("routes")
+    return mocks.rows
+  },
+}))
 vi.mock("@/lib/services/store", () => ({
-  listServiceSummaries: async () => mocks.services,
+  listServiceSummaries: async () => {
+    calls.order.push("services")
+    return mocks.services
+  },
   loadProjectEnvironment: async () => {
     calls.order.push("environment")
     return mocks.environment
@@ -47,7 +62,10 @@ vi.mock("@/lib/services/server-key", () => ({
 beforeEach(() => {
   calls.order.length = 0
   calls.execute.mockReset()
-  calls.execute.mockResolvedValue([{ routes: "t:1", credentials: "t:2", services: "t:1", backend: "{}", planned: "[]" }])
+  calls.execute.mockImplementation(async () => {
+    calls.order.push("signature")
+    return [{ routes: "t:1", credentials: "t:2", services: "t:1", backend: "{}", planned: "[]" }]
+  })
   mocks.plan = plan
   mocks.rows = [
     { path: "app/api/booking/slots+api.ts", kind: "function", code: "export async function GET() { return new Response('s') }" },
@@ -78,9 +96,9 @@ describe("buildSandboxBundle", () => {
     expect(bundle.env.OPENAI_API_KEY).toBe(decoy)
   })
 
-  it("makes the server key before it loads the environment", async () => {
+  it("makes the server key, then takes the signature, then reads everything the signature describes", async () => {
     await buildSandboxBundle("p1")
-    expect(calls.order).toEqual(["key", "environment"])
+    expect(calls.order).toEqual(["key", "signature", "plan", "routes", "services", "environment"])
   })
 
   it("assembles routes, the generated system files and the signature", async () => {
