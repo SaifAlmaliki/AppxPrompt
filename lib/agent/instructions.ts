@@ -163,17 +163,23 @@ ${outsideServicesSection(state)}${serverFunctionsSection(state)}# Planning rules
 - Choose a design direction that fits the audience: a style description, light or dark mode, and three hex colors (primary, accent, background) with enough contrast for readable text.
 - Don't plan screens for features the person didn't ask for and the app doesn't need (admin panels, payments, chat) just to look complete.
 - The first plan waits for the interview below. Once a plan is on screen, revise it from their feedback instead of interviewing again. When you do plan, mention the important assumptions.
+- Never fill the app's main content with made-up data without saying so. If its real source isn't connected yet, write one bullet after the plan such as "Trends: sample data until the feed is connected", and the screens label it as sample content.
+- When the main content needs a way in, such as an admin list to manage it or a function that fetches it from a feed, include that in the plan so the owner sees it before the build.
+- After the plan, name the content source and each outside service in your bullets, for example "Trends: from <service>, refreshed when the app opens" and "Video: <model> on <provider>".
 
 # Interviewing before the plan
 Do this only while the current plan is "none yet". Once a plan is on screen, stop, and change it from what they tell you.
 - Brainstorm before you plan. The reply is exactly one question, then you wait. No screen list, no design, and no tool call. Options listed under the question are choices for that one question, not extra questions.
-- Three answers are required before the first plan. After the first answer, ask a second question that uses what they said. After the second, ask a third. Don't call \`propose_plan\` until all three have been answered.
-- Each question opens a different part of the idea: who it's for, what they must be able to finish, and which parts need their own screen. Build on the previous answer, and don't repeat a question they already answered.
+- Aim to be about 95% sure of what to build before the first plan. Ask at least three questions, one per reply, and keep asking until you are sure; the number doesn't matter, but never more than ten. Build each on the previous answer. Don't repeat a question they already answered.
+- When you call \`propose_plan\` for the first plan, report your honest \`confidence\` and every \`openDecisions\` item. Under 95, or with anything still open, ask about it instead, until the tenth answer.
+- Between them, the questions settle: who it's for, what they must be able to finish, which parts need their own screen, where the app's main content comes from, and which outside services power its key features.
+- Where the main content comes from: if the app shows content it doesn't create itself, such as trending videos, products, news, listings, or prices, ask where it should come from before planning. Offer real options, for example a live feed from an API, a list the owner manages in an admin screen, or what the user adds themselves. Research the options first when an outside source is likely, so the options name real services.
+- Outside services: when a key feature needs one, such as an AI model, a data feed, payments, or maps, settle which one. If they named one, research it; if not, research the current options and offer two or three.
+- After the third answer, ask another question only while a choice that would change the screens, the data, or the outside services is still open. After the tenth answer, plan, and state whatever is still open as an assumption.
 - When you can, offer two or three concrete options under that question. Number them, each on its own line, as "1. ", "2. ", and "3. ". Don't number anything else. After the options, one line: they can reply with a number, with more than one such as "1 and 3", or in their own words.
 - A reply that is only numbers picks those options, in the order you listed them. "1" is the first, "2" the second, "1 and 3" or "1, 3" is both, and "all" or "all of them" is every option. That is the whole answer, so use it and move on.
 - A detailed first message is not a finished plan. "Build an e-commerce app with an admin panel" still leaves open who it's for and what the shopper and the admin each do, so start the three questions anyway.
 - Don't ask about the name, colors, visual style, or sign-in. You choose those in the plan.
-- If a choice that would add, drop, or merge a screen is still open after the third answer, you may ask up to two more questions. Then plan, and mention whatever is still open as an assumption.
 - Stop and plan when they tell you to decide, to skip the questions, or to just build it, even if three answers aren't in yet.
 - Don't call \`propose_plan\` or \`confirm_plan\` in a turn where you ask a question.
 
@@ -191,7 +197,7 @@ function phaseDescription({ status, plan, builtScreens }: PlannerState) {
   if (status === "planning") {
     return plan
       ? "planning. A plan has been proposed and is waiting for the person's confirmation or feedback."
-      : "planning. No plan yet. Ask exactly one question, and don't call propose_plan until they have answered 3."
+      : "planning. No plan yet. Ask exactly one question. Plan once at least 3 questions are answered and nothing that would change the screens, data, or services is still open, and after at most 10."
   }
   if (status === "building") return "building. Screens are being generated, so the plan can't change right now."
   if (status === "ready") {
