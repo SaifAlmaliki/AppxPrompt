@@ -309,19 +309,12 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
 
 /** The real thing: the Vercel SDK, the database state and the bundle builder. Loaded on first use. */
 export async function createProductionVercelRunner(): Promise<SandboxRunner> {
-  const [{ Sandbox }, { dbSandboxState }, bundleModule, { sandboxInternalSecret }] = await Promise.all([
+  const [{ Sandbox }, { dbSandboxState }, { buildSandboxBundle, sandboxSignature }, { sandboxInternalSecret }] = await Promise.all([
     import("@vercel/sandbox"),
     import("@/lib/sandbox/state"),
     import("@/lib/sandbox/bundle"),
     import("@/lib/sandbox/token"),
   ])
-  // Task 3b adds these two to bundle.ts; until then a start fails and the call answers "unavailable".
-  const { buildSandboxBundle, sandboxSignature } = bundleModule as unknown as {
-    buildSandboxBundle?: (projectId: string) => Promise<SandboxBundle>
-    sandboxSignature?: (projectId: string) => Promise<string>
-  }
-  if (!buildSandboxBundle || !sandboxSignature) throw new Error("The sandbox bundle builder is not available.")
-
   const { VERCEL_TEAM_ID: teamId, VERCEL_PROJECT_ID: projectId, VERCEL_TOKEN: token } = process.env
   const auth = teamId && projectId && token ? { teamId, projectId, token } : {}
   const wrap = (sandbox: InstanceType<typeof Sandbox>): SandboxHandle => ({

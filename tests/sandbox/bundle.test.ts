@@ -2,6 +2,8 @@
 import type { AppPlan } from "@/lib/agent-protocol"
 import { assembleBundle, serverAllowedHosts, serverSources } from "@/lib/sandbox/bundle"
 
+vi.mock("@/db", () => ({ db: {}, serverRoutes: {}, projects: {}, projectCredentials: {}, projectServices: {} }))
+
 const plan = {
   appName: "P",
   backend: { apiPath: "/api/apps/p1", authUrl: "https://p.cloudhike.dev/auth", authKey: "k", services: [] },

@@ -1,12 +1,19 @@
-﻿import { isIP } from "node:net"
+import { createHash } from "node:crypto"
+import { isIP } from "node:net"
+import { eq, sql } from "drizzle-orm"
+import type { PgColumn, PgTable } from "drizzle-orm/pg-core"
+import { db, projectCredentials, projectServices, projects, serverRoutes } from "@/db"
 import { API_ROUTE_FILE, type AppPlan, type ServerRouteKind } from "@/lib/agent-protocol"
-import type { ServiceSummary } from "@/lib/services/protocol"
+import { generatedServerFiles } from "@/lib/generated-app/server-files"
 import { compileServerFile } from "@/lib/sandbox/routes"
+import { listServerRoutes } from "@/lib/server-routes/store"
+import { SERVER_KEY_NAME, type ServiceSummary } from "@/lib/services/protocol"
+import { ensureServerKey } from "@/lib/services/server-key"
+import { listServiceSummaries, loadProjectEnvironment } from "@/lib/services/store"
 
 export { matchApiRoute } from "@/lib/sandbox/routes"
 
 export const RUNTIME_VERSION = "1"
-const SERVER_KEY_NAME = "APPXPROMPT_SERVER_KEY"
 
 /** What the sandbox runs. Holds no credential values. */
 export type RuntimeBundle = { files: Record<string, string>; routes: string[]; allowedHosts: string[]; secretNames: string[] }
@@ -75,9 +82,62 @@ export function assembleBundle(input: {
       files,
       routes,
       allowedHosts: serverAllowedHosts(input.plan, input.services),
-      secretNames: [...input.secretNames, SERVER_KEY_NAME],
+      // Every name must have a value in env, or the sandbox's self-check counts fewer credentials than the host expects.
+      secretNames: [...new Set([...input.secretNames.filter((name) => name in input.env), SERVER_KEY_NAME])],
     },
     env: { ...input.env, NODE_ENV: "production" },
     signature: input.signature,
   }
+}
+
+async function projectPlan(projectId: string): Promise<AppPlan | null> {
+  const [row] = await db.select({ plan: projects.plan }).from(projects).where(eq(projects.id, projectId))
+  if (!row) throw new Error("The project doesn't exist.")
+  return row.plan
+}
+
+export async function serverSourceFiles(projectId: string): Promise<ServerFile[]> {
+  const [plan, rows] = await Promise.all([projectPlan(projectId), listServerRoutes(projectId)])
+  return serverSources(generatedServerFiles(plan), rows)
+}
+
+function tableStats(table: PgTable, projectColumn: PgColumn, updatedColumn: PgColumn, projectId: string) {
+  return sql`(select concat_ws(':', max(${updatedColumn})::text, count(*)::text) from ${table} where ${projectColumn} = ${projectId})`
+}
+
+/** Changes whenever anything the sandbox is built from changes, so a running VM can tell it is stale. One query, no credential values. */
+export async function sandboxSignature(projectId: string): Promise<string> {
+  const rows = await db.execute<{
+    routes: string | null
+    credentials: string | null
+    services: string | null
+    backend: string | null
+    planned: string | null
+  }>(sql`
+    select
+      ${tableStats(serverRoutes, serverRoutes.projectId, serverRoutes.updatedAt, projectId)} as routes,
+      ${tableStats(projectCredentials, projectCredentials.projectId, projectCredentials.updatedAt, projectId)} as credentials,
+      ${tableStats(projectServices, projectServices.projectId, projectServices.updatedAt, projectId)} as services,
+      (select ${projects.plan}->'backend' from ${projects} where ${projects.id} = ${projectId})::text as backend,
+      (select ${projects.plan}->'serverRoutes' from ${projects} where ${projects.id} = ${projectId})::text as planned
+  `)
+  const row = rows[0]
+  const parts = [row?.routes, row?.credentials, row?.services, row?.backend, row?.planned, RUNTIME_VERSION]
+  return createHash("sha256").update(parts.map((part) => part ?? "").join("\n")).digest("hex")
+}
+
+export async function buildSandboxBundle(projectId: string): Promise<SandboxBundle> {
+  const [plan, rows, services] = await Promise.all([projectPlan(projectId), listServerRoutes(projectId), listServiceSummaries(projectId)])
+  if (!plan) throw new Error("The project has no plan.")
+  await ensureServerKey(projectId)
+  const { env, secretNames } = await loadProjectEnvironment(projectId)
+  return assembleBundle({
+    plan,
+    rows,
+    systemFiles: generatedServerFiles(plan),
+    services,
+    env,
+    secretNames,
+    signature: await sandboxSignature(projectId),
+  })
 }
