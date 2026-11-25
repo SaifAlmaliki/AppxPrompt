@@ -22,7 +22,7 @@ Labels:
 | Step 1B: what's left out | Yes | Agent Card 11 (Planned) | Only features that aren't built yet |
 | Step 2A: steps in order | Yes | Agent Card 3 (Workflow) | Rewritten in plain words, no tool names |
 | Step 2A: tools and data | Yes | Agent Card 4 and 5 | Adds what it reads vs what it may change |
-| Step 2A: where the result goes | Yes | Agent Card 3, steps 8 to 10 | |
+| Step 2A: where the result goes | Yes | Agent Card 3, steps 10 to 12 | |
 | Step 2B: what it never does | Partly | Agent Card 7 and 9, Pitch slide 5 | Gathered into one "never" list |
 | Step 2B: where a person approves | Yes | Agent Card 7 | Adds the suggest / draft / act-after-approval / act-alone level for each step |
 | Step 2B: what it does when unsure | Yes | Agent Card 8 | Adds requests that aren't an app, which nothing covers yet |
@@ -60,10 +60,10 @@ The task: **turn a business description into a working app the owner can try on 
 A business owner types a description of their business and the app they want on the AppxPrompt home page, and creates a project.
 
 **What goes in?**
-The owner's description, their answers to three short questions, the names of any files they attach, their plan and credit balance, whether their CloudHike account is connected, and their change requests after the build.
+The owner's description, their answers to the agent's questions (at least three), the names of any files they attach, their plan and credit balance, whether their CloudHike account is connected, and their change requests after the build.
 
 **What comes out?**
-A screen plan card the owner approves. Then a working app in the live preview, with sample data and a QR code for their phone. Once they connect CloudHike, the app gets a real database, sign-in and file storage in their own account.
+A screen plan card the owner approves, naming where the app's content comes from and any outside services it needs (sample data is labelled as sample). Then a working app in the live preview, with sample data and a QR code for their phone. Once they connect CloudHike, the app gets a real database, sign-in and file storage in their own account.
 
 ### B. Why this task, and not others
 
@@ -78,7 +78,9 @@ If owners say "I didn't know what screens I needed", that supports the interview
 Only what isn't built yet:
 - Real payments inside the generated app
 - Version history and restoring an earlier version
-- Server code for generated apps, so background jobs and Redis can't be used by screens yet
+- Publishing server functions to the owner's own EAS Hosting (planned, phase 5). Server functions themselves are built, and the first production test is pending, but published apps don't run them yet. Background jobs and Redis aren't wired to generated apps either
+- AI agents inside generated apps, such as a booking assistant (planned, phase 4)
+- Per-user daily sandbox caps and a platform-wide ceiling (planned, before opening widely)
 - Offline mode in generated apps
 
 Publishing to the web, Google Play and the App Store is built, but it's an owner action through their own Expo account. The agent doesn't publish as part of this task.
@@ -94,19 +96,21 @@ Team Misbah left scheduling for their next agent. Everything we leave out is a f
 
 **The steps, in order**
 1. Read the owner's description.
-2. Ask three short questions, one at a time: who the app is for, what they must be able to do, and which parts need their own screen. Offer numbered options for each.
-3. Propose a plan: the screens, how they link, the design direction, and the assumptions it made.
+2. Ask at least three short questions, one at a time, and keep asking until it is about 95% sure: who the app is for, what they must be able to do, which parts need their own screen, where the app's main content comes from (for example a live feed from an API, an admin list, or user content), and which outside services power key features. Offer numbered options for each. The first plan is refused in code until the agent reports at least 95% confidence with no open decisions, up to a safety cap of ten questions. After that, open items appear as stated assumptions.
+3. Propose a plan: the screens, how they link, the design direction, where the content comes from, each outside service, and the assumptions it made.
 4. Change the plan when the owner asks, and wait.
 5. When the owner approves, take the credits and build: themes and sample data, then shared parts, then each screen.
+5a. If the app needs an outside service (live behind a feature flag): research the service's official docs, work out the exact credentials, and open a "Connect a service" dialog for the owner to enter their own keys.
+5b. If the plan needs server functions (built, first production test pending): a server builder writes them, and they run only in an isolated sandbox for this project. Each one costs credits like a screen.
 6. Check each screen against the rules, and rewrite it once if it fails.
 7. Show the working app in the preview, with a QR code for the owner's phone.
 8. If the owner wants real accounts or saved data and hasn't connected CloudHike, tell them to click Connect Backend. Once it's connected, deploy the database, sign-in and storage the screens need.
 9. Make the changes the owner asks for by chat or by clicking an element, and rebuild only the screens and parts affected.
 
 **Tools and data it uses**
-- **Reads:** the owner's description and chat, the names of attached files (not their contents), their plan and credits, whether the backend is connected, and fixed lists of allowed packages and parts.
-- **May change:** this project's plan, screens, themes, sample data and shared parts. In the owner's own CloudHike account, it may deploy the services the app needs, after the owner has connected it.
-- **Never touches:** other users' projects, the web, the owner's keys or other CloudHike projects, and their Expo or GitHub accounts.
+- **Reads:** the owner's description and chat, the names of attached files (not their contents), their plan and credits, whether the backend is connected, and fixed lists of allowed packages and parts. When the owner asks for an outside service, it also reads public web pages (Tavily search and a safe page reader that blocks internal addresses) to research the service's official docs. It treats page text as reference, not instructions.
+- **May change:** this project's plan, screens, themes, sample data, shared parts and server functions. In the owner's own CloudHike account, it may deploy the services the app needs, after the owner has connected it.
+- **Never touches:** other users' projects, the owner's key values or other CloudHike projects, and their Expo or GitHub accounts.
 
 **Where the result goes**
 To the owner, in their workspace. First as a plan card waiting for "Confirm & build". Then as a working app in the preview to tap through, open on their phone, and change. With a backend, the app's data is saved in the owner's own CloudHike database, not in AppxPrompt's.
@@ -115,7 +119,9 @@ To the owner, in their workspace. First as a plan card waiting for "Confirm & bu
 
 **What it never does**
 - Never builds or takes credits before the owner approves the plan
-- Never connects CloudHike for the owner, and never asks for keys or passwords
+- Never connects CloudHike for the owner, and never asks for keys or passwords in the chat. Keys for outside services go in the dialog, and keys pasted into the chat are removed before they're saved
+- Never uses AppxPrompt's own accounts for outside services. The owner brings and pays for their own
+- Never shows server code to shared viewers or public visitors
 - Never deploys without saying what it's deploying and that it's billed to the owner's CloudHike account
 - Never turns on email until the owner accepts CloudHike's email policy in their latest message
 - Never publishes. The owner does that through their own Expo account.
@@ -135,12 +141,15 @@ To the owner, in their workspace. First as a plan card waiting for "Confirm & bu
 | Refunding credits for a failed screen | Acts alone | Protects the owner |
 | Changes after the build | Acts after approval | The owner's request is the approval. Each round costs 5 credits |
 | Connecting CloudHike | Owner only | It's the owner's account. The agent never sees their keys |
+| Connecting an outside service | Owner only | The agent opens the dialog, but the owner enters their own keys. Only the owner sees them |
+| Writing server functions | Acts after approval | They're part of the approved plan and cost credits like a screen |
 | Deploying the backend | Acts after approval | It costs the owner money, so the agent names it first |
 | Turning on email | Acts after approval | Needs the owner to accept the email policy |
 | Publishing, making an app public, sharing | Owner only | Through the owner's own accounts and buttons |
 
 **What it does when unsure**
-- Unclear idea: asks one question with numbered options, up to two more after the three if a screen is still in doubt. Then plans, and lists what's still open as an assumption.
+- Unclear idea: asks one question at a time with numbered options, at least three, and keeps going until it is about 95% sure. After a safety cap of ten questions, it plans and lists what's still open as an assumption.
+- Outside service it can't work out or can't support: says so plainly. For example, a service that issues a new refresh token on every refresh isn't supported yet.
 - Owner says "just build it": stops asking and plans with sensible choices, listed as assumptions.
 - Unclear change request: makes it with sensible choices, and only asks when it can't tell what they want.
 - Request it can't build exactly: builds the closest version that works and says what's different.

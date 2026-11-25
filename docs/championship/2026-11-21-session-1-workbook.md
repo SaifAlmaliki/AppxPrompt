@@ -46,13 +46,14 @@ The agent decides which screens the app needs, plans them, and builds them. The 
 ### C. Why an agent?
 
 **Why does this need an agent, and not a simpler tool?**
-Every business needs a different app. A bakery needs a menu and pickup times. A salon needs stylists and booking slots. A property agent needs listings and viewing requests. A clinic needs its doctors, treatments and appointment requests. A fixed template builder makes the owner fit their business into someone else's layout. A chatbot gives them code they can't run. The agent works out which screens and data this particular business needs, asks when something is unclear, builds the screens one at a time, and fixes them when the owner asks for changes.
+Every business needs a different app. A bakery needs a menu and pickup times. A salon needs stylists and booking slots. A property agent needs listings and viewing requests. A clinic needs its doctors, treatments and appointment requests. A fixed template builder makes the owner fit their business into someone else's layout. A chatbot gives them code they can't run. The agent works out which screens and data this particular business needs, keeps asking questions until it is about 95% sure, builds the screens one at a time, and fixes them when the owner asks for changes.
 
 **What stays with a person?**
 - Approving the screen plan before the agent builds anything
 - Every change request after the first build
 - Publishing to the App Store, Google Play or the web. This always goes through the owner's own Expo account, never automatically.
 - One click to connect their own account. After that, the database, sign-in and file storage are prepared for them. They don't set those up or look after them.
+- Keys for outside services (an AI model, a calendar, payments). The owner brings their own accounts and enters the keys in a dialog the agent opens. The agent never sees the key values.
 - Prices, product details, and anything shown to real customers
 - Anything involving customer data
 - What the app stores is the owner's decision. The agent designs the database each project needs, and the data lives in the owner's own CloudHike account, so the owner is responsible for the rules that apply to their data.
@@ -87,7 +88,9 @@ We think a large share of UAE small businesses sell mainly through social media 
 ### F. Solution in one sentence (Explained)
 An agent that plans the screens with the owner, builds a working app after they approve, lets them try it on their phone by scanning a QR code, and hands over the full code and a publishing path they control. A chatbot would answer questions and stop. A template app builder would make the owner fit their business into a fixed layout.
 
-**What already works (from the prototype):** chat planning with a plan card to approve, screen-by-screen builds, a live preview, editing by chat and inline, five themes, a QR code for Expo Go, a CloudHike backend, AI images, ZIP export, push to GitHub, web publishing, Android and iOS build files, an English and Arabic interface, and Free and Pro plans through Stripe.
+**What already works (from the prototype):** chat planning that continues until the agent is about 95% sure, with a plan card to approve, screen-by-screen builds, a live preview, editing by chat and inline, five themes, a QR code for Expo Go, a CloudHike backend, AI images, ZIP export, push to GitHub, web publishing, Android and iOS build files, an English and Arabic interface, and Free and Pro plans through Stripe.
+
+**Newer, not yet fully proven:** outside services and keys (the agent researches a service's official docs and opens a "Connect a service" dialog) are live behind a feature flag. Server functions for generated apps are built, and the first production test is pending. Published apps don't run server functions yet. Planned next: AI agents inside generated apps, and publishing server functions to the owner's own EAS Hosting.
 
 ---
 
@@ -167,7 +170,7 @@ Read the Step 1 sentence to someone outside the Championship. Can they say back 
 |---|---|---|
 | Real value and problem | Not yet | No interviews or "last time" story yet |
 | Technical execution | Some evidence | Working agent, live preview, builds and publishing |
-| Trust, safety and oversight | Started | Plan approval before builds, sandboxed preview, owner-controlled publishing; no written test results or data policy yet |
+| Trust, safety and oversight | Started | Plan approval before builds, sandboxed preview, owner-controlled publishing, encrypted keys that only the owner sees, server functions that run only in an isolated sandbox (first production test pending); no written test results or data policy yet |
 | Innovation and defensibility | Started | Plan-then-build agent, Arabic interface, owner keeps the code; no competitor comparison written yet |
 | Business viability | Started | Free and Pro pricing live in Stripe; no paying customers or cost-per-task numbers yet |
 | Pitch and communication | Started | A demo video exists (`appxprompt_demo_16x9_vo.mp4`) |
@@ -185,4 +188,4 @@ After your conversations, paste the workbook's prompt into ChatGPT or Claude wit
 - **Test access for judges:** a working link and a test account that stays active until the end of the Championship.
 - **Testing evidence:** for example, 20 app descriptions across different sectors, how many built successfully on the first try, what broke and how you fixed it.
 - **Cost per task:** model tokens for one plan plus one screen build, from your logs.
-- **Disclose limits:** for example, the agent can't take real payments without a backend set up, a free plan allows 5 screens, and builds need the background job service.
+- **Disclose limits:** for example, the agent can't take real payments without a backend set up, a free plan allows 5 screens, and builds need the background job service. Also: published apps don't run server functions yet, and the owner brings and pays for their own accounts for outside services.

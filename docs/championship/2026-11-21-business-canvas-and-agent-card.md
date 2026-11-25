@@ -66,7 +66,9 @@ Every business needs a different app, so the steps change each time. The agent d
 - **Result:** a working Expo (React Native) app with screens, sample data, five themes, and sign-in. They can tap through it in the browser, open it on their phone with a QR code, publish it as a website or Android and iOS build files, download it as a ZIP, or push it to GitHub.
 
 **What is already working in your prototype?** (Built)
-- Three-question interview, then a screen plan the owner must confirm
+- Interview of at least three questions, one at a time, that continues until the agent is about 95% sure, then a screen plan the owner must confirm. The plan names where the app's content comes from and which outside services it needs
+- Outside services and keys (live behind a feature flag): the agent researches a service's official docs, works out the credentials it needs, and opens a "Connect a service" dialog. Keys are encrypted and only the owner sees them
+- Server functions for generated apps (built, first production test pending): they run only in an isolated sandbox per project
 - Screens built one at a time in background jobs, with live progress
 - Live preview in a sandboxed frame, plus a code view
 - Editing by chat and by clicking any element
@@ -202,7 +204,7 @@ The business owner pays a subscription:
 - **Free:** 2 projects, 5 screens each, 100 one-time credits, web publishing, ZIP and GitHub
 - **Pro:** $19 a month (about AED 70), unlimited projects, 10 screens each, 1,000 credits a month, Android and iOS builds
 
-Credits: a new screen is 10, a round of changes is 5, an AI image is 1. Chatting, planning and theme switches are free.
+Credits: a new screen is 10, a server function costs credits like a screen, a round of changes is 5, an AI image is 1. Chatting, planning and theme switches are free.
 
 **What does one completed task cost, incl. retries?**
 Estimate, to replace with real numbers from your logs. Model: Claude Sonnet 5.5 at about $2 per million input tokens and $10 per million output tokens.
@@ -223,6 +225,8 @@ Pro subscriptions, then an agency plan. **[FILL IN]** Self-funded today? Say so,
 
 **Which models, tools and data does it use?** (Built)
 - **Model:** Claude Sonnet 5.5 through Anthropic's OpenAI-compatible API, run with the OpenAI Agents SDK
+- **Web research:** Tavily search, plus a safe page reader, so the agent can read an outside service's official docs
+- **Server functions:** a server builder agent writes them, and Vercel Sandbox (`@vercel/sandbox`) runs them in isolation
 - **App:** Next.js 16, React 19, PostgreSQL with Drizzle
 - **Jobs, sign-in and storage:** CloudHike
 - **Generated apps:** Expo and React Native, previewed with react-native-web and Expo Snack
@@ -232,7 +236,7 @@ Pro subscriptions, then an agency plan. **[FILL IN]** Self-funded today? Say so,
 - **Monitoring:** Sentry
 
 **What are the workflow and approval points?**
-Interview, then the plan card, which the owner must confirm. After that, every change is a chat request from the owner. Connecting a backend, deploying it, accepting the email policy and publishing are all owner actions. See the Agent Card below.
+Interview (until the agent is about 95% sure), then the plan card, which the owner must confirm. If the app needs an outside service, the agent opens a dialog and the owner enters their own keys. After that, every change is a chat request from the owner. Connecting a backend, deploying it, accepting the email policy and publishing are all owner actions. See the Agent Card below.
 
 **How are user data and access protected?** (Built)
 - Generated code runs in a sandboxed frame that can't reach the site's cookies or storage
@@ -241,6 +245,11 @@ Interview, then the plan card, which the owner must confirm. After that, every c
 - Only the owner can change a project; shared projects are view-only
 - Public apps run on sample data only, so visitors can't reach the owner's backend
 - Deleting a project removes its rows and uploaded files
+- Keys for outside services (API keys, the owner's own OAuth client ID and secret, OAuth refresh tokens) are encrypted in the database, and only the owner sees or changes them. The dialog lists exactly which hosts each key is sent to
+- Keys pasted into the chat are removed before they're saved, also removed from error reports, and old chat history got a one-time cleanup
+- Server functions (built, first production test pending) run only in an isolated sandbox per project, never on AppxPrompt's own servers. Network access is limited to the connected services' hosts, keys are delivered over stdin only, and two start-up self-checks refuse to run if anything is off
+- Only the owner's preview and Expo Go can call server functions, with a short-lived pass. Shared viewers and public visitors never see server code
+- The web page reader only reads public pages, blocks internal addresses, and treats page text as reference, not instructions
 
 **What tests, failures and retests prove reliability?**
 **[MEASURE]** Run 20 standard and hard test prompts across sectors (shop, clinic, salon, restaurant, real estate, Arabic prompt, vague prompt, very large idea). For each, record: built on first try or not, screens that failed the rule check, screens fixed by the automatic rewrite, time to finish, and credits used. Include at least one failure and the fix. The project also has automated tests (`npm test`) for the language files.
@@ -248,7 +257,7 @@ Interview, then the plan card, which the owner must confirm. After that, every c
 ## 12. Key Partners and Scale (feeds slide 11)
 
 **Which partners or platforms are essential?**
-Anthropic (model), CloudHike (jobs, sign-in, storage and app backends), Expo (preview on phones and publishing), Stripe (payments), ImageKit (images), Vercel (hosting).
+Anthropic (model), CloudHike (jobs, sign-in, storage and app backends), Expo (preview on phones and publishing), Stripe (payments), ImageKit (images), Vercel (hosting, and the sandbox that runs server functions), Tavily (web search for the agent).
 
 **What dependencies and risks could block growth?**
 - Model cost and changes at Anthropic
@@ -256,6 +265,7 @@ Anthropic (model), CloudHike (jobs, sign-in, storage and app backends), Expo (pr
 - Phone preview needs Expo Go for SDK 54
 - iOS publishing needs the owner's own Apple developer account
 - Background jobs depend on CloudHike Jobs
+- Server functions depend on Vercel Sandbox, and the first production test is still pending. Per-user daily sandbox caps and a platform-wide ceiling are planned before opening widely
 
 **How will you handle more users and requests?**
 Every build step already runs as its own background job, so builds don't depend on one long server request. Credits limit cost per user. Next: prompt caching and model choice per step to lower cost.
@@ -275,20 +285,24 @@ Turn a small business owner's description of their business into a working mobil
 The owner types their idea on the AppxPrompt home page (they can attach images, PDFs or text files) and creates a project. The agent starts on its own when the workspace opens.
 
 ## 3. Workflow
-1. Reads the idea and asks three questions, one at a time: who it's for, what they must be able to do, and which parts need their own screen
-2. Proposes a screen plan as a card: screens, navigation, design direction, and assumptions
+1. Reads the idea and asks at least three questions, one at a time, and keeps asking until it is about 95% sure: who it's for, what they must be able to do, which parts need their own screen, where the app's main content comes from (for example a live feed from an API, an admin list, or user content), and which outside services power key features. The first plan is refused in code until the agent reports at least 95% confidence with no open decisions, up to a safety cap of ten questions. After that, open items appear as stated assumptions. The owner can still say "just build it"
+2. Proposes a screen plan as a card: screens, navigation, design direction, the content source, each outside service, and assumptions. Sample data is labelled as sample
 3. Revises the plan from the owner's feedback until they confirm it
-4. Charges credits for the build, then designs the foundation: five themes and the app's sample data
-5. Designs and builds a library of shared components
-6. Builds each screen in a background job, streaming the code live
-7. Checks each screen against the rules (compiles, has a default export, uses only allowed imports, theme colors, and known data). If a check fails, it rewrites the screen once
-8. Shows the running app in the preview. The owner can scan a QR code to open it on their phone
-9. Takes change requests by chat or by clicking an element, and rebuilds only the affected screens and components
-10. When the owner asks, sets up the backend in their CloudHike account and helps them publish
+4. If the app needs an outside service (an AI model, calendar, payments, social posting), researches the service's official docs, works out the exact credentials and opens a "Connect a service" dialog for the owner (live behind a feature flag)
+5. Charges credits for the build, then designs the foundation: five themes and the app's sample data
+6. Plans and writes server functions alongside the screens, when the app needs them (built, first production test pending)
+7. Designs and builds a library of shared components
+8. Builds each screen in a background job, streaming the code live
+9. Checks each screen against the rules (compiles, has a default export, uses only allowed imports, theme colors, and known data). If a check fails, it rewrites the screen once
+10. Shows the running app in the preview. The owner can scan a QR code to open it on their phone
+11. Takes change requests by chat or by clicking an element, and rebuilds only the affected screens and components
+12. When the owner asks, sets up the backend in their CloudHike account and helps them publish
 
 ## 4. Tools and integrations
 - Claude Sonnet 5.5 through the OpenAI Agents SDK
-- Agent tools: `propose_plan`, `confirm_plan`, `update_app`, `set_theme`, `setup_backend`
+- Agent tools: `propose_plan`, `confirm_plan`, `update_app`, `set_theme`, `setup_backend`, `register_service`
+- Tavily web search and a safe page reader, to research outside services (live behind a feature flag)
+- A server builder agent that writes server functions, and Vercel Sandbox (`@vercel/sandbox`) to run them (built, first production test pending)
 - CloudHike: jobs, sign-in, storage, and app backends
 - Expo Snack for phones, Expo Application Services for publishing
 - ImageKit for AI images
@@ -301,8 +315,9 @@ The owner types their idea on the AppxPrompt home page (they can attach images, 
 - The owner's plan and credit balance
 - Backend status (connected or not)
 - Fixed rules and lists of allowed packages and components
+- Public web pages, only to research the official docs of an outside service the owner asks for (live behind a feature flag). Page text is treated as reference, not instructions
 
-The agent does not browse the web or read other users' projects.
+The agent does not read other users' projects, and it never sees the values of the owner's keys.
 
 ## 6. Shape
 Six agents:
@@ -316,14 +331,17 @@ Six agents:
 ## 7. Human approval points
 - Confirming the screen plan before any build or credit charge
 - Every change after the first build (the owner's request is the approval)
-- Connecting CloudHike, which the owner does themselves. The agent never asks for keys or passwords.
+- Connecting CloudHike, which the owner does themselves. The agent never asks for keys or passwords in the chat.
+- Connecting an outside service: the owner enters their own keys in the "Connect a service" dialog. They bring and pay for their own accounts, and AppxPrompt provides none
 - Deploying the backend, which the agent names and says is billed to the owner's account
 - Accepting CloudHike's email policy before email is turned on
 - Publishing to the web, Android or iOS, through the owner's own Expo account
 - Making an app public, and sharing it with someone by email
 
 ## 8. When unsure or it fails
-- **Unclear request:** asks one question, or picks sensible choices and lists them as assumptions in the plan
+- **Unclear request:** asks one question at a time until it is about 95% sure, or picks sensible choices and lists them as assumptions in the plan (after ten questions, or when the owner says "just build it")
+- **Key pasted in the chat:** the key is removed before the message is saved, and the owner is pointed to the dialog
+- **Server function sandbox fails a start-up check:** it refuses to run, and calls answer "unavailable"
 - **Request it can't build exactly:** builds the closest version that works and says what's different
 - **Screen breaks the rules:** rewrites it once automatically. If it still won't run, the screen is marked failed and the unbuilt credits are refunded
 - **Out of credits or over a plan limit:** says so plainly and shows the upgrade prompt, without claiming the work happened
@@ -335,6 +353,8 @@ Six agents:
 - Projects, chats and screens are stored in PostgreSQL; attached files in CloudHike Storage
 - Expo, GitHub and CloudHike tokens are encrypted on the server and never sent to the browser
 - Generated code runs in a sandboxed frame without access to the site's cookies or storage
+- Keys for outside services are encrypted in the database and visible only to the owner. Keys pasted in the chat are removed before saving and from error reports
+- Server functions run only in an isolated sandbox per project, and the owner-only Activity tab lists calls (time, function, result, service, duration) without storing anything sensitive
 - An app's own data lives in the owner's CloudHike database, not in AppxPrompt's
 - Public apps show sample data only
 - Deleting a project removes its rows and uploaded files
@@ -352,7 +372,7 @@ Estimate for a 4-screen app, to replace with measured numbers:
 
 ## 11. Built and planned
 **Built:**
-- Interview, plan approval and screen-by-screen builds
+- Interview until the agent is about 95% sure, plan approval and screen-by-screen builds
 - Live preview, code view and QR code for phones
 - Editing by chat and by clicking, with themes and shared components
 - AI images
@@ -360,17 +380,23 @@ Estimate for a 4-screen app, to replace with measured numbers:
 - ZIP export, push to GitHub, web publishing, and Android and iOS build files
 - English and Arabic interface
 - Free and Pro plans with Stripe
+- Outside services and keys: web research of official docs, a "Connect a service" dialog, encrypted keys (live behind a feature flag)
+- Server functions in an isolated sandbox, with a fair-use cap, an owner-only Activity tab and a per-user allow-list for staged rollout (built, first production test pending). Each server function costs credits like a screen
 
 **Planned:**
+- AI agents inside generated apps (for example a booking assistant), whose instructions the owner edits in an Agent tab and end users can't see
+- Publishing server functions to the owner's own EAS Hosting with their keys, so published apps call their own servers
+- Per-user daily sandbox caps and a platform-wide ceiling, before opening widely
 - Version history and restoring an earlier version
 - Real payments inside generated apps
-- Server code for generated apps (so jobs and Redis can be used)
 - Offline support in generated apps
 - **[FILL IN]** anything else you plan before the Grand Finale
 
 ## 12. Limitations
 - Builds at most 10 screens per app (5 on Free), and plans 3 by default unless the owner asks for more
 - Generated apps can't take real payments yet
+- Published apps don't run server functions yet: they work in the owner's preview and Expo Go, and publishing them is planned. Background jobs and Redis aren't wired to generated apps either
+- The owner brings and pays for their own accounts and keys for outside services, and is responsible for their limits and spending. AppxPrompt provides none
 - No offline mode in generated apps: writes need a connection
 - No version history yet
 - Phone preview needs Expo Go for SDK 54

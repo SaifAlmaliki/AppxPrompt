@@ -69,7 +69,7 @@ Bonus: one real quote from an owner you interviewed. **[FILL IN]**
 
 **On the slide:**
 - The embedded 2-minute demo video (Part 2 below)
-- A small workflow strip: Idea → 3 questions → Plan card → **Owner approves** → Themes and data → Components → Screens, each checked → Preview on phone → Owner publishes
+- A small workflow strip: Idea → questions until confident → Plan card (screens, content source, services) → **Owner approves** → (key dialog for outside services) → Themes and data → Server functions → Components → Screens, each checked → Preview on phone → Owner publishes
 - Built vs planned, in two short lists (from Agent Card section 11)
 
 **Say (10 seconds, before playing):**
@@ -82,13 +82,14 @@ Bonus: one real quote from an owner you interviewed. **[FILL IN]**
 **On the slide:** one diagram.
 - **Input:** owner's prompt and chat
 - **AI:** Claude Sonnet 5.5, run as six agents with the OpenAI Agents SDK (Planner, Foundation Designer, Data Designer, Component Designer, Component Builder, Screen Builder)
-- **Tools:** background jobs (CloudHike), live preview (react-native-web, Expo Snack), images (ImageKit), backend (owner's CloudHike account), publishing (owner's Expo account)
+- **Tools:** background jobs (CloudHike), live preview (react-native-web, Expo Snack), images (ImageKit), backend (owner's CloudHike account), publishing (owner's Expo account), web research (Tavily search and a safe page reader), a server builder agent, and Vercel Sandbox (`@vercel/sandbox`) for server functions
 - **Result:** a working Expo app
-- **Mark in color:** the human approval points (plan confirmation, backend connection, publishing) and the escalation path (questions, refunds, plain error messages)
-- **Data box:** sandboxed preview, encrypted tokens, the agent never sees the owner's keys, public apps run on sample data only
+- **Mark in color:** the human approval points (plan confirmation, outside-service keys, backend connection, publishing) and the escalation path (questions, refunds, plain error messages)
+- **Data box:** sandboxed preview, encrypted tokens and keys, the agent never sees the owner's keys, keys pasted in the chat are removed before saving, public apps run on sample data only
+- **Server functions box** (built, first production test pending): run only in an isolated sandbox per project, network limited to the connected services, keys delivered over stdin only, two start-up self-checks, fair-use caps. Only the owner's preview and Expo Go can call them. Published apps don't run them yet (planned)
 
 **Say (35 seconds):**
-"Six specialized agents share the work, powered by Claude. Nothing gets built until the owner approves the plan. Every screen is checked against rules before it's saved, and rewritten once if it fails. Generated code runs in a sandbox, so it can't touch anyone's account. The app's data lives in the owner's own backend, not ours, and publishing always goes through the owner's own Expo account. The agent never asks for passwords and never publishes on its own."
+"Six specialized agents share the work, powered by Claude. Nothing gets built until the owner approves the plan. Every screen is checked against rules before it's saved, and rewritten once if it fails. Generated code runs in a sandbox, so it can't touch anyone's account. The app's data lives in the owner's own backend, not ours, and publishing always goes through the owner's own Expo account. When an app needs an outside service, the agent reads that service's official docs and opens a dialog for the owner's own keys. Those keys are encrypted, and only the owner sees them. The agent never asks for passwords and never publishes on its own."
 
 ## Slide 6: Performance metrics
 
@@ -171,7 +172,8 @@ Note: the Arabic interface is a real change you've already made. If it came from
 - **Milestone 1 (by [FILL IN date]):** 10 pilot owners with live apps
 - **Milestone 2 (by [FILL IN date]):** first-try build success rate of at least [FILL IN]% on 50 test prompts
 - **Milestone 3 (by [FILL IN date]):** 100 paying users
-- Next features: version history, payments inside generated apps, server code for apps
+- **Built, first production test pending:** server functions for generated apps
+- Next features: AI agents inside generated apps (phase 4), publishing server functions to the owner's own EAS Hosting (phase 5), version history, payments inside generated apps
 - Needs: funding for pilot model costs **[FILL IN amount]**, an Arabic content creator, SME program partnerships
 
 **Say (20 seconds):**
@@ -223,11 +225,11 @@ You already have `appxprompt_demo_16x9_vo.mp4`. Compare it with this storyboard.
 
 ### 0:22 to 0:46. Agent at work
 
-**Screen:** type the idea on the home page. The agent asks its first question with numbered options; answer with a number. Cut through the other two questions. The plan card appears. Click **Confirm & build**, and highlight the button.
+**Screen:** type the idea on the home page. The agent asks its first question with numbered options; answer with a number. Cut through the remaining questions (it keeps asking until it's about 95% sure). The plan card appears, with the screens, where the content comes from and any outside services. Click **Confirm & build**, and highlight the button.
 **On-screen text:** "The owner approves before anything is built."
 
 **Say (about 55 words):**
-"I describe the shop in one sentence. The agent doesn't guess: it asks three short questions, about who the customers are and what they need to do. Then it proposes a plan, with the screens, navigation and design. Nothing gets built until I approve it. I click Confirm and build."
+"I describe the shop in one sentence. The agent doesn't guess: it asks short questions, one at a time, until it's sure: who the customers are, what they need to do, where the content comes from. Then it proposes a plan, with the screens, navigation and design. Nothing gets built until I approve it. I click Confirm and build."
 
 ### 0:46 to 1:16. How it works
 
