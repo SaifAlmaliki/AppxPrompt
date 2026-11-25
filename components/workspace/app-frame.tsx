@@ -33,6 +33,8 @@ export function AppFrame({
   editMode = false,
   selectParentSignal = 0,
   clearSelectionSignal = 0,
+  sandboxToken = "",
+  onServiceNeeded,
   onElementSelected,
   onElementMoved,
   onElementChanged,
@@ -57,6 +59,10 @@ export function AppFrame({
   selectParentSignal?: number
   /** Change this to clear the selection. */
   clearSelectionSignal?: number
+  /** The owner's token for the app's server functions. Only an interactive frame gets it, and a new one never restarts the app. */
+  sandboxToken?: string
+  /** A server function answered that this service isn't connected yet. */
+  onServiceNeeded?: (slug: string) => void
   onElementSelected?: (element: InspectedElement | null) => void
   onElementMoved?: (rect: ElementRect) => void
   onElementChanged?: (change: Pick<InspectedElement, "computed" | "label" | "instances">) => void
@@ -86,10 +92,12 @@ export function AppFrame({
 
   // The latest values, for when the frame reports it's ready.
   const latest = React.useRef({ project, theme, route, interactive, syncing, edits })
-  const handlers = React.useRef({ onElementSelected, onElementMoved, onElementChanged, onEditEscape })
+  const latestToken = React.useRef({ interactive, sandboxToken })
+  const handlers = React.useRef({ onServiceNeeded, onElementSelected, onElementMoved, onElementChanged, onEditEscape })
   React.useEffect(() => {
     latest.current = { project, theme, route, interactive, syncing, edits }
-    handlers.current = { onElementSelected, onElementMoved, onElementChanged, onEditEscape }
+    latestToken.current = { interactive, sandboxToken }
+    handlers.current = { onServiceNeeded, onElementSelected, onElementMoved, onElementChanged, onEditEscape }
   })
 
   React.useEffect(() => {
@@ -98,6 +106,7 @@ export function AppFrame({
       const message = event.data
       if (message.type === "ready") {
         post({ type: "load", ...latest.current, storage: ensurePreviewDevice(projectId) })
+        if (latestToken.current.interactive) post({ type: "sandbox-token", token: latestToken.current.sandboxToken })
         setReady(true)
       } else if (message.type === "storage-write" && typeof message.key === "string") {
         writePreviewStorage(projectId, message.key, message.value, event.source)
@@ -110,6 +119,8 @@ export function AppFrame({
         handlers.current.onElementChanged?.({ computed, label, instances })
       } else if (message.type === "edit-escape") {
         handlers.current.onEditEscape?.()
+      } else if (message.type === "service-needed" && latestToken.current.interactive && typeof message.slug === "string" && message.slug.length <= 40) {
+        handlers.current.onServiceNeeded?.(message.slug)
       }
     }
     window.addEventListener("message", onMessage)
@@ -136,6 +147,13 @@ export function AppFrame({
     if (ready && sentTheme.current !== theme) post({ type: "theme", theme })
     sentTheme.current = theme
   }, [post, ready, theme])
+
+  // `load` carried the first token, so this only sends a renewed one.
+  const sentToken = React.useRef(sandboxToken)
+  React.useEffect(() => {
+    if (ready && interactive && sentToken.current !== sandboxToken) post({ type: "sandbox-token", token: sandboxToken })
+    sentToken.current = sandboxToken
+  }, [interactive, post, ready, sandboxToken])
 
   const sentSyncing = React.useRef(syncing)
   React.useEffect(() => {

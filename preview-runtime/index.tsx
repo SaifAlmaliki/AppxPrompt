@@ -11,6 +11,7 @@ import { clearSelection, selectParent, setEditMode, setElementEdits } from "./in
 import { loadFile, loadedExports, resetModules, setFiles } from "./modules"
 import { INSETS, Ionicons, Overlays } from "./native"
 import { ScreenContext, findScreen, resetStack, router, setPinned, useStack, type StackEntry } from "./router"
+import { setSandboxToken, setServerInteractive } from "./server"
 
 let project: PreviewProject = { files: [], screens: [] }
 let initialRoute = "/"
@@ -51,6 +52,7 @@ window.addEventListener("message", (event: MessageEvent<HostMessage>) => {
       initialRoute = message.route
       document.documentElement.dataset.interactive = String(message.interactive)
       setPinned(!message.interactive)
+      setServerInteractive(message.interactive === true)
       setStorageSnapshot(message.storage)
       applyTheme(message.theme)
       setElementEdits(message.edits)
@@ -58,6 +60,9 @@ window.addEventListener("message", (event: MessageEvent<HostMessage>) => {
       resetStack(initialRoute)
       setSyncing(message.syncing)
       restart()
+      break
+    case "sandbox-token":
+      if (typeof message.token === "string") setSandboxToken(message.token)
       break
     case "syncing":
       setSyncing(message.syncing)

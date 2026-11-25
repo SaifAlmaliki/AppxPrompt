@@ -12,6 +12,7 @@ import { AsyncStorage } from "./host"
 import { elementEdit, subscribeElementEdits } from "./inspector"
 import { Ionicons, LinearGradient, expoModules, reactNative, safeAreaContext, vectorIcons } from "./native"
 import { expoRouter } from "./router"
+import { previewServerConfig, watchServerResponses } from "./server"
 
 /**
  * Elements that end up in the DOM. Each one is stamped with where it's written
@@ -111,8 +112,29 @@ function resolve(specifier: string, from: string) {
   return EXTENSIONS.map((extension) => base + extension).find((path) => files.has(path))
 }
 
+const SERVER_CONFIG_FILE = "lib/server/config.ts"
+
+// One view per load of the config file, so every import shares it.
+const serverConfigs = new WeakMap<object, unknown>()
+
+function serverConfig(exports: Record<string, unknown>) {
+  let config = serverConfigs.get(exports)
+  if (!config) {
+    config = previewServerConfig(exports as { SERVER_BASE_URL: string; SERVER_TOKEN: string | null })
+    serverConfigs.set(exports, config)
+  }
+  return config
+}
+
+// The app's calls to its own server go through here, to learn when a service isn't connected yet.
+globalThis.fetch = watchServerResponses(
+  globalThis.fetch,
+  () => (loadedExports(SERVER_CONFIG_FILE)?.SERVER_BASE_URL as string | undefined) ?? null
+)
+
 function requireFrom(from: string, specifier: string): unknown {
   if (specifier in PACKAGES) return PACKAGES[specifier]
+  if (specifier === "@/lib/server/config" && files.has(SERVER_CONFIG_FILE)) return serverConfig(loadFile(SERVER_CONFIG_FILE).exports)
   const path = resolve(specifier, from)
   if (!path) throw new Error(`"${specifier}" isn't available in the preview.`)
   return loadFile(path).exports

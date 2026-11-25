@@ -91,6 +91,8 @@ export type HostMessage =
     }
   | { type: "project"; project: PreviewProject }
   | { type: "syncing"; syncing: boolean }
+  /** The owner's sandbox token for the app's server functions, "" for none. Only sent to interactive frames, and applied without a restart. */
+  | { type: "sandbox-token"; token: string }
   /** Only updates CSS variables: the app isn't rebuilt or even re-rendered. */
   | { type: "theme"; theme: AppTheme | null }
   /** Another frame changed the data, or it was reset. */
@@ -113,3 +115,5 @@ export type FrameMessage =
   /** The selected element was drawn differently, after an edit. */
   | { type: "element-changed"; computed: Record<string, string>; label: string; instances: number }
   | { type: "edit-escape" }
+  /** A server function answered that this service isn't connected yet. */
+  | { type: "service-needed"; slug: string }
