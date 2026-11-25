@@ -5,6 +5,7 @@ import { messageWithElement, type AgentEvent, type AgentRequest, type ElementCon
 import { activeBuild, followBuild, startBuild } from "@/lib/agent/builds"
 import { applyAppChanges } from "@/lib/agent/changes"
 import { runPlannerTurn } from "@/lib/agent/planner"
+import { emitServices } from "@/lib/agent/services-event"
 import { getRun, startRun, type ProjectRun } from "@/lib/agent/runs"
 import { assertCanUseAgent, chargeForBuild, PlanLimitError, planLimitResponse, refundCharge, type BuildCharge } from "@/lib/billing/credits"
 import { requestLocale } from "@/i18n/request"
@@ -160,7 +161,7 @@ async function respond(run: ProjectRun, project: Project, user: SessionUser, t: 
       })
     : plan!
   if (changes && changes.removedServices.length > 0) {
-    run.emit({ type: "services", services: await listServiceSummaries(project.id) })
+    await emitServices((event) => run.emit(event), () => listServiceSummaries(project.id))
   }
   // Keeps this request's stream going through the build. `startRun` sends the final `done`.
   const build = await startBuild(project, nextPlan, changes ? [{ type: "plan", plan: nextPlan }] : [], charge)

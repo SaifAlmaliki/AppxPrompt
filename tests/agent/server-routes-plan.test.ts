@@ -35,6 +35,12 @@ describe("normalizeServerRoutes", () => {
     expect(normalizeServerRoutes([], { ...ON, enabled: false })).toEqual([])
   })
 
+  it("refuses agent routes until they exist, telling the model what to do instead", () => {
+    expect(normalizeServerRoutes([route(), route({ kind: "agent", id: "assistant", path: "app/api/assistant+api.ts" })], ON)).toBe(
+      "AI agent routes aren't available yet; plan this as a function route.",
+    )
+  })
+
   it("requires app/api/<name>+api.ts", () => {
     expect(normalizeServerRoutes([route({ path: "app/booking+api.ts" })], ON)).toContain("app/api/")
   })

@@ -87,6 +87,9 @@ function linksTo(code: string, slug: string) {
   return new RegExp(`["'\`]/${slug}(?:["'\`?])`).test(code)
 }
 
+// Phase 4 adds them. Until then the model plans the same work as a function route.
+const AGENT_ROUTES_UNAVAILABLE = "AI agent routes aren't available yet; plan this as a function route."
+
 /** The server functions as they'll be saved, or the first reason they can't be. */
 export function normalizeServerRoutes(input: PlannedServerRoute[], options: ServerRouteOptions): PlannedServerRoute[] | string {
   if (input.length === 0) return []
@@ -97,6 +100,7 @@ export function normalizeServerRoutes(input: PlannedServerRoute[], options: Serv
   const ids = new Set<string>()
   const routes: PlannedServerRoute[] = []
   for (const route of input) {
+    if (route.kind === "agent") return AGENT_ROUTES_UNAVAILABLE
     if (!API_ROUTE_FILE.test(route.path)) {
       return `${route.path} isn't a server function path. Use app/api/<name>+api.ts.`
     }
