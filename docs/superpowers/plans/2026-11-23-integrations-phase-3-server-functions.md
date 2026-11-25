@@ -1505,3 +1505,32 @@ Use `APP_INTEGRATIONS=1 SANDBOX_PROVIDER=vercel npm run dev` with a tunnel as `N
 git add docs/app-builder-roadmap.md .env.example
 git commit -m "docs: server functions while building"
 ```
+
+---
+
+### Task 18: The Activity panel (added 2026-11-25 at the owner's request)
+
+The owner needs to see whether their app's server functions are called and what came back, without anything sensitive being stored.
+
+**Files:**
+- Modify: `db/schema.ts` (a `server_route_calls` table) plus a generated migration (not applied), `app/api/apps/[projectId]/server/[...path]/route.ts` (Task 11)
+- Create: `lib/server-routes/activity.ts`, `app/api/projects/[projectId]/activity/route.ts`, `components/workspace/activity-panel.tsx`
+- Modify: `components/workspace/preview-panel.tsx` (an owner-only "Activity" tab next to Code), `messages/en.json`, `messages/ar.json`
+- Test: `tests/server-routes/activity.test.ts`
+
+**Interfaces:**
+- The table `server_route_calls` has `id`, `projectId` (cascade), `path` (the API URL, never with a query string), `method`, `status` (HTTP status), `errorCode` (`not_connected` | `sign_in` | `bad_request` | `unavailable` | `preview` | null), `service` (slug or null), `durationMs`, and `createdAt`. Nothing else is stored: no request or response body, no headers, no query, no IP.
+- `recordServerCall(entry): Promise<void>` never throws, because a failure to record must not break the call. Each project keeps only its newest 200 rows, and older ones are deleted when a new one is inserted.
+- `listServerCalls(projectId, limit = 100)` returns the newest first.
+- The proxy route records every call that passed the token check. The error code and service are parsed from the standard error body. Calls rejected before that (no or bad token, rate limit, flag off) are not recorded.
+- `GET /api/projects/[projectId]/activity` is owner only and returns `{ calls }`.
+- The **Activity** tab lists the calls with time, function, result ("ok", or the error code in words, with the service name) and duration. It has a Refresh button, and refreshes itself every 5 s while visible. When there are no calls, it says how to make one.
+
+**Steps:** write the failing tests for `recordServerCall` (the keep-200 trim and never throwing) and the error-body parsing as pure helpers. Implement. Add every interface string to en and ar. Then run `npm test`, `npx tsc --noEmit`, and commit `feat(workspace): Activity panel for server function calls`.
+
+### Production self-checks (added 2026-11-25, replaces the live spike)
+
+The owner chose to test in production on Vercel instead of running Task 1's live spike. Task 1 becomes reading the SDK types only: install `@vercel/sandbox`, confirm the names, and record them in Decisions. Task 10 adds two checks the runner runs every time a VM starts, before the VM serves any request:
+1. **Egress check:** the runtime has an internal `/__selfcheck` (behind `x-appxprompt-internal`). It tries `fetch("https://example.com")` with the real, unguarded host fetch and reports `{ egressBlocked: boolean, envKeys: number }`. If `egressBlocked` is false, the runner stops the VM, marks the project's sandbox unavailable, and every call answers `unavailable`. It also logs one line without project data. Running unprotected is never an option.
+2. **Credential delivery:** `envKeys` must equal the number of secret names in the bundle. If it doesn't, the VM is stopped and the call answers `unavailable`.
+Both results go in the ledger and in Decisions after the first production run.
