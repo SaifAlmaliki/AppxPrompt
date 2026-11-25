@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
 
   return NextResponse.json(
     {
-      project: previewProject(plan, rows.map(toProjectScreen)),
+      project: previewProject(plan, rows.map(toProjectScreen), { kind: "sandbox", projectId: project.id, token: null }),
       theme: activeTheme(plan?.themePackage),
     },
     { headers: { "Cache-Control": "no-store" } }

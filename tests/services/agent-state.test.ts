@@ -26,6 +26,7 @@ const start: AgentState = {
   status: "planning",
   plan: null,
   screens: [],
+  serverRoutes: [],
   backend: { accountConnected: false, state: "disconnected", services: [], error: null } as unknown as AgentState["backend"],
   services: [service("openai")],
   serviceRequest: null,

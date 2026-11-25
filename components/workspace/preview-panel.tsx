@@ -22,6 +22,7 @@ import {
 import { useHighlightedCode } from "@/hooks/use-highlighted-code"
 import type { WebPublishState } from "@/hooks/use-web-publish"
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
+import type { ServerTarget } from "@/lib/generated-app/server-files"
 import type { ElementEdits, PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import { resetPreviewStorage } from "@/lib/preview-storage"
 import { isWebPublishActive } from "@/lib/publish-protocol"
@@ -49,6 +50,10 @@ export function PreviewPanel({
   screens,
   app,
   appFiles,
+  serverFiles,
+  snackServer,
+  sandboxToken,
+  onServiceNeeded,
   syncing,
   edits,
   webPublish,
@@ -61,6 +66,14 @@ export function PreviewPanel({
   app: PreviewProject
   /** The generated files besides the screens. */
   appFiles: PreviewFile[]
+  /** The app's server code, listed after the other files. Only the owner gets any. */
+  serverFiles: PreviewFile[]
+  /** Where the phone's copy of the app reaches its server functions. */
+  snackServer: ServerTarget
+  /** The owner's pass to the app's server functions in the preview. Empty for anyone else. */
+  sandboxToken: string
+  /** A server function answered that this service isn't connected yet. */
+  onServiceNeeded: (slug: string) => void
   /** True while the agent is working on the screens. */
   syncing: boolean
   /** Edits made by hand, shown on top of the running code. */
@@ -87,7 +100,7 @@ export function PreviewPanel({
         </TabsList>
         {hasApp && (
           <div className="flex items-center gap-1">
-            <ExpoQrPopover plan={plan} screens={screens} />
+            <ExpoQrPopover plan={plan} screens={screens} snackServer={snackServer} />
             <PreviewAction label={t("resetData")} onClick={() => resetPreviewStorage(projectId)}>
               <RotateCcwIcon />
             </PreviewAction>
@@ -107,12 +120,14 @@ export function PreviewPanel({
           syncing={syncing}
           reloadSignal={reloadSignal}
           edits={edits}
+          sandboxToken={sandboxToken}
+          onServiceNeeded={onServiceNeeded}
           webPublish={webPublish}
           onOpenPublish={onOpenPublish}
         />
       </TabsContent>
       <TabsContent value="code" className="min-h-0">
-        <CodeView screens={screens} appFiles={appFiles} />
+        <CodeView screens={screens} appFiles={appFiles} serverFiles={serverFiles} />
       </TabsContent>
     </Tabs>
   )
@@ -146,6 +161,8 @@ function AppPreview({
   syncing,
   reloadSignal,
   edits,
+  sandboxToken,
+  onServiceNeeded,
   webPublish,
   onOpenPublish,
 }: {
@@ -155,6 +172,8 @@ function AppPreview({
   syncing: boolean
   reloadSignal: number
   edits: ElementEdits
+  sandboxToken: string
+  onServiceNeeded: (slug: string) => void
   webPublish: WebPublishState
   onOpenPublish: () => void
 }) {
@@ -181,6 +200,8 @@ function AppPreview({
                 syncing={syncing}
                 reloadSignal={reloadSignal}
                 edits={edits}
+                sandboxToken={sandboxToken}
+                onServiceNeeded={onServiceNeeded}
               />
             ) : (
               <>
@@ -263,11 +284,12 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
   )
 }
 
-function CodeView({ screens, appFiles }: { screens: ProjectScreen[]; appFiles: PreviewFile[] }) {
+function CodeView({ screens, appFiles, serverFiles }: { screens: ProjectScreen[]; appFiles: PreviewFile[]; serverFiles: PreviewFile[] }) {
   const t = useTranslations("preview.code")
   const files = [
     ...screens.filter((s) => s.code !== null),
     ...appFiles.map((file) => ({ filePath: file.path, code: file.code })),
+    ...serverFiles.map((file) => ({ filePath: file.path, code: file.code })),
   ]
   const generating = screens.find((s) => s.status === "generating")
   const [chosenPath, setChosenPath] = React.useState<string | null>(null)

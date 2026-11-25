@@ -72,7 +72,8 @@ async function saveFile(request: Request, { params }: { params: Promise<{ projec
   }
 
   const names = library.map((other) => other.name)
-  const unknown = newProblem((file) => screenImportProblem(file, names))
+  const routePaths = project.plan.serverRoutes?.length ? project.plan.serverRoutes.map((route) => route.path) : null
+  const unknown = newProblem((file) => screenImportProblem(file, names, routePaths))
   if (unknown) return error("editRejected", 422, { problem: unknown })
   const saved = await db
     .update(screens)

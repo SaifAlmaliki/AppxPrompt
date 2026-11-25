@@ -6,11 +6,13 @@ import { LayoutGridIcon, MessageSquareIcon, SmartphoneIcon } from "lucide-react"
 
 import { useInlineEditor } from "@/hooks/use-inline-editor"
 import { useProjectAgent } from "@/hooks/use-project-agent"
+import { useSandboxToken } from "@/hooks/use-sandbox-token"
 import { useWebPublish } from "@/hooks/use-web-publish"
 import { useAuth } from "@/lib/auth-client"
-import { projectSlug } from "@/lib/generated-app/export-project"
+import { filesForRole, projectSlug } from "@/lib/generated-app/export-project"
 import { generatedAppFiles, previewProject } from "@/lib/generated-app/project-files"
-import { isRunnable, type AppPlan, type ChatMessage, type ProjectScreen } from "@/lib/agent-protocol"
+import { generatedServerFiles, type ServerTarget } from "@/lib/generated-app/server-files"
+import { isRunnable, type AppPlan, type ChatMessage, type ProjectScreen, type ProjectServerRoute } from "@/lib/agent-protocol"
 import type { BackendConnectResult, BackendStatus } from "@/lib/backend-protocol"
 import type { GitHubConnectResult } from "@/lib/github-protocol"
 import type { ProjectPlatform, ProjectStatus } from "@/lib/projects"
@@ -54,6 +56,8 @@ export function WorkspaceLayout({
   imageTools,
   messages,
   screens,
+  serverRoutes,
+  sandboxToken,
   backend,
   backendConnectResult,
   githubConnectResult,
@@ -73,6 +77,10 @@ export function WorkspaceLayout({
   credits: number
   messages: ChatMessage[]
   screens: ProjectScreen[]
+  /** The app's server functions, with their code. Empty for someone the project was shared with. */
+  serverRoutes: ProjectServerRoute[]
+  /** The owner's pass to the app's server functions in the sandbox. Null for anyone else. */
+  sandboxToken: string | null
   backend: BackendStatus
   /** How the browser's trip to CloudHike went, when it has just come back. */
   backendConnectResult: BackendConnectResult | null
@@ -96,9 +104,11 @@ export function WorkspaceLayout({
     status: project.status,
     plan: project.plan,
     screens,
+    serverRoutes,
     backend,
     services,
   }, readOnly)
+  const token = useSandboxToken(project.id, sandboxToken)
   const editor = useInlineEditor(project.id, agent, imageTools, readOnly)
   const { user, refresh: refreshAccount } = useAuth()
 
@@ -164,8 +174,20 @@ export function WorkspaceLayout({
     if (backendConnectResult === "connected") setUpBackendIfBuilt()
   }, [backendConnectResult, setUpBackendIfBuilt])
 
+  /** A server function says a service isn't connected: open that service's dialog, or the backend's. */
+  const onServiceNeeded = React.useCallback(
+    (slug: string) => {
+      if (readOnly) return
+      if (slug === "backend") setBackendDialogOpen(true)
+      else if (agent.services.some((service) => service.slug === slug)) openService(slug)
+    },
+    [readOnly, agent.services, openService]
+  )
+
   const header = (
     <WorkspaceHeader
+      projectId={project.id}
+      hasServer={Boolean(agent.plan?.serverRoutes?.length)}
       name={project.title}
       status={agent.status}
       platform={project.platform}
@@ -260,10 +282,28 @@ export function WorkspaceLayout({
     runningPlan?.collections ?? null,
     runningPlan?.backend ?? null,
     runningPlan?.components ?? null,
+    Boolean(runningPlan?.serverRoutes?.length),
     runningScreens.map((s) => [s.slug, s.position, s.status, isRunnable(s) ? s.code : null]),
   ])
-  const app = React.useMemo(() => previewProject(runningPlan, runningScreens), [runnableKey])
-  const appFiles = React.useMemo(() => generatedAppFiles(agent.plan), [agent.plan])
+  // The preview's config has no token, so renewing one never rebuilds the app. The frame hands it the token.
+  const previewServer = React.useMemo<ServerTarget>(() => ({ kind: "sandbox", projectId: project.id, token: null }), [project.id])
+  const app = React.useMemo(() => previewProject(runningPlan, runningScreens, previewServer), [runnableKey, previewServer])
+  const appFiles = React.useMemo(
+    () => filesForRole(generatedAppFiles(agent.plan, previewServer), readOnly ? "viewer" : "owner"),
+    [agent.plan, previewServer, readOnly]
+  )
+  // The server's code is the owner's alone.
+  const serverFiles = React.useMemo(
+    () =>
+      readOnly
+        ? []
+        : [
+            ...agent.serverRoutes.flatMap((route) => (route.code ? [{ path: route.path, code: route.code }] : [])),
+            ...generatedServerFiles(agent.plan),
+          ],
+    [readOnly, agent.serverRoutes, agent.plan]
+  )
+  const snackServer = React.useMemo<ServerTarget>(() => ({ kind: "sandbox", projectId: project.id, token }), [project.id, token])
   const syncing = agent.status === "building"
 
   const canvas = (
@@ -285,6 +325,10 @@ export function WorkspaceLayout({
       screens={agent.screens}
       app={app}
       appFiles={appFiles}
+      serverFiles={serverFiles}
+      snackServer={snackServer}
+      sandboxToken={token ?? ""}
+      onServiceNeeded={onServiceNeeded}
       syncing={syncing}
       edits={editor.edits}
       webPublish={webPublish}

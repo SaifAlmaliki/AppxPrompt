@@ -6,7 +6,7 @@ import { db, projectPublishing, projectShares, projects, screens, type Project }
 import { toProjectScreen } from "@/lib/agent-protocol"
 import { activeBuild } from "@/lib/agent/builds"
 import { getRun } from "@/lib/agent/runs"
-import { exportedProjectFiles, projectSlug, type ExportedFile } from "@/lib/generated-app/export-project"
+import { exportedProjectFiles, filesForRole, projectSlug, type ExportedFile } from "@/lib/generated-app/export-project"
 import { LocalizedError } from "@/lib/i18n/server"
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -37,7 +37,8 @@ export type LoadedExport = {
 /** Thrown when the project can't be exported right now, with a reason the person can act on. */
 export class ExportUnavailableError extends LocalizedError {}
 
-export async function loadProjectExport(project: Project): Promise<LoadedExport> {
+/** `includeServer` is for the owner's flows: anyone else gets the app without its server code. */
+export async function loadProjectExport(project: Project, options: { includeServer: boolean }): Promise<LoadedExport> {
   if (project.status === "building" || getRun(project.id) || (await activeBuild(project.id))) {
     throw new ExportUnavailableError("exportBusy")
   }
@@ -51,7 +52,9 @@ export async function loadProjectExport(project: Project): Promise<LoadedExport>
   return {
     name,
     slug: projectSlug(name),
-    files: exportedProjectFiles(project, projectScreens, publishing),
+    files: options.includeServer
+      ? exportedProjectFiles(project, projectScreens, publishing)
+      : filesForRole(exportedProjectFiles(project, projectScreens, publishing), "viewer"),
     screenNames: Object.fromEntries(projectScreens.map((screen) => [screen.filePath, screen.name])),
   }
 }

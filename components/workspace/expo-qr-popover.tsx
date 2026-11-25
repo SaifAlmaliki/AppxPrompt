@@ -7,18 +7,19 @@ import { AlertCircleIcon, CheckIcon, CopyIcon, QrCodeIcon, RotateCwIcon } from "
 
 import { useExpoSnack, type ExpoDevice, type ExpoSnackStatus } from "@/hooks/use-expo-snack"
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
+import type { ServerTarget } from "@/lib/generated-app/server-files"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 
-export function ExpoQrPopover({ plan, screens }: { plan: AppPlan | null; screens: ProjectScreen[] }) {
+export function ExpoQrPopover({ plan, screens, snackServer }: { plan: AppPlan | null; screens: ProjectScreen[]; snackServer: ServerTarget }) {
   const t = useTranslations("expoQr")
   const [open, setOpen] = React.useState(false)
   // Starts on first use, then stays online so a connected phone keeps getting changes.
   const [started, setStarted] = React.useState(false)
-  const { status, hasProject, retry } = useExpoSnack(plan, screens, started)
+  const { status, hasProject, retry } = useExpoSnack(plan, screens, started, snackServer)
   const connected = status.state === "ready" && status.devices.length > 0
 
   return (

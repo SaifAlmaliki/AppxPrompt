@@ -13,6 +13,7 @@ import {
   type AppPlan,
   type ChatMessage,
   type ProjectScreen,
+  type ProjectServerRoute,
 } from "@/lib/agent-protocol"
 import type { BackendStatus } from "@/lib/backend-protocol"
 import { isUpgradeReason } from "@/lib/plans"
@@ -25,6 +26,8 @@ export type AgentState = {
   status: ProjectStatus
   plan: AppPlan | null
   screens: ProjectScreen[]
+  /** The app's server functions and agents. Empty for someone the project was shared with. */
+  serverRoutes: ProjectServerRoute[]
   backend: BackendStatus
   services: ServiceSummary[]
   /** The service the agent asked for, until the dialog has opened for it. */
@@ -152,6 +155,15 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
         ...state,
         screens: state.screens.map((s) => (s.id === event.screen.id ? event.screen : s)),
       }
+    case "server-routes":
+      return { ...state, serverRoutes: event.routes }
+    case "server-route":
+      return {
+        ...state,
+        serverRoutes: state.serverRoutes.some((r) => r.path === event.route.path)
+          ? state.serverRoutes.map((r) => (r.path === event.route.path ? event.route : r))
+          : [...state.serverRoutes, event.route],
+      }
     case "code-delta":
       return {
         ...state,
@@ -203,7 +215,7 @@ async function readEvents(body: NonNullable<Response["body"]>, onEvent: (event: 
  */
 export function useProjectAgent(
   projectId: string,
-  initial: Pick<AgentState, "messages" | "status" | "plan" | "screens" | "backend" | "services">,
+  initial: Pick<AgentState, "messages" | "status" | "plan" | "screens" | "serverRoutes" | "backend" | "services">,
   readOnly = false
 ) {
   const [state, dispatch] = React.useReducer(reducer, {

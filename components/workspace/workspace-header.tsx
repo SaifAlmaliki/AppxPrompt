@@ -32,6 +32,7 @@ import { Logo } from "@/components/home/logo"
 import { ServicesButton } from "@/components/workspace/services-button"
 
 export function WorkspaceHeader({
+  projectId,
   name,
   status,
   platform,
@@ -39,6 +40,7 @@ export function WorkspaceHeader({
   backend,
   services,
   showServices,
+  hasServer,
   readOnly,
   onOpenBackend,
   onOpenService,
@@ -47,6 +49,7 @@ export function WorkspaceHeader({
   onPushToGitHub,
   onPublish,
 }: {
+  projectId: string
   name: string
   status: ProjectStatus
   platform: ProjectPlatform
@@ -55,6 +58,8 @@ export function WorkspaceHeader({
   services: ServiceSummary[]
   /** Whether the services menu is offered: integrations are on, or the app already uses a service. */
   showServices: boolean
+  /** Whether the app has server functions. */
+  hasServer: boolean
   /** Someone the project was shared with, who can look and download but not change it. */
   readOnly: boolean
   onOpenBackend: () => void
@@ -119,7 +124,7 @@ export function WorkspaceHeader({
         </Link>
 
         {!readOnly && <BackendButton backend={backend} onClick={onOpenBackend} />}
-        {!readOnly && showServices && <ServicesButton services={services} onOpen={onOpenService} />}
+        {!readOnly && showServices && <ServicesButton projectId={projectId} services={services} hasServer={hasServer} onOpen={onOpenService} />}
 
         <DropdownMenu>
           <DropdownMenuTrigger

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import type { Snack, SnackState } from "snack-sdk"
 
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
+import type { ServerTarget } from "@/lib/generated-app/server-files"
 import { SNACK_SDK_VERSION, snackProject } from "@/lib/generated-app/snack-project"
 
 /** How long code waits before going to the phone, so several quick edits arrive as one. */
@@ -36,11 +37,11 @@ function readStatus(state: SnackState, dependencyFailed: (name: string, message:
  * Keeps the app online as a Snack from this browser tab, once `enabled`. Every change to
  * the code goes straight to the phones connected to it, so it stays online until the tab closes.
  */
-export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], enabled: boolean) {
+export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], enabled: boolean, server?: ServerTarget) {
   const [status, setStatus] = React.useState<ExpoSnackStatus>({ state: "idle" })
   const [attempt, setAttempt] = React.useState(0)
   const snackRef = React.useRef<Snack | null>(null)
-  const sentFiles = React.useRef<string[]>([])
+  const sentFiles = React.useRef<Record<string, string>>({})
 
   // Read from inside the Snack's long-lived listeners, so a change of language doesn't restart it.
   const t = useTranslations("workspace.errors")
@@ -49,7 +50,7 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
     tRef.current = t
   })
 
-  const project = React.useMemo(() => snackProject(plan, screens), [plan, screens])
+  const project = React.useMemo(() => snackProject(plan, screens, server), [plan, screens, server])
   const hasProject = project !== null
   const latest = React.useRef(project)
   React.useEffect(() => {
@@ -76,7 +77,7 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
           codeChangesDelay: CODE_CHANGES_DELAY_MS,
         })
         snackRef.current = snack
-        sentFiles.current = Object.keys(files)
+        sentFiles.current = Object.fromEntries(Object.entries(files).map(([path, file]) => [path, file.contents]))
         snack.setOnline(true)
 
         unsubscribe = snack.addStateListener((state) => {
@@ -106,10 +107,13 @@ export function useExpoSnack(plan: AppPlan | null, screens: ProjectScreen[], ena
   React.useEffect(() => {
     const snack = snackRef.current
     if (!snack || !project) return
-    const removed = sentFiles.current.filter((path) => !project.files[path])
-    snack.updateFiles({ ...project.files, ...Object.fromEntries(removed.map((path) => [path, null])) })
+    const sent = sentFiles.current
+    const removed = Object.keys(sent).filter((path) => !project.files[path])
+    // A renewed sandbox token changes only `lib/server/config.ts`, so that is all that goes out.
+    const changed = Object.entries(project.files).filter(([path, file]) => sent[path] !== file.contents)
+    snack.updateFiles({ ...Object.fromEntries(changed), ...Object.fromEntries(removed.map((path) => [path, null])) })
     snack.updateDependencies(project.dependencies)
-    sentFiles.current = Object.keys(project.files)
+    sentFiles.current = Object.fromEntries(Object.entries(project.files).map(([path, file]) => [path, file.contents]))
   }, [project])
 
   return {

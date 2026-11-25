@@ -223,7 +223,7 @@ async function sendToExpo(project: Project, build: AppBuild, expoToken: string, 
   }
 
   // Loaded after the identity is saved, so the files carry it.
-  const { files } = await loadProjectExport(project)
+  const { files } = await loadProjectExport(project, { includeServer: true })
   const packageJson = files.find(({ path }) => path === "package.json")?.content ?? ""
   const tarball = projectTarball(files.map((file) => (file.path === "app.json" ? { ...file, content: withProjectId(file.content, appId) } : file)))
   return startWorkflowRun(expoToken, { appId, accountId, workflow: buildWorkflow(format), tarball, easJson: EAS_JSON, packageJson })
@@ -241,7 +241,7 @@ export async function startBuild(project: Project, userId: number, format: AppBu
   if (!expo) throw new PublishBlockedError("expoConnectFirst", "expo")
 
   // Finds problems the person can fix, such as the agent still working, before a build exists to fail.
-  await loadProjectExport(project)
+  await loadProjectExport(project, { includeServer: true })
   const expoToken = unseal(expo.accessToken)
 
   if (platform === "ios") {

@@ -127,7 +127,7 @@ async function sendToExpo(project: Project, expoToken: string, easOwner: string)
   const domain = await ensureWebDomain(expoToken, appId)
 
   // Loaded after the identity is saved, so the files carry it.
-  const { files } = await loadProjectExport(project)
+  const { files } = await loadProjectExport(project, { includeServer: true })
   const packageJson = files.find(({ path }) => path === "package.json")?.content ?? ""
   const tarball = projectTarball(files.map((file) => (file.path === "app.json" ? { ...file, content: withProjectId(file.content, appId) } : file)))
   const easRunId = await startWorkflowRun(expoToken, { appId, accountId, workflow: webWorkflow(), tarball, easJson: EAS_JSON, packageJson })
@@ -142,7 +142,7 @@ export async function startWebPublish(project: Project, userId: number, t: Trans
   if (!expo) throw new PublishBlockedError("expoConnectFirst", "expo")
 
   // Finds problems the person can fix, such as the agent still working, before a publish exists to fail.
-  await loadProjectExport(project)
+  await loadProjectExport(project, { includeServer: true })
 
   // A publish whose request died shouldn't hold up this one.
   const previous = await loadWebPublish(project.id)

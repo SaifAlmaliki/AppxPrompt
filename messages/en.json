@@ -1331,6 +1331,12 @@
       "empty": "No services yet. They show up here when your app needs one.",
       "needsAttention": "Some services need attention"
     },
+    "resetServerKey": "Reset server key",
+    "resetServerKeyConfirm": "Your app's server functions get a new key for reaching its data. Nothing else changes.",
+    "resetServerKeyDone": "Server key reset.",
+    "resetServerKeyAction": "Reset key",
+    "resetServerKeyCancel": "Cancel",
+    "resetServerKeyClose": "Close",
     "status": {
       "connected": "Connected",
       "rejected": "Key rejected",
@@ -1386,7 +1392,8 @@
     "errors": {
       "save": "We couldn't save that. Please try again.",
       "retest": "We couldn't test that. Please try again.",
-      "remove": "We couldn't remove that. Please try again."
+      "remove": "We couldn't remove that. Please try again.",
+    "resetServerKey": "We couldn't reset the server key. Please try again."
     },
     "card": {
       "text": "Connect {name} to finish {purpose}",
@@ -1571,7 +1578,8 @@
     "backendSetupFailed": "Something went wrong while setting up the backend. Please try again.",
     "cloudhikeAuthLost": "CloudHike no longer accepts this connection. Connect your account again.",
     "serviceNotFound": "This service isn't part of the app.",
-    "serviceValuesInvalid": "Some of those values can't be saved."
+    "serviceValuesInvalid": "Some of those values can't be saved.",
+    "serverKeyResetFailed": "We couldn't reset the server key. Please try again."
   },
   "status": {
     "readingMessage": "Reading your message…",

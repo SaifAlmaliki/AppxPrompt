@@ -2,11 +2,17 @@
 // what `npm install` and `expo start` need. The ZIP download and GitHub push both send this.
 
 import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
-import { isRunnable } from "@/lib/agent-protocol"
+import { isRunnable, isServerFile } from "@/lib/agent-protocol"
 import { publishFiles } from "@/lib/generated-app/build-files"
 import { ALLOWED_PACKAGES, generatedAppFiles } from "@/lib/generated-app/project-files"
+import type { ProjectRole } from "@/lib/project-access"
 
 export type ExportedFile = { path: string; content: string }
+
+/** What a person may see of a project's files: the server's code is the owner's alone. */
+export function filesForRole<T extends { path: string }>(files: T[], role: ProjectRole): T[] {
+  return role === "owner" ? files : files.filter((file) => !isServerFile(file.path))
+}
 
 // From `bundledNativeModules.json` in expo@54, the same SDK the Expo Go preview runs on.
 const PACKAGE_VERSIONS: Record<(typeof ALLOWED_PACKAGES)[number], string> = {
@@ -187,14 +193,14 @@ Then scan the QR code with [Expo Go](https://expo.dev/go) on your phone, or pres
 
 /** The complete project as built so far. Screens that aren't finished yet are left out. */
 export function exportedProjectFiles(
-  project: { title: string; plan: AppPlan | null },
+  project: { id?: string; title: string; plan: AppPlan | null },
   screens: ProjectScreen[],
   publishing?: PublishIdentity | null
 ): ExportedFile[] {
   const name = project.plan?.appName || project.title
   const slug = projectSlug(name)
   const sources = [
-    ...generatedAppFiles(project.plan),
+    ...generatedAppFiles(project.plan, { kind: "sandbox", projectId: project.id ?? "", token: null }),
     ...screens.filter(isRunnable).map((screen) => ({ path: screen.filePath, code: screen.code! })),
   ]
   return [

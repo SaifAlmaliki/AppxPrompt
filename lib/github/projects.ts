@@ -143,7 +143,7 @@ export async function pushProject(
   if (!link) throw new GitHubError("repoChooseFirst", 400, "repository")
 
   onProgress(t("pushPackaging"), 2)
-  const { name, files, screenNames } = await loadProjectExport(project)
+  const { name, files, screenNames } = await loadProjectExport(project, { includeServer: true })
 
   return withClient(userId, async (github) => {
     const repo = await github.getRepo(`${link.owner}/${link.name}`)

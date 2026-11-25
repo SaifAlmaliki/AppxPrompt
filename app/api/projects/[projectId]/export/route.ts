@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     const access = await getProjectAccess(projectId, user.id)
     if (!access) return error("projectNotFound", 404)
 
-    const { slug, files } = await loadProjectExport(access.project)
+    const { slug, files } = await loadProjectExport(access.project, { includeServer: access.role === "owner" })
     const archive = zipSync(Object.fromEntries(files.map((file) => [`${slug}/${file.path}`, strToU8(file.content)])))
     return new NextResponse(Buffer.from(archive), {
       headers: {
