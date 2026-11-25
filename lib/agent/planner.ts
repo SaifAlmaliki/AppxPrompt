@@ -1,4 +1,4 @@
-import { Agent, assistant, run, tool, user, type AgentInputItem } from "@openai/agents"
+import { Agent, assistant, run, tool, user, type AgentInputItem, type Tool } from "@openai/agents"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
@@ -373,19 +373,37 @@ const readServiceNotes = tool<typeof notesSchema, PlannerContext>({
   },
 })
 
-const plannerAgent = new Agent<PlannerContext>({
-  name: "AppxPrompt Planner",
-  model: PLANNER_MODEL,
-  instructions: (runContext) => plannerInstructions(runContext.context),
-  tools: [
-    proposePlan,
-    confirmPlan,
-    updateApp,
-    setTheme,
-    setupBackend,
-    ...(integrationsEnabled() ? [registerService, readServiceNotes, ...createResearchTools<PlannerContext>()] : []),
-  ],
-})
+const BASE_TOOLS = [proposePlan, confirmPlan, updateApp, setTheme, setupBackend]
+
+/** The planner's tools for one turn. The instructions get the same flag, so they can't disagree. */
+export function plannerTools(integrations: boolean): Tool<PlannerContext>[] {
+  return integrations ? [...BASE_TOOLS, registerService, readServiceNotes, ...createResearchTools<PlannerContext>()] : [...BASE_TOOLS]
+}
+
+const plannerAgents = new Map<boolean, Agent<PlannerContext>>()
+
+function plannerAgentFor(integrations: boolean) {
+  let agent = plannerAgents.get(integrations)
+  if (!agent) {
+    agent = new Agent<PlannerContext>({
+      name: "AppxPrompt Planner",
+      model: PLANNER_MODEL,
+      instructions: (runContext) => plannerInstructions(runContext.context),
+      tools: plannerTools(integrations),
+    })
+    plannerAgents.set(integrations, agent)
+  }
+  return agent
+}
+
+let warnedAboutSearch = false
+
+/** A dev hint, once per process. It never logs the key. */
+export function warnIfSearchUnavailable() {
+  if (warnedAboutSearch || !integrationsEnabled() || process.env.TAVILY_API_KEY) return
+  warnedAboutSearch = true
+  console.warn("APP_INTEGRATIONS is on but TAVILY_API_KEY isn't set, so the agent can't search the web.")
+}
 
 // Research takes a model call per search or page, so the SDK's default of 10 is too few.
 const MAX_PLANNER_TURNS = 24
@@ -425,6 +443,7 @@ export async function runPlannerTurn(
   account: PlannerState["account"]
 ): Promise<{ confirmed: boolean; plan: AppPlan | null; changes: AppChanges | null }> {
   configureAgents()
+  warnIfSearchUnavailable()
 
   // Requests a finished build took care of are left out, so the agent can't act on them again.
   const thread = await db
@@ -509,7 +528,7 @@ function leakedCallNudge(tool: string | null) {
  * `before` is what the person has already seen, so new text starts a new paragraph.
  */
 async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
-  const result = await run(plannerAgent, input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns })
+  const result = await run(plannerAgentFor(context.integrations), input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns })
 
   let text = ""
   let responseHasText = false

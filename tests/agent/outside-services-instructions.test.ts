@@ -53,6 +53,18 @@ describe("# Outside services", () => {
       expect(text).toContain(phrase)
   })
 
+  it("researches named services right away and never refuses", () => {
+    const text = plannerInstructions(state())
+    expect(text).toContain("even during the interview")
+    expect(text).toContain("Never say you can't look something up")
+    expect(text).not.toContain("Don't research while you're still interviewing")
+    expect(text).not.toContain("the app has no server code")
+  })
+
+  it("keeps the old backend line when integrations are off", () => {
+    expect(plannerInstructions(state({ integrations: false }))).toContain("the app has no server code of its own")
+  })
+
   it("is left out when integrations are off", () => {
     expect(plannerInstructions(state({ integrations: false }))).not.toContain("# Outside services")
   })
