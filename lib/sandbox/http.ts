@@ -11,6 +11,12 @@ export const SANDBOX_CORS_HEADERS = {
   "access-control-max-age": "86400",
 }
 
+/** Whatever a server function returns is data for the app: the browser must not sniff it into a page or run scripts from it. */
+export const SANDBOX_RESPONSE_GUARD_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "content-security-policy": "sandbox",
+}
+
 const FORWARDED_REQUEST_HEADERS = ["content-type", "accept", "accept-language", "authorization", "x-device-id"]
 const KEPT_RESPONSE_HEADERS = ["content-type", "cache-control", "content-language"]
 
@@ -28,12 +34,24 @@ export function forwardRequestHeaders(headers: Headers): Record<string, string> 
   return kept
 }
 
+/** The few headers of a VM's answer that may reach the browser, plus the guard headers, which the VM can't change. */
 export function safeResponseHeaders(headers: Record<string, string>): Record<string, string> {
   const kept: Record<string, string> = {}
   for (const [name, value] of Object.entries(headers)) {
     if (KEPT_RESPONSE_HEADERS.includes(name.toLowerCase())) kept[name.toLowerCase()] = value
   }
-  return kept
+  return { ...kept, ...SANDBOX_RESPONSE_GUARD_HEADERS }
+}
+
+/** A path segment that would climb out of the route, written plainly or percent-encoded. */
+export function isDotSegment(segment: string): boolean {
+  const candidates = [segment]
+  try {
+    candidates.push(decodeURIComponent(segment))
+  } catch {
+    // Not valid percent-encoding: the plain form is all there is to check.
+  }
+  return candidates.some((value) => value === "." || value === "..")
 }
 
 /** The request's body as text (null when there is none), or "too-large" without reading past the limit. */

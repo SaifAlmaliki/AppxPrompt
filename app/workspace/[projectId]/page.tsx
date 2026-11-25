@@ -11,6 +11,7 @@ import { getBackendStatus } from "@/lib/cloudhike/backend"
 import { GITHUB_CONNECT_RESULTS, type GitHubConnectResult } from "@/lib/github-protocol"
 import { serverT } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
+import { sandboxAllowedFor } from "@/lib/sandbox/allowed"
 import { createSandboxToken } from "@/lib/sandbox/token"
 import { ifIntegrations } from "@/lib/server-routes/gate"
 import { listServerRoutes } from "@/lib/server-routes/store"
@@ -103,7 +104,7 @@ export default async function WorkspacePage({
 
   // Server functions and the pass that lets the preview call them are the owner's alone. The pass
   // is made even before the plan has server functions, since this session's build may add them.
-  const sandboxToken = isOwner && integrationsEnabled() ? createSandboxToken(project.id, user.id) : null
+  const sandboxToken = isOwner && integrationsEnabled() && sandboxAllowedFor(user.id) ? createSandboxToken(project.id, user.id) : null
   const serverRoutes = isOwner ? (await ifIntegrations(() => listServerRoutes(project.id))).map(toProjectServerRoute) : []
 
   return (

@@ -40,6 +40,12 @@ export function verifySandboxToken(token: string, projectId: string) {
   }
 }
 
+/** The user id a token was issued to. Only meaningful after `verifySandboxToken` accepted it. */
+export function sandboxTokenUserId(token: string): number | null {
+  const id = Number(token.split(".")[1])
+  return Number.isSafeInteger(id) ? id : null
+}
+
 /** The secret a project's own server functions use to call back into the platform. */
 export function sandboxInternalSecret(projectId: string) {
   const secret = key()

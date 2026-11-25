@@ -50,6 +50,13 @@ describe("POST sandbox-token", () => {
     expect((await response.json()).key).toBe("projectNotFound")
   })
 
+  it("404s an owner who is not in SANDBOX_ALLOWED_USERS, and serves a listed one", async () => {
+    vi.stubEnv("SANDBOX_ALLOWED_USERS", "1, 2")
+    expect((await run()).status).toBe(404)
+    vi.stubEnv("SANDBOX_ALLOWED_USERS", "1, 7")
+    expect((await run()).status).toBe(200)
+  })
+
   it("404s when integrations are off", async () => {
     vi.stubEnv("APP_INTEGRATIONS", "")
     expect((await run()).status).toBe(404)

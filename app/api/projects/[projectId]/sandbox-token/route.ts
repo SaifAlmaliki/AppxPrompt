@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { errorResponse } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
 import { integrationsEnabled } from "@/lib/services/flags"
+import { sandboxAllowedFor } from "@/lib/sandbox/allowed"
 import { createSandboxToken, sandboxTokenExpiry } from "@/lib/sandbox/token"
 import { getCurrentUser } from "@/lib/session"
 
@@ -11,7 +12,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pr
   const { projectId } = await params
   const user = await getCurrentUser().catch(() => null)
   if (!user) return errorResponse("signInRequired", 401)
-  if (!integrationsEnabled()) return errorResponse("projectNotFound", 404)
+  if (!integrationsEnabled() || !sandboxAllowedFor(user.id)) return errorResponse("projectNotFound", 404)
 
   const access = await getProjectAccess(projectId, user.id)
   if (access?.role !== "owner") return errorResponse("projectNotFound", 404)

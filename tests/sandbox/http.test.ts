@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest"
 import {
   MAX_SERVER_BODY_BYTES,
   SANDBOX_CORS_HEADERS,
+  SANDBOX_RESPONSE_GUARD_HEADERS,
   forwardRequestHeaders,
+  isDotSegment,
   readCappedBody,
   readSandboxError,
   safeResponseHeaders,
@@ -29,15 +31,27 @@ describe("safeResponseHeaders", () => {
   it("drops cookies, CORS and everything else", () => {
     expect(
       safeResponseHeaders({ "set-cookie": "a", "content-type": "application/json", "access-control-allow-origin": "evil", "x-powered-by": "x" }),
-    ).toEqual({ "content-type": "application/json" })
+    ).toEqual({ "content-type": "application/json", ...SANDBOX_RESPONSE_GUARD_HEADERS })
+  })
+
+  it("always adds nosniff and a sandboxing CSP, and the VM cannot override them", () => {
+    const headers = safeResponseHeaders({ "Content-Security-Policy": "default-src *", "X-Content-Type-Options": "sniff", "content-type": "text/html" })
+    expect(headers["x-content-type-options"]).toBe("nosniff")
+    expect(headers["content-security-policy"]).toBe("sandbox")
   })
 
   it("keeps cache-control and content-language whatever their case", () => {
     expect(safeResponseHeaders({ "Cache-Control": "max-age=1", "Content-Language": "en" })).toEqual({
       "cache-control": "max-age=1",
       "content-language": "en",
+      ...SANDBOX_RESPONSE_GUARD_HEADERS,
     })
   })
+})
+
+describe("isDotSegment", () => {
+  it.each([".", "..", "%2e", "%2E%2e", ".%2e", "%2e."])("flags %s", (segment) => expect(isDotSegment(segment)).toBe(true))
+  it.each(["a", "...", "a.b", ".hidden", "%2e%2e%2e", "%zz", ""])("lets %s through", (segment) => expect(isDotSegment(segment)).toBe(false))
 })
 
 describe("serverErrorBody", () => {

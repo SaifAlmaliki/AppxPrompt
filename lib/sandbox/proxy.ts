@@ -7,6 +7,7 @@ import {
   MAX_SERVER_BODY_BYTES,
   SANDBOX_CORS_HEADERS,
   forwardRequestHeaders,
+  isDotSegment,
   readCappedBody,
   readSandboxError,
   safeResponseHeaders,
@@ -14,7 +15,8 @@ import {
   type ServerErrorCode,
 } from "./http"
 import { SandboxUnavailableError, getSandboxRunner, takeSandboxRequest } from "./runner"
-import { SANDBOX_TOKEN_HEADER, verifySandboxToken } from "./token"
+import { sandboxAllowedFor } from "./allowed"
+import { SANDBOX_TOKEN_HEADER, sandboxTokenUserId, verifySandboxToken } from "./token"
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const NO_BODY_STATUSES = new Set([204, 205, 304])
@@ -58,9 +60,11 @@ export function createServerProxy({ onCall = () => {} }: ServerProxyOptions = {}
     if (!integrationsEnabled()) return reply(serverErrorBody("unavailable", "Server functions aren't available."), 503)
 
     const token = request.headers.get(SANDBOX_TOKEN_HEADER)
-    if (!token || !verifySandboxToken(token, projectId)) {
+    const userId = token ? sandboxTokenUserId(token) : null
+    if (!token || userId === null || !verifySandboxToken(token, projectId) || !sandboxAllowedFor(userId)) {
       return reply(serverErrorBody("preview", "Server functions only run in the owner's preview before publishing."), 403)
     }
+    if (path.some(isDotSegment)) return reply(serverErrorBody("bad_request", "That path isn't a server function."), 404)
 
     const startedAt = Date.now()
     const method = request.method

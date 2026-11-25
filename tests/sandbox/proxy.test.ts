@@ -114,6 +114,43 @@ describe("server proxy", () => {
     expect(response.headers.get("cache-control")).toBe("no-store")
   })
 
+  it("marks every proxied answer nosniff and sandboxed", async () => {
+    const response = await call(createServerProxy(), ["x"])
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff")
+    expect(response.headers.get("content-security-policy")).toBe("sandbox")
+  })
+
+  it.each([
+    [["api", "..", "__health"]],
+    [["api", "%2e%2e", "__selfcheck"]],
+    [["api", "%2E%2e", "x"]],
+    [["api", ".", "x"]],
+    [[".."]],
+    [["api", "%2e", "x"]],
+  ])("404s bad_request for the path %j without calling the runner", async (path) => {
+    const response = await call(createServerProxy(), path)
+    expect(response.status).toBe(404)
+    expect((await response.json()).error.code).toBe("bad_request")
+    expect(runner.invoke).not.toHaveBeenCalled()
+  })
+
+  it("only lets the listed owners through when SANDBOX_ALLOWED_USERS is set", async () => {
+    vi.stubEnv("SANDBOX_ALLOWED_USERS", " 4, 1 ")
+    expect((await call(createServerProxy(), ["x"])).status).toBe(200)
+
+    vi.stubEnv("SANDBOX_ALLOWED_USERS", "4,5")
+    const response = await call(createServerProxy(), ["x"])
+    expect(response.status).toBe(403)
+    expect((await response.json()).error.code).toBe("preview")
+    expect(limiter.take).toHaveBeenCalledTimes(1)
+    expect(runner.invoke).toHaveBeenCalledTimes(1)
+  })
+
+  it("lets everyone through when SANDBOX_ALLOWED_USERS is empty", async () => {
+    vi.stubEnv("SANDBOX_ALLOWED_USERS", "  ")
+    expect((await call(createServerProxy(), ["x"])).status).toBe(200)
+  })
+
   it("sends no body for a GET", async () => {
     await call(createServerProxy(), ["x"])
     expect(runner.invoke.mock.calls[0][1].body).toBeNull()
