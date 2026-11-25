@@ -19,6 +19,7 @@ import { buildCost, PLANS } from "@/lib/plans"
 import { expandNumberReply } from "@/lib/interview-choices"
 import { normalizeService, serviceDefinitionSchema } from "@/lib/services/definition"
 import { integrationsEnabled } from "@/lib/services/flags"
+import { ifIntegrations } from "@/lib/server-routes/gate"
 import { listServerRoutes } from "@/lib/server-routes/store"
 import { plannerServices } from "@/lib/services/status"
 import { getServiceNotes, listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
@@ -488,7 +489,7 @@ export async function runPlannerTurn(
     .select({ slug: screens.slug, name: screens.name, code: screens.code })
     .from(screens)
     .where(eq(screens.projectId, project.id))
-  const serverRows = await listServerRoutes(project.id)
+  const serverRows = await ifIntegrations(() => listServerRoutes(project.id))
 
   const integrations = integrationsEnabled()
   const context: PlannerContext = {

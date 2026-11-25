@@ -12,6 +12,7 @@ import { GITHUB_CONNECT_RESULTS, type GitHubConnectResult } from "@/lib/github-p
 import { serverT } from "@/lib/i18n/server"
 import { getProjectAccess } from "@/lib/project-access"
 import { createSandboxToken } from "@/lib/sandbox/token"
+import { ifIntegrations } from "@/lib/server-routes/gate"
 import { listServerRoutes } from "@/lib/server-routes/store"
 import { integrationsEnabled } from "@/lib/services/flags"
 import { SERVICE_CONNECT_RESULTS, type ServiceConnectResult } from "@/lib/services/protocol"
@@ -103,7 +104,7 @@ export default async function WorkspacePage({
   // Server functions and the pass that lets the preview call them are the owner's alone. The pass
   // is made even before the plan has server functions, since this session's build may add them.
   const sandboxToken = isOwner && integrationsEnabled() ? createSandboxToken(project.id, user.id) : null
-  const serverRoutes = isOwner ? (await listServerRoutes(project.id)).map(toProjectServerRoute) : []
+  const serverRoutes = isOwner ? (await ifIntegrations(() => listServerRoutes(project.id))).map(toProjectServerRoute) : []
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-background">

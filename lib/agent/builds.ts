@@ -7,6 +7,7 @@ import { prepareScreens } from "@/lib/agent/builder"
 import { refundCharge, refundUnfinishedBuild, type BuildCharge } from "@/lib/billing/credits"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { getJobRun, startJobRun } from "@/lib/jobs"
+import { ifIntegrations } from "@/lib/server-routes/gate"
 import { failWaitingServerRoutes, prepareServerRoutes } from "@/lib/server-routes/store"
 
 export const BUILD_WORKER_PATH = "/api/jobs/build-step"
@@ -140,7 +141,7 @@ export async function startBuild(project: Project, plan: AppPlan, firstEvents: A
   try {
     log.emit(plan.pendingChanges ? statusEvent("preparingChanges") : statusEvent("preparingBuild", { count: plan.screens.length }))
     const rows = await prepareScreens(project.id, plan)
-    const serverRows = await prepareServerRoutes(project.id, plan)
+    const serverRows = await ifIntegrations(() => prepareServerRoutes(project.id, plan))
     await db.update(projects).set({ status: "building" }).where(eq(projects.id, project.id))
     log.emit({ type: "project-status", status: "building" })
     log.emit({ type: "screens", screens: rows.map(toProjectScreen) })
@@ -198,7 +199,7 @@ export async function failBuild(buildId: string, reason: "buildStopped" | "build
     .set({ status: "failed" })
     .where(and(eq(screens.projectId, build.projectId), sql`${screens.status} in ('pending', 'generating')`))
     .returning()
-  const stuckRoutes = await failWaitingServerRoutes(build.projectId)
+  const stuckRoutes = await ifIntegrations(() => failWaitingServerRoutes(build.projectId))
   await db.update(projects).set({ status: "failed" }).where(eq(projects.id, build.projectId))
   await refundUnfinishedBuild(buildId).catch((error) => console.error(`Refunding build ${buildId} failed`, error))
 

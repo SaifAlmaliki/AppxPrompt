@@ -4,6 +4,7 @@ import { and, count, eq, sql } from "drizzle-orm"
 
 import { builds, creditTransactions, db, projects, screens, users, type Project } from "@/db"
 import type { AppPlan } from "@/lib/agent-protocol"
+import { ifIntegrations } from "@/lib/server-routes/gate"
 import { listServerRoutes } from "@/lib/server-routes/store"
 import { translatorFor, type Translator } from "@/lib/i18n/server"
 import { EDIT_CREDITS, PLANS, PRO_MONTHLY_CREDITS, buildCostParts, buildCost, type CreditReason, type PlanId, type UpgradeReason } from "@/lib/plans"
@@ -110,7 +111,7 @@ export type BuildCharge = { id: string; credits: number }
 /** Charges for what a build of `plan` still has to do, before anything about the build is saved. */
 export async function chargeForBuild(project: Pick<Project, "id" | "userId">, plan: AppPlan, userPlan: PlanId, t: ErrorsT): Promise<BuildCharge> {
   const rows = await db.select({ slug: screens.slug, code: screens.code }).from(screens).where(eq(screens.projectId, project.id))
-  const serverRows = await listServerRoutes(project.id)
+  const serverRows = await ifIntegrations(() => listServerRoutes(project.id))
   // Someone who has downgraded keeps a bigger app they've built, but can't build more of it.
   const hasUnbuilt = plan.screens.some((screen) => !rows.some((row) => row.slug === screen.id && row.code))
   if (hasUnbuilt && plan.screens.length > PLANS[userPlan].maxScreens) {
@@ -150,7 +151,7 @@ export async function refundUnfinishedBuild(buildId: string) {
   if (!build?.charged || !build.project.plan) return 0
 
   const rows = await db.select({ slug: screens.slug, code: screens.code }).from(screens).where(eq(screens.projectId, build.project.id))
-  const serverRows = await listServerRoutes(build.project.id)
+  const serverRows = await ifIntegrations(() => listServerRoutes(build.project.id))
   const amount = Math.min(build.charged, buildCost(build.project.plan, rows, serverRows))
   const refunded = await refundCredits(build.project.userId, amount, { projectId: build.project.id, reference: `refund:${buildId}` })
   return refunded ? amount : 0

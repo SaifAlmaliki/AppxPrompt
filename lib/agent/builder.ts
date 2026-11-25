@@ -28,6 +28,7 @@ import { isolate } from "@/lib/i18n/activity"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { fillGeneratedImages, hasGeneratedImages } from "@/lib/imagekit"
 import { serverAllowedHosts } from "@/lib/sandbox/bundle"
+import { ifIntegrations } from "@/lib/server-routes/gate"
 import { finishServerRoute, listServerRoutes, saveServerHelper, setServerRouteStatus } from "@/lib/server-routes/store"
 import { listServiceDefinitions } from "@/lib/services/store"
 
@@ -242,7 +243,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   }
 
   // Functions come first, then agents that may import them, and both before the screens that call them.
-  const serverRows = await listServerRoutes(project.id)
+  const serverRows = await ifIntegrations(() => listServerRoutes(project.id))
   const route = nextServerRoute(plan.serverRoutes ?? [], serverRows)
   if (route) {
     await buildServerRouteStep(log, project, plan, route, serverRows)
