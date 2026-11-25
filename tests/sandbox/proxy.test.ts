@@ -183,14 +183,26 @@ describe("server proxy onCall", () => {
     expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ status: 200, errorCode: null, service: null }))
   })
 
-  it("reports the proxy's own refusals after the token check", async () => {
+  it("does not report a call the rate limit rejected", async () => {
     const onCall = vi.fn()
     limiter.take.mockReturnValue(false)
-    await call(createServerProxy({ onCall }), ["x"])
+    const response = await call(createServerProxy({ onCall }), ["x"])
+    expect(response.status).toBe(429)
+    expect(onCall).not.toHaveBeenCalled()
+  })
+
+  it("reports a too-large request", async () => {
+    const onCall = vi.fn()
+    const response = await call(createServerProxy({ onCall }), ["x"], { method: "POST", body: "a".repeat(1_048_577) })
+    expect(response.status).toBe(413)
+    expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ status: 413, errorCode: "bad_request" }))
+  })
+
+  it("reports the proxy's own refusals after the token check and the rate limit", async () => {
+    const onCall = vi.fn()
     runner.invoke.mockRejectedValue(new SandboxUnavailableError("starting"))
-    limiter.take.mockReturnValue(true)
     await call(createServerProxy({ onCall }), ["y"])
-    expect(onCall.mock.calls.map(([c]) => [c.status, c.errorCode])).toEqual([[429, "unavailable"], [503, "unavailable"]])
+    expect(onCall.mock.calls.map(([c]) => [c.status, c.errorCode])).toEqual([[503, "unavailable"]])
   })
 
   it("never lets a failing recorder change the answer", async () => {

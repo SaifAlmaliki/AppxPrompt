@@ -77,7 +77,9 @@ export function createServerProxy({ onCall = () => {} }: ServerProxyOptions = {}
     }
     const fail = (code: ServerErrorCode, message: string, status: number) => finish(reply(serverErrorBody(code, message), status), code)
 
-    if (!takeSandboxRequest(projectId)) return fail("unavailable", "Too many requests. Try again in a minute.", 429)
+    if (!takeSandboxRequest(projectId)) {
+      return reply(serverErrorBody("unavailable", "Too many requests. Try again in a minute."), 429)
+    }
 
     const body = request.method === "GET" || request.method === "HEAD" ? null : await readCappedBody(request)
     if (body === "too-large") return fail("bad_request", "That request is too large.", 413)
