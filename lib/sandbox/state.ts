@@ -1,6 +1,6 @@
 // The only module that reads or writes the `project_sandboxes` table.
 
-import { eq, isNull, lt, or, sql } from "drizzle-orm"
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm"
 
 import { db, projectSandboxes } from "@/db"
 
@@ -28,6 +28,8 @@ export interface SandboxStateStore {
   /** Resets when the day changes. Returns today's total. */
   addUsage(projectId: string, ms: number, day: string): Promise<number>
   clear(projectId: string): Promise<void>
+  /** Clears the VM fields (not a start claim) only while sandboxId is still the given one. Returns whether a row changed. */
+  clearIfCurrent(projectId: string, sandboxId: string): Promise<boolean>
   /** Keeps `sandboxId` and `domain`, so the next start can stop the old sandbox. */
   clearSignature(projectId: string): Promise<void>
 }
@@ -84,6 +86,16 @@ export const dbSandboxState: SandboxStateStore = {
 
   async clear(projectId) {
     await db.update(projectSandboxes).set(NO_SANDBOX).where(eq(projectSandboxes.projectId, projectId))
+  },
+
+  async clearIfCurrent(projectId, sandboxId) {
+    const { startingUntil: _startingUntil, ...vm } = NO_SANDBOX
+    const rows = await db
+      .update(projectSandboxes)
+      .set(vm)
+      .where(and(eq(projectSandboxes.projectId, projectId), eq(projectSandboxes.sandboxId, sandboxId)))
+      .returning({ projectId: projectSandboxes.projectId })
+    return rows.length > 0
   },
 
   async clearSignature(projectId) {

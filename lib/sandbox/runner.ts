@@ -25,7 +25,7 @@ export const SANDBOX_LIMITS = {
   extendByMs: 15 * 60_000,
   maxSessionMs: 2 * 3_600_000,
   startWaitMs: 25_000,
-  startClaimMs: 60_000,
+  startClaimMs: 120_000,
   proxyTimeoutMs: 35_000,
   /** How long one invoke may take in all. The proxy route allows 300 s, and this leaves room to answer. */
   invokeBudgetMs: 270_000,

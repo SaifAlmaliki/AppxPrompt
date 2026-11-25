@@ -146,7 +146,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
   async function start(projectId: string, old: SandboxState | null): Promise<Ensured> {
     if (old?.sandboxId) {
       await discard(old.sandboxId)
-      await refundUnused(projectId, old.deadlineAt)
+      if (await state.clearIfCurrent(projectId, old.sandboxId).catch(() => false)) await refundUnused(projectId, old.deadlineAt)
     }
     let handle: SandboxHandle | null = null
     let charged = false
@@ -300,8 +300,9 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     const latest = await state.get(projectId).catch(() => null)
     if (latest && latest.sandboxId !== running.sandboxId) return
     await discard(running.sandboxId)
-    await state.clear(projectId).catch(() => {})
-    await refundUnused(projectId, latest?.deadlineAt ?? running.deadlineAt)
+    if (await state.clearIfCurrent(projectId, running.sandboxId).catch(() => false)) {
+      await refundUnused(projectId, latest?.deadlineAt ?? running.deadlineAt)
+    }
   }
 
   async function keepWarm(projectId: string, running: Running) {
@@ -367,7 +368,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
       const st = await state.get(projectId)
       if (st?.sandboxId) {
         await discard(st.sandboxId)
-        await refundUnused(projectId, st.deadlineAt)
+        if (await state.clearIfCurrent(projectId, st.sandboxId).catch(() => false)) await refundUnused(projectId, st.deadlineAt)
       }
       await state.clear(projectId)
     },

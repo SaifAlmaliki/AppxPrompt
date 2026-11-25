@@ -46,6 +46,12 @@ function memoryState() {
     async clear(id) {
       rows.set(id, { ...row(id), sandboxId: null, domain: null, signature: null, startingUntil: null, sessionStartedAt: null, deadlineAt: null })
     },
+    async clearIfCurrent(id, sandboxId) {
+      const current = rows.get(id)
+      if (!current || current.sandboxId !== sandboxId) return false
+      rows.set(id, { ...current, sandboxId: null, domain: null, signature: null, sessionStartedAt: null, deadlineAt: null })
+      return true
+    },
     async clearSignature(id) {
       rows.set(id, { ...row(id), signature: null })
     },
@@ -471,6 +477,31 @@ describe("usage refunds", () => {
     t.forwardFailures.count = 1
     await t.runner.invoke("p1", request)
     expect((await t.state.get("p1"))!.usageMs).toBe(2 * MIN + SANDBOX_LIMITS.sessionMs)
+  })
+
+  it("refunds a dead VM's unused time once when five requests hit it together", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    t.advance(2 * MIN)
+    t.forwardFailures.count = 5
+    const answers = await Promise.all(Array.from({ length: 5 }, () => t.runner.invoke("p1", request).catch((error) => error)))
+    expect(answers.every((a) => !(a instanceof Error))).toBe(true)
+    expect((await t.state.get("p1"))!.usageMs).toBe(2 * MIN + SANDBOX_LIMITS.sessionMs)
+  })
+
+  it("does not refund a VM that a newer one already replaced", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", request)
+    const [old] = [...t.handles.keys()]
+    const before = (await t.state.get("p1"))!
+    t.advance(2 * MIN)
+    t.setSignature("sig-2")
+    await t.runner.invoke("p1", request)
+    const usage = (await t.state.get("p1"))!.usageMs
+    expect(await t.state.clearIfCurrent("p1", old)).toBe(false)
+    expect(await t.state.clearIfCurrent("p1", before.sandboxId!)).toBe(false)
+    expect((await t.state.get("p1"))!.usageMs).toBe(usage)
+    expect((await t.state.get("p1"))!.sandboxId).not.toBeNull()
   })
 
   it("gives back a whole session when the self-check refuses the VM", async () => {
