@@ -3,10 +3,14 @@
 // the preview swaps for CSS variables.
 
 import type { AppPlan, DataCollection, ProjectScreen } from "@/lib/agent-protocol"
-import { componentFilePath, hasTabLayout, isRunnable, screenRoute } from "@/lib/agent-protocol"
+import { componentFilePath, hasTabLayout, isRunnable, isServerFile, screenRoute } from "@/lib/agent-protocol"
 import type { AppBackend } from "@/lib/backend-protocol"
+import { serverClientFiles, type ServerTarget } from "@/lib/generated-app/server-files"
 import type { PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import type { ThemePackage } from "@/lib/themes"
+
+/** The module screens import to call the app's server functions. */
+export const SERVER_CLIENT_MODULE = "@/lib/server"
 
 /** Packages generated screens may import. The preview runtime provides each of them. */
 export const ALLOWED_PACKAGES = [
@@ -701,7 +705,7 @@ export type * from "./types";
 `
 
 /** The shared files for a plan. Plans built before themes existed have none of the themed ones. */
-export function generatedAppFiles(plan: AppPlan | null): PreviewFile[] {
+export function generatedAppFiles(plan: AppPlan | null, server?: ServerTarget): PreviewFile[] {
   if (!plan?.themePackage || !plan.collections) return []
   return [
     { path: "app/_layout.tsx", code: LAYOUT_FILE },
@@ -717,17 +721,18 @@ export function generatedAppFiles(plan: AppPlan | null): PreviewFile[] {
     { path: "lib/backend/hooks.ts", code: BACKEND_HOOKS_FILE },
     { path: "lib/backend/local.ts", code: BACKEND_LOCAL_FILE },
     { path: "lib/backend/cloudhike.ts", code: BACKEND_CLOUDHIKE_FILE },
+    ...(plan.serverRoutes?.length ? serverClientFiles(server) : []),
     ...(plan.components ?? []).map((component) => ({ path: componentFilePath(component.name), code: component.code })),
   ]
 }
 
 /** What the preview runtime needs to run the app as built so far. */
-export function previewProject(plan: AppPlan | null, screens: ProjectScreen[]): PreviewProject {
+export function previewProject(plan: AppPlan | null, screens: ProjectScreen[], server?: ServerTarget): PreviewProject {
   return {
     files: [
-      ...generatedAppFiles(plan),
+      ...generatedAppFiles(plan, server),
       ...screens.filter(isRunnable).map((s) => ({ path: s.filePath, code: s.code! })),
-    ],
+    ].filter((file) => !isServerFile(file.path)),
     screens: screens.map((s) => ({
       route: screenRoute(s.slug, s.position),
       name: s.name,

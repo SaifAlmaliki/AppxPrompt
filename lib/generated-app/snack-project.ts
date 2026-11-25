@@ -3,7 +3,9 @@
 // runs more reliably in Snack. Nothing about the app itself changes.
 
 import type { AppPlan, ProjectScreen, ScreenTab } from "@/lib/agent-protocol"
+import { isServerFile } from "@/lib/agent-protocol"
 import { ALLOWED_PACKAGES, previewProject } from "@/lib/generated-app/project-files"
+import type { ServerTarget } from "@/lib/generated-app/server-files"
 
 export const SNACK_SDK_VERSION = "54.0.0"
 
@@ -242,12 +244,12 @@ ${screens}
 }
 
 /** The app as built so far, or null until it has a screen to open. */
-export function snackProject(plan: AppPlan | null, screens: ProjectScreen[]) {
-  const project = previewProject(plan, screens)
+export function snackProject(plan: AppPlan | null, screens: ProjectScreen[], server?: ServerTarget) {
+  const project = previewProject(plan, screens, server)
   const routes = project.screens.filter((s) => s.status === "done").map((s) => ({ route: s.route, path: s.filePath, tab: s.tab }))
   if (routes.length === 0) return null
 
-  const sources = project.files.filter((file) => !file.path.endsWith("/_layout.tsx"))
+  const sources = project.files.filter((file) => !file.path.endsWith("/_layout.tsx") && !isServerFile(file.path))
   const tabRoutes = routes.filter(({ tab }) => tab).map(({ route }) => route)
   const files: SnackFiles = {
     "App.js": { type: "CODE", contents: appFile(routes, sources.some((file) => file.path === "theme/index.ts")) },

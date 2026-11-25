@@ -1,7 +1,8 @@
 import { transform } from "sucrase"
 
-import { usesComponent } from "@/lib/agent-protocol"
-import { ALLOWED_COMPONENT_MODULES, ALLOWED_PACKAGES, ALLOWED_PROJECT_MODULES } from "@/lib/generated-app/project-files"
+import { apiRouteUrl, usesComponent } from "@/lib/agent-protocol"
+import { ALLOWED_COMPONENT_MODULES, ALLOWED_PACKAGES, ALLOWED_PROJECT_MODULES, SERVER_CLIENT_MODULE } from "@/lib/generated-app/project-files"
+import { matchApiRoute } from "@/lib/sandbox/routes"
 
 // A literal color would stay the same when the person switches theme.
 const LITERAL_COLOR = /["'`]#[0-9a-f]{3,8}["'`]|\brgba?\(|\bhsla?\(|(?:color|Color)\s*:\s*["'](?:white|black)["']/gi
@@ -10,6 +11,8 @@ const LITERAL_COLOR = /["'`]#[0-9a-f]{3,8}["'`]|\brgba?\(|\bhsla?\(|(?:color|Col
 const TOKEN_ARITHMETIC = /\bcolors\.\w+\s*\+|\+\s*colors\.\w+|\$\{\s*colors\./
 
 const IMPORT_SOURCE = /\bfrom\s+["']([^"']+)["']|\bimport\s+["']([^"']+)["']|\brequire\(\s*["']([^"']+)["']\s*\)/g
+
+const SERVER_CALL = /\bcallServer(?:<[^>]*>)?\(\s*(["'`])([^"'`]+)\1/g
 
 const COLLECTION_USE = /\buseCollection(?:<[^>]*>)?\(\s*["'`]([^"'`]+)["'`]/g
 
@@ -79,11 +82,25 @@ function codeProblems(code: string, allowedImports: string[], chosenByPerson: st
 
 const componentModules = (names: string[]) => names.map((name) => `@/components/${name}`)
 
-const screenImports = (components: string[]) => [...ALLOWED_PACKAGES, ...ALLOWED_PROJECT_MODULES, ...componentModules(components)]
+const screenImports = (components: string[], serverRoutes: string[] | null = null) => [
+  ...ALLOWED_PACKAGES,
+  ...ALLOWED_PROJECT_MODULES,
+  ...(serverRoutes ? [SERVER_CLIENT_MODULE] : []),
+  ...componentModules(components),
+]
 
 const componentImports = (earlier: string[]) => [...ALLOWED_PACKAGES, ...ALLOWED_COMPONENT_MODULES, ...componentModules(earlier)]
 
-export const screenImportProblem = (code: string, components: string[]) => importProblem(code, screenImports(components))
+export const screenImportProblem = (code: string, components: string[], serverRoutes: string[] | null = null) =>
+  importProblem(code, screenImports(components, serverRoutes))
+
+/** Calls to `callServer` with a path written out, which must name a route of the app. */
+function serverCallProblems(code: string, serverRoutes: string[]) {
+  const paths = [...code.matchAll(SERVER_CALL)].map((match) => match[2]).filter((path) => !path.includes("${"))
+  const unknown = [...new Set(paths)].filter((path) => !matchApiRoute(serverRoutes, path))
+  const urls = serverRoutes.map(apiRouteUrl).join(", ") || "none"
+  return unknown.map((path) => `It calls ${path}, which isn't one of the app's server functions: ${urls}.`)
+}
 
 export const componentImportProblem = (code: string, earlier: string[]) => importProblem(code, componentImports(earlier))
 
@@ -92,7 +109,14 @@ export const componentImportProblem = (code: string, earlier: string[]) => impor
  * rewriting it. A new screen has to build on the shared components, while an
  * edit leaves alone what the screen is made from.
  */
-export function screenProblems(code: string, collections: string[], components: string[], isNew: boolean, chosenByPerson = "") {
+export function screenProblems(
+  code: string,
+  collections: string[],
+  components: string[],
+  isNew: boolean,
+  chosenByPerson = "",
+  serverRoutes: string[] | null = null
+) {
   const problems: string[] = []
 
   // On a cloud backend each collection is a table, so one that wasn't planned has nowhere to save.
@@ -103,7 +127,9 @@ export function screenProblems(code: string, collections: string[], components: 
     )
   }
 
-  problems.push(...codeProblems(code, screenImports(components), chosenByPerson))
+  problems.push(...codeProblems(code, screenImports(components, serverRoutes), chosenByPerson))
+
+  if (serverRoutes) problems.push(...serverCallProblems(code, serverRoutes))
 
   if (isNew && components.length > 0 && !components.some((name) => usesComponent(code, name))) {
     problems.push(`It doesn't use any shared component. Build it from these wherever they fit, instead of redrawing them: ${components.join(", ")}.`)
