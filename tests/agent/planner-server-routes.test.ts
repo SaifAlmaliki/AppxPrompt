@@ -71,6 +71,8 @@ const planInput = (serverRoutes: PlannedServerRoute[]) => ({
   design,
   screens: [{ ...screen, tab: null }],
   serverRoutes,
+  confidence: 100,
+  openDecisions: [] as string[],
 })
 
 describe("propose_plan with server functions", () => {
@@ -86,6 +88,34 @@ describe("propose_plan with server functions", () => {
     const { propose_plan } = await tools()
     const result = await propose_plan.execute(planInput([{ ...route("app/api/a+api.ts"), services: ["stripe"] }]), { context: context() })
     expect(result).toContain("register_service")
+  })
+})
+
+describe("propose_plan confidence", () => {
+  const later = { latestUserMessage: "Cats", priorAssistantReplies: 3 }
+
+  it("refuses a first plan that isn't sure enough, and blocks another try this turn", async () => {
+    const { propose_plan } = await tools()
+    const ctx = context(later)
+    const result = await propose_plan.execute({ ...planInput([]), confidence: 80, openDecisions: ["Where trends come from"] }, { context: ctx })
+    expect(result).toContain("not sure enough yet")
+    expect(result).toContain("Where trends come from")
+    expect(ctx.interviewBlocked).toBe(true)
+    expect(ctx.proposedPlan).toBeNull()
+  })
+
+  it("saves a sure plan without the confidence or the open decisions", async () => {
+    const { propose_plan } = await tools()
+    const { db } = await import("@/db")
+    const set = vi.fn(() => ({ where: vi.fn() }))
+    ;(db as unknown as { update: unknown }).update = () => ({ set })
+    const ctx = context(later) as ReturnType<typeof context> & { proposedPlan: Record<string, unknown> | null }
+    const result = await propose_plan.execute(planInput([]), { context: ctx })
+    expect(result).toContain("Plan saved")
+    expect(ctx.proposedPlan).not.toBeNull()
+    expect(ctx.proposedPlan).not.toHaveProperty("confidence")
+    expect(ctx.proposedPlan).not.toHaveProperty("openDecisions")
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ plan: ctx.proposedPlan }))
   })
 })
 

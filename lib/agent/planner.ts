@@ -7,6 +7,7 @@ import { MAX_TABS, MIN_TABS, SCREEN_LAYOUTS, statusEvent, type AppPlan, type Cha
 import { mergePlan, normalizeServerRoutes, planAppChanges, slugify, type AppChanges } from "@/lib/agent/changes"
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
+import { firstPlanGate, MAX_INTERVIEW_REPLIES, MIN_INTERVIEW_REPLIES } from "@/lib/agent/first-plan-gate"
 import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
 import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
@@ -96,6 +97,14 @@ const planSchema = z.object({
   serverRoutes: z
     .array(serverRouteSchema)
     .describe("Server functions the screens call. Empty unless a feature needs an outside service or must do work screens can't be trusted with."),
+  confidence: z
+    .number()
+    .describe(
+      "How sure you are, from 0 to 100, that this plan is what they want: the screens, where the main content comes from, and the outside services."
+    ),
+  openDecisions: z
+    .array(z.string())
+    .describe("Choices still open that would change the screens, the data, or the outside services. Empty when none. At most 5, each under 200 characters."),
 })
 
 const appChangesSchema = z.object({
@@ -205,7 +214,8 @@ function normalizePlan(input: z.infer<typeof planSchema>, maxScreens: number, ct
     enabled: integrationsEnabled(),
   })
   if (typeof serverRoutes === "string") return serverRoutes
-  return { ...input, screens, serverRoutes }
+  const { confidence: _confidence, openDecisions: _openDecisions, ...saved } = input
+  return { ...saved, screens, serverRoutes }
 }
 
 const UPGRADE_NOTE = "The person now sees a popup about upgrading to Pro, so mention it in one short sentence and don't repeat what it says."
@@ -225,12 +235,6 @@ function creditsMissing(ctx: PlannerContext, plan: AppPlan) {
   return `This costs ${cost} credits and the person has ${ctx.account.credits}. ${UPGRADE_NOTE}`
 }
 
-/** Answers required before the first plan, one question per reply. */
-const MIN_INTERVIEW_REPLIES = 3
-
-/** The most questions the instructions allow before the first plan. */
-const MAX_INTERVIEW_REPLIES = 5
-
 /** True when the person wants a plan now, without more questions. */
 function declinesInterview(text: string) {
   return /\b(just (build|plan|do it)|you decide|your call|skip (the )?questions|don'?t ask|do not ask|no questions|go ahead and (plan|build)|surprise me|whatever you think)\b/i.test(text)
@@ -239,16 +243,23 @@ function declinesInterview(text: string) {
 const proposePlan = tool<typeof planSchema, PlannerContext>({
   name: "propose_plan",
   description:
-    `Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan. On a project with no plan yet, don't call this until they have answered at least ${MIN_INTERVIEW_REPLIES} questions (at most ${MAX_INTERVIEW_REPLIES}), or they told you to decide. Revising a plan they can already see is immediate.`,
+    `Show the person the app plan (or a revised plan) as a card in the chat, with a button to confirm it. Always pass the complete plan. On a project with no plan yet, don't call this until they have answered at least ${MIN_INTERVIEW_REPLIES} questions (up to ${MAX_INTERVIEW_REPLIES} if you're still unsure), or they told you to decide. Revising a plan they can already see is immediate.`,
   parameters: planSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
     if (ctx.status === "building") return "The app is being built right now, so the plan can't change."
     if (ctx.builtScreens > 0) return "The app is already built. Use update_app to change it, which keeps the finished screens."
-    if (!ctx.plan && !declinesInterview(ctx.latestUserMessage) && (ctx.priorAssistantReplies < MIN_INTERVIEW_REPLIES || ctx.interviewBlocked)) {
+    const refusal = firstPlanGate({
+      hasPlan: Boolean(ctx.plan),
+      declined: declinesInterview(ctx.latestUserMessage),
+      replies: ctx.priorAssistantReplies,
+      blocked: ctx.interviewBlocked,
+      confidence: input.confidence,
+      openDecisions: input.openDecisions,
+    })
+    if (refusal) {
       ctx.interviewBlocked = true
-      const remaining = MIN_INTERVIEW_REPLIES - ctx.priorAssistantReplies
-      return `Plan not saved. Ask exactly one question now. ${remaining} more ${remaining === 1 ? "answer is" : "answers are"} required before the first plan. Don't call propose_plan again in this turn.`
+      return refusal
     }
 
     if (input.screens.length > PLANS[ctx.account.plan].maxScreens) {
