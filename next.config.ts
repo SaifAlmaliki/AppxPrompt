@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Dev only: lets the app be opened through an ngrok tunnel (see JOBS_PUBLIC_URL).
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev"],
+  // The sandbox runner reads this file at runtime, so the trace has to ship it with the route.
+  outputFileTracingIncludes: {
+    "/api/apps/[projectId]/server/[...path]": ["./sandbox-runtime/dist/server.mjs"],
+  },
   async headers() {
     return [
       {

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url"
 import type { RuntimeBundle } from "../lib/sandbox/bundle"
 import { createDispatcher } from "./dispatch"
 import { createVmEvaluator, hardenHost } from "./evaluate"
+import { runSelfCheck } from "./selfcheck"
 
 const SECRET_NAME = "APPXPROMPT_SANDBOX_SECRET"
 const INTERNAL_HEADER = "x-appxprompt-internal"
@@ -71,7 +72,8 @@ async function main() {
   const bundle = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "bundle.json"), "utf8")) as RuntimeBundle
   const port = Number(process.env.PORT) || 3000
   const expected = digest(secret)
-  const dispatch = createDispatcher(bundle, { env, fetch: globalThis.fetch.bind(globalThis), evaluate: createVmEvaluator() })
+  const hostFetch = globalThis.fetch.bind(globalThis)
+  const dispatch = createDispatcher(bundle, { env, fetch: hostFetch, evaluate: createVmEvaluator() })
 
   process.on("unhandledRejection", () => {})
   process.on("uncaughtException", () => {})
@@ -86,6 +88,10 @@ async function main() {
       }
       if (req.method === "GET" && req.url === "/__health") {
         await send(res, Response.json({ ok: true }))
+        return
+      }
+      if (req.method === "GET" && req.url === "/__selfcheck") {
+        await send(res, Response.json(await runSelfCheck({ hostFetch, env, secretNames: bundle.secretNames })))
         return
       }
       await send(res, await dispatch(toWebRequest(req, port)))
