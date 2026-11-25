@@ -90,7 +90,7 @@ These all come from the phase 1 plan:
     class SandboxUnavailableError extends Error { reason: "disabled" | "starting" | "limit" | "failed" }
     getSandboxRunner(): SandboxRunner
     ```
-    The implementation is Vercel Sandbox (`SANDBOX_PROVIDER=vercel`), confirmed by the phase 3 spike, and can be swapped behind this interface.
+    The implementation is Vercel Sandbox (`SANDBOX_PROVIDER=vercel`), with names confirmed from the `@vercel/sandbox` 4.1.0 types (live check: the production self-checks in the phase 3 plan), and can be swapped behind this interface. A sandbox is identified by its **name** (`Sandbox.get({ name })`), which is what the stored `sandboxId` holds.
   - `lib/sandbox/bundle.ts`:
     ```ts
     buildSandboxBundle(projectId: string): Promise<SandboxBundle> // { runtime, env, signature }

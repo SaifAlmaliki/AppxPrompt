@@ -46,18 +46,26 @@
 19. **`loadProjectExport(project, { includeServer: boolean })`** takes the option from this phase on. Phase 5 only extends what `includeServer: true` adds.
 20. **`update_app`** gains `removeServices: string[]`.
 21. **`SERVER_ROUTE_ID`** (`/^[a-z][a-z0-9-]{0,39}$/`) in `lib/agent-protocol.ts`. Planned route ids must match it, and phase 4's `AGENT_ID` is the same pattern.
+22. **Sandbox SDK names (Task 1, 2026-11-25):** a sandbox is addressed by `name` (`Sandbox.get({ name })`), and the stored `sandboxId` holds that name. `runtime: "node24"` became `image: "vercel/sandbox/node:24"`. An empty host list becomes `networkPolicy: "deny-all"`. `SandboxHandle.runCommand` takes `stdin` as a `Readable`. See the Decisions section.
 
 ## Decisions
 
-These are pre-filled from the `@vercel/sandbox` docs (Nov 2026). Task 1 confirms each one and replaces "to confirm" with the measured result.
+**Status (2026-11-25):** the live spike was dropped. The "Basis / to confirm" column below was filled from the `@vercel/sandbox` 4.1.0 type declarations and README, read in Task 1. Every row marked "confirmed from SDK types" still needs a live check, which the production self-checks (end of this plan) do on every VM start. Details: `.superpowers/sdd/2026-11-23-integrations-phase-3-server-functions/task-1-report.md`.
+
+**Names that differ from what this plan first assumed** (the plan text and the contract below already use the new names):
+- A sandbox is addressed by its **name**, not an id: `Sandbox.get({ name })`, and `sandbox.name`. There is no `sandboxId` option. The `sandbox_state.sandboxId` column keeps its name and stores `sandbox.name`.
+- `runtime: "node24"` is deprecated. Use `image: "vercel/sandbox/node:24"` (`runtime` and `image` are mutually exclusive in the types).
+- `update({ networkPolicy })` exists. `updateNetworkPolicy` is the deprecated spelling.
+- The `forwardURL` of Fallback (a) lives inside a per-domain rule, `allow: { "<host>": [{ forwardURL }] }`, not at the top level of the policy.
+- Credentials: the SDK does not read `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` or `VERCEL_TOKEN` itself. The adapter passes `{ teamId, projectId, token }` to `create` and `get` only when all three are set. Otherwise it passes nothing and the SDK uses OIDC.
 
 | Topic | Decision | Basis / to confirm |
 |---|---|---|
-| Technology | Vercel Sandbox (Firecracker microVM) through `@vercel/sandbox`, behind `SandboxRunner`, selected by `SANDBOX_PROVIDER=vercel`. Anything else gives the disabled runner, which always answers `unavailable`. | Docs: `Sandbox.create`, `runCommand({ detached })`, `ports` + `sandbox.domain(port)`, `writeFiles`, `extendTimeout`, `stop`, `Sandbox.get`. |
-| Egress | `networkPolicy: { allow: allowedHosts }` at creation, and `sandbox.update({ networkPolicy })` when hosts change. Defense in depth: the runtime's `guardedFetch` checks every hop's host, the module loader refuses node built-ins and packages, and the validator refuses `eval`, `Function`, `require(` and `import(`. | Docs show `networkPolicy` `'allow-all' \| 'deny-all' \| { allow: string[] }`. Task 1 confirms that a host not on the list fails from inside the VM. |
-| Fallback if allow-lists aren't enforced | (a) Create with `networkPolicy: 'deny-all'` plus an allow entry for one egress host only, the AppxPrompt egress proxy `/api/sandbox-egress`, so all outbound traffic goes through `forwardURL`, which checks the project's hosts. (b) If neither works, swap the `SandboxRunner` implementation for one that has an egress firewall (Fly Machines with network policies, or Cloudflare Workers for Platforms with an outbound Worker). Tasks 9 and 10 don't change, because the runtime and the bundle are provider-neutral. | Recorded so the spike has a ready answer. |
-| Credentials into the VM | Sent as one JSON line on the detached command's **stdin**. The runtime copies it into `process.env` before loading any route. Never passed through `Sandbox.create({ env })`, `runCommand({ env })` or command args, and never written to the filesystem. | Task 1 confirms that stdin works for detached commands and that no value shows in the dashboard or logs. If stdin doesn't work, use `runCommand({ env })` and record whether the dashboard shows it. |
-| Lifecycle | One VM per project, `persistent: false`, `resources.vcpus: 1`, runtime `node24`, `ports: [3000]`. The session timeout is 15 min, extended by 15 min whenever a request finds under 5 min left, up to 2 h per session. A change to routes, credentials, the backend, or the plan's server routes changes `sandboxSignature`, and the next request then stops the old VM and starts a new one. | Task 1 measures cold start. If the median is over 10 s, record it and keep the design. An in-VM reload is a later optimisation. |
+| Technology | Vercel Sandbox (Firecracker microVM) through `@vercel/sandbox`, behind `SandboxRunner`, selected by `SANDBOX_PROVIDER=vercel`. Anything else gives the disabled runner, which always answers `unavailable`. | Confirmed from SDK types (live check pending: production self-checks). `@vercel/sandbox` 4.1.0: `Sandbox.create(params)`, `sandbox.runCommand({ cmd, args, detached, stdin })`, `ports` + `sandbox.domain(port): string` (sync; throws if the port has no route), `writeFiles([{ path, content: string \| Uint8Array, mode? }])`, `extendTimeout(ms)`, `stop()`, `Sandbox.get({ name })`. Auth: `Sandbox.create` and `get` take `{ token, teamId, projectId }`, all three or none. With none, the SDK uses `VERCEL_OIDC_TOKEN` (automatic on Vercel; locally from `vercel env pull`, which expires after 12 h). |
+| Egress | `networkPolicy: { allow: allowedHosts }` at creation, and `sandbox.update({ networkPolicy })` when hosts change. When `allowedHosts` is empty, use `"deny-all"` (the meaning of `allow: []` isn't documented). Defense in depth: the runtime's `guardedFetch` checks every hop's host, the module loader refuses node built-ins and packages, and the validator refuses `eval`, `Function`, `require(` and `import(`. | Confirmed from SDK types (live check pending: production self-checks). `NetworkPolicy = "allow-all" \| "deny-all" \| { allow?: string[] \| Record<host, NetworkPolicyRule[]>; subnets?: { allow?: string[]; deny?: string[] } }`. Hosts accept a `*.` wildcard prefix. `Sandbox.update(params)` takes `networkPolicy` and applies it to the running session before saving it (the SDK doc says the policy is "applied to that session"), so a live change needs no restart. `updateNetworkPolicy` is deprecated. Whether a blocked host really fails from inside the VM is only provable live: the `/__selfcheck` egress check does it. |
+| Fallback if allow-lists aren't enforced | (a) Create with `networkPolicy: { allow: { "<egress host>": [{ forwardURL: "https://<app>/api/sandbox-egress" }] } }`, so all outbound traffic goes through one AppxPrompt proxy that checks the project's hosts. `defineSandboxProxy(handler)` from `@vercel/sandbox/proxy` verifies the OIDC token on proxied requests and passes `{ host, teamId, projectId, sandboxId, sandboxName }` to the handler. (b) If neither works, swap the `SandboxRunner` implementation for one that has an egress firewall (Fly Machines with network policies, or Cloudflare Workers for Platforms with an outbound Worker). Tasks 9 and 10 don't change, because the runtime and the bundle are provider-neutral. | Not needed unless the production egress self-check reports `egressBlocked: false`. In that case the runner already refuses to serve (see "Production self-checks"), and this fallback is the next step. Shape of (a) confirmed from SDK types. |
+| Credentials into the VM | Sent as one JSON line on the detached command's **stdin**. The runtime copies it into `process.env` before loading any route. Never passed through `Sandbox.create({ env })`, `runCommand({ env })` or command args, and never written to the filesystem. | Confirmed from SDK types (live check pending: production self-checks). `RunCommandParams.stdin?: boolean \| Readable` (`Readable` from `node:stream`). With a `Readable`, the SDK writes it to the command's stdin and closes stdin when the stream ends. `Readable.from([line])` works with `detached: true`, and the command result rejects if a write fails. The alternative is `stdin: true` plus `command.writeStdin(string \| Uint8Array)` and `command.closeStdin()` on the returned `Command`. No fallback to `runCommand({ env })` is needed. The `envKeys` self-check proves delivery, and "no value shows in the dashboard" is not provable from here, so it stays an owner check. |
+| Lifecycle | One VM per project, `persistent: false`, `resources.vcpus: 1`, `image: "vercel/sandbox/node:24"`, `ports: [3000]`, and a unique `name` per start (for example `appx-<projectId first 8>-<base36 time>`), which is stored in `sandbox_state.sandboxId`. The session timeout is 15 min, extended by 15 min whenever a request finds under 5 min left, up to 2 h per session. The runner treats a rejected `extendTimeout` as "session over" and restarts on the next request. A change to routes, credentials, the backend, or the plan's server routes changes `sandboxSignature`, and the next request then stops the old VM and starts a new one. | Confirmed from SDK types (live check pending: production self-checks). `persistent` must be set explicitly, because sandboxes are persistent by default. `timeout` defaults to 5 min. The SDK limit is 24 h on Pro/Enterprise and **45 min on Hobby**, so on Hobby the 2 h cap can't be reached and `extendTimeout` rejects beyond 45 min. `resources: { vcpus }` allows 4 on Hobby and 8 on Pro, with 2048 MB per vCPU. Up to 15 ports. `Sandbox.get({ name })` doesn't resume a session unless `resume: true`. Cold start isn't measurable from types and is recorded after the first production run. If the median is over 10 s, record it and keep the design. |
 | Fair use | 60 requests/min per project (per process), 30 s per request inside the VM (35 s at the proxy), 1 MB request and response bodies, and 3 h of sandbox session time per project per UTC day, counted as allocated session minutes. | Designer's call (spec "Left to the builder"). |
 | Who may call it | The HMAC sandbox token (projectId, userId, expiry; 3600 s) is in `x-appxprompt-sandbox`. The VM's public domain also needs a per-project internal secret in `x-appxprompt-internal`. The runtime deletes it from `process.env` before loading routes. | Spec section 4. |
 | Server key storage | `APPXPROMPT_SERVER_KEY` (32 random bytes, base64url) is sealed in `project_credentials` under the hidden service `appxprompt`. Its `hint` column holds `sha256:<hex>`, the stored hash the gateway compares in constant time. The hint is never listed, because the system service is hidden. | Spec: "compares the key against a stored hash in constant time". |
@@ -108,6 +116,8 @@ These are pre-filled from the `@vercel/sandbox` docs (Nov 2026). Task 1 confirms
 
 ### Task 1: Sandbox spike, decisions, and contract update
 
+> **Reduced on 2026-11-25:** only Step 1 and the doc updates were done (types read, Decisions filled, contract checked). Steps 2 to 5 (live spike, dashboard check, measurements) are replaced by the production self-checks at the end of this plan. The commit message is `docs: sandbox SDK names and phase 3 decisions (live check via production self-checks)`.
+
 **Files:**
 - Modify: `package.json` (add `@vercel/sandbox`), `docs/superpowers/plans/2026-11-23-integrations-contract.md`, this plan's **Decisions** table
 - Create (not committed): `scripts/spike-vercel-sandbox.mjs`
@@ -119,7 +129,7 @@ Run `npm install @vercel/sandbox`. Read `node_modules/@vercel/sandbox/dist/*.d.t
 - `writeFiles([{ path, content: Buffer }])`
 - `runCommand({ cmd, args, detached, stdin })`
 - `domain(port)`, `update({ networkPolicy })`, `extendTimeout(ms)` and `stop()`
-- `Sandbox.get({ sandboxId | name })`
+- `Sandbox.get({ name })` (confirmed: there is no `sandboxId` option)
 
 Write down any name that differs from the Decisions table.
 
@@ -786,13 +796,13 @@ export const dbSandboxState: SandboxStateStore
 - Produces (`vercel-runner.ts`):
 ```ts
 export type SandboxHandle = {
-  sandboxId: string; domain(port: number): string
+  name: string; domain(port: number): string   // `name` is stored in sandbox_state.sandboxId
   writeFiles(files: { path: string; content: Buffer }[]): Promise<void>
-  runCommand(params: { cmd: string; args: string[]; detached: true; stdin: NodeJS.ReadableStream }): Promise<unknown>
-  update(params: { networkPolicy: { allow: string[] } }): Promise<void>
+  runCommand(params: { cmd: string; args: string[]; detached: true; stdin: import("node:stream").Readable }): Promise<unknown>
+  update(params: { networkPolicy: "deny-all" | { allow: string[] } }): Promise<void>
   extendTimeout(ms: number): Promise<void>; stop(): Promise<void>
 }
-export type SandboxSdk = { create(options: object): Promise<SandboxHandle>; get(sandboxId: string): Promise<SandboxHandle> }
+export type SandboxSdk = { create(options: object): Promise<SandboxHandle>; get(name: string): Promise<SandboxHandle> } // get = Sandbox.get({ name })
 export function createVercelRunner(deps: {
   sdk: SandboxSdk; state: SandboxStateStore
   bundles: { signature(projectId: string): Promise<string>; build(projectId: string): Promise<SandboxBundle> }
@@ -806,7 +816,7 @@ Use the names Task 1 confirmed. The production `sdk` adapts `@vercel/sandbox`, a
 2. **Start it, if this request wins `state.claimStart(id, now + startClaimMs)`.**
    1. Stop the old sandbox (best effort), then `b = await bundles.build(id)`. If `b.runtime.routes` is empty, `clear` it and return a 404 with the `bad_request` body.
    2. Check `addUsage(id, sessionMs, day)`. If that's over `dailyMs`, `clear` it and throw `limit`.
-   3. `sdk.create({ ports: [3000], timeout: sessionMs, resources: { vcpus: 1 }, runtime: "node24", persistent: false, networkPolicy: { allow: b.runtime.allowedHosts } })`.
+   3. `sdk.create({ name, ports: [3000], timeout: sessionMs, resources: { vcpus: 1 }, image: "vercel/sandbox/node:24", persistent: false, networkPolicy })`, where `name` is a unique per-start name and `networkPolicy` is `{ allow: b.runtime.allowedHosts }`, or `"deny-all"` when that list is empty. The production adapter adds `{ teamId, projectId, token }` only when `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN` are all set, and the same applies to `get`.
    4. `writeFiles` `server.mjs` (the runtime source) and `bundle.json` (`JSON.stringify(b.runtime)`).
    5. `runCommand({ cmd: "node", args: ["server.mjs"], detached: true, stdin })`, where `stdin` is one line of `JSON.stringify({ ...b.env, APPXPROMPT_SANDBOX_SECRET: secret(id), PORT: "3000" })`.
    6. Poll `GET <domain>/__health` with the internal header every 300 ms, for up to `startWaitMs`.
@@ -827,7 +837,8 @@ Use the names Task 1 confirmed. The production `sdk` adapts `@vercel/sandbox`, a
 - **The first invoke:**
   - It creates once with `ports: [3000]`, `persistent: false`, `resources: { vcpus: 1 }` and `networkPolicy: { allow: ["api.openai.com"] }`.
   - It writes `server.mjs` and `bundle.json`, and `bundle.json` doesn't contain the env value `"sk-proj-…"`.
-  - `runCommand` has no `env` key, and its args don't contain the value. The stdin line parses to an object holding `OPENAI_API_KEY` and `APPXPROMPT_SANDBOX_SECRET`.
+  - `runCommand` has no `env` key, and its args don't contain the value. The stdin line parses to an object holding `OPENAI_API_KEY` and `APPXPROMPT_SANDBOX_SECRET` (read the `Readable` passed as `stdin`).
+  - A bundle with no allowed hosts creates with `networkPolicy: "deny-all"`.
   - It forwards to `<domain>/api/x` with `x-appxprompt-internal`, and returns status, headers and body.
 - **Reuse:** a second invoke with the same signature doesn't create again.
 - **Review Focus 2:**
