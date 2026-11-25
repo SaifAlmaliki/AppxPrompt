@@ -84,6 +84,20 @@
 - **Research.** The agent researches services with `web_search` (Tavily, `TAVILY_API_KEY`) and `read_page`, which only reads public https addresses and connects through a DNS check that blocks private ones. Research notes are saved on the service (`project_services.definition.notes`), never contain credential values, and are reused by later build steps.
 - **Phase 1.** Screens can't use the credentials yet. Server functions come in phase 3.
 
+## Server functions while building
+
+- **Where the code lives.** Server code is stored in the `server_routes` table. The server builder writes it as Expo Router API routes (`app/api/**/+api.ts`) plus helpers in `server/`.
+- **Where it runs.** Only inside a Vercel Sandbox microVM (`@vercel/sandbox`), one per project. It never runs in AppxPrompt's own functions. AppxPrompt only compiles it with sucrase.
+- **Turning it on.** `SANDBOX_PROVIDER=vercel` turns it on. Any other value answers "unavailable". On Vercel, auth is automatic (OIDC). Locally, run `vercel link` and `vercel env pull`, or set `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN`.
+- **Migrations.** 0016 (server routes and sandbox state), 0017 (credit reason), and 0018 (activity) must be applied before `SANDBOX_PROVIDER` is turned on.
+- **Egress.** The allow-list is the project's connected services' `allowedHosts` (`networkPolicy`). Before serving, every new VM runs two self-checks: a host that isn't allowed must be unreachable, and the number of credentials it received must match. If either check fails, the VM is stopped and calls answer "unavailable".
+- **Credentials.** They reach the VM only over stdin, never through env, args, files, or logs.
+- **Sandbox token.** Only the owner gets one. It lasts 1 hour and the workspace renews it. Shared viewers and public visitors never get a token and never see server code.
+- **Server key and gateway.** `APPXPROMPT_SERVER_KEY` is sealed and lives in the hidden service `appxprompt`. The gateway mode is set by `x-appxprompt-as: caller|app`.
+- **Fair-use caps.** 60 requests per minute per project, 30 seconds per request in the VM, 1 MB bodies, and 3 hours of sandbox time per project per day. Hobby sessions last at most 45 minutes.
+- **Activity tab.** Owner-only list of recent calls: time, function, result, service, and duration. The newest 200 are kept. Bodies, headers, and queries are never stored.
+- **Local development.** Data functions need a public `NEXT_PUBLIC_APP_URL` (a tunnel, e.g. `ngrok http 3000`), since the sandbox has to call back to the app.
+
 ## Planned Chapters
 
 ### Chapter 3: Project Creation + Save to Database
