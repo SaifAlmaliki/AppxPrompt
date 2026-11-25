@@ -223,6 +223,30 @@ describe("the first invoke", () => {
   })
 })
 
+describe("the request path", () => {
+  it.each(["@evil.com/x", ".evil.com", "//evil.com/x", "\\\\evil.com", "/\t/evil.com", "api/x", ""])(
+    "rejects %j without any fetch or VM",
+    async (path) => {
+      const t = setup()
+      const error = await t.runner.invoke("p1", { ...request, path }).catch((e) => e)
+      expect(error).toBeInstanceOf(SandboxUnavailableError)
+      expect(error.reason).toBe("failed")
+      expect(t.fetchCalls).toHaveLength(0)
+      expect(t.createCalls).toHaveLength(0)
+    },
+  )
+
+  it("forwards a path with a query to the VM origin", async () => {
+    const t = setup()
+    await t.runner.invoke("p1", { ...request, path: "/api/x?y=1" })
+    const call = t.fetchCalls.find((c) => c.url.includes("/api/x"))!
+    const origin = new URL(call.url).origin
+    expect(origin).toMatch(/^https:\/\/appx-p1-.*\.vercel\.run$/)
+    expect(call.url).toBe(`${origin}/api/x?y=1`)
+    expect((call.init.headers as Record<string, string>)["x-appxprompt-internal"]).toBe("secret-p1")
+  })
+})
+
 describe("reuse and restarts", () => {
   it("does not create again with the same signature", async () => {
     const t = setup()

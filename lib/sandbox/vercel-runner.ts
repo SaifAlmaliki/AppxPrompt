@@ -58,6 +58,11 @@ function errorResponse(status: number, code: string, message: string): SandboxRe
   return { status, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: { code, message } }) }
 }
 
+/** One leading slash, no backslash or control character (URL parsing drops tabs and newlines): anything else could point the URL at another host. */
+function isSafePath(value: string) {
+  return value.startsWith("/") && !value.startsWith("//") && !/[\\\u0000-\u001f\u007f]/.test(value)
+}
+
 const sleepFor = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
@@ -217,7 +222,9 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
     for (const [name, value] of Object.entries(request.headers)) if (name.toLowerCase() !== INTERNAL_HEADER) headers[name] = value
     headers[INTERNAL_HEADER] = deps.secret(projectId)
     const hasBody = request.body !== null && request.method !== "GET" && request.method !== "HEAD"
-    const response = await deps.fetch(running.domain + request.path, {
+    const target = new URL(request.path, running.domain)
+    if (target.origin !== new URL(running.domain).origin) throw new Error("The path left the sandbox origin.")
+    const response = await deps.fetch(target.href, {
       method: request.method,
       headers,
       body: hasBody ? request.body : undefined,
@@ -266,6 +273,7 @@ export function createVercelRunner(deps: VercelRunnerDeps): SandboxRunner {
 
   return {
     async invoke(projectId, request) {
+      if (!isSafePath(request.path)) throw new SandboxUnavailableError("failed")
       let restarted = false
       for (;;) {
         const ensured = await ensureRunning(projectId)

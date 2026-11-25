@@ -37,10 +37,20 @@ const disabledRunner: SandboxRunner = {
   stop: () => Promise.resolve(),
 }
 
-/** Builds the Vercel runner on first use, so nothing from the SDK or the database loads until it is needed. */
-function lazyVercelRunner(): SandboxRunner {
+/** Builds the real runner on first use, so nothing from the SDK or the database loads until it is needed. */
+export function lazyRunner(factory: () => Promise<SandboxRunner>): SandboxRunner {
   let real: Promise<SandboxRunner> | null = null
-  const load = () => (real ??= import("@/lib/sandbox/vercel-runner").then((module) => module.createProductionVercelRunner()))
+  const load = async () => {
+    const attempt = (real ??= factory())
+    try {
+      return await attempt
+    } catch {
+      // Don't keep a failed load for the life of the process: the next call tries again.
+      if (real === attempt) real = null
+      console.warn("[sandbox] the runner could not be loaded")
+      throw new SandboxUnavailableError("failed")
+    }
+  }
   return {
     invoke: async (projectId, request) => (await load()).invoke(projectId, request),
     reload: async (projectId) => (await load()).reload(projectId),
@@ -52,7 +62,7 @@ let memoized: SandboxRunner | null = null
 
 export function getSandboxRunner(): SandboxRunner {
   if (process.env.SANDBOX_PROVIDER !== "vercel") return disabledRunner
-  return (memoized ??= lazyVercelRunner())
+  return (memoized ??= lazyRunner(() => import("@/lib/sandbox/vercel-runner").then((module) => module.createProductionVercelRunner())))
 }
 
 const requestTimes = new Map<string, number[]>()
