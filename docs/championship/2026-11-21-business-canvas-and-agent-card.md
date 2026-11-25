@@ -381,7 +381,7 @@ Estimate for a 4-screen app, to replace with measured numbers:
 - English and Arabic interface
 - Free and Pro plans with Stripe
 - Outside services and keys: web research of official docs, a "Connect a service" dialog, encrypted keys (live behind a feature flag)
-- Server functions in an isolated sandbox, with a fair-use cap, an owner-only Activity tab and a per-user allow-list for staged rollout (built, first production test pending). Each server function costs credits like a screen
+- Server functions in an isolated sandbox, with a fair-use cap, an owner-only Activity tab, and an optional per-user allow-list for staged rollout that isn't in use (built, first production test pending). Each server function costs credits like a screen
 
 **Planned:**
 - AI agents inside generated apps (for example a booking assistant), whose instructions the owner edits in an Agent tab and end users can't see
