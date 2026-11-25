@@ -37,7 +37,9 @@ const PROCESS_KEY = /\[\s*["'`]process["'`]\s*\]/g
 const ENV_MESSAGE = "Read each credential as process.env.NAME."
 
 // Names are checked in the code with strings blanked. The `["name"]` form needs the string, so it has its own pattern.
-const FORBIDDEN: [string, RegExp, RegExp?][] = [
+// [name, pattern, bracket pattern, message]. Without a message it says the name isn't allowed.
+const NEVER = /(?!)/
+const FORBIDDEN: [string, RegExp, RegExp?, string?][] = [
   ["eval", /\beval\b/, /\[\s*["'`]eval["'`]\s*\]/g],
   ["new Function", /\bnew\s+Function\b/],
   ["Function", /(?<!\bnew\s+)\bFunction\b/, /\[\s*["'`]Function["'`]\s*\]/g],
@@ -48,6 +50,14 @@ const FORBIDDEN: [string, RegExp, RegExp?][] = [
   ["globalThis.fetch =", /\bglobalThis\s*\.\s*fetch\s*=(?!=)/],
   [".constructor.constructor", /\.\s*constructor\s*\.\s*constructor\b/],
   [".constructor(", /\.\s*constructor\s*\(/],
+  ["[constructor]", NEVER, /\[\s*["'`]constructor["'`]\s*\]/g, "It reaches .constructor through brackets, which isn't allowed in server code. Remove it."],
+  ["Reflect", /\bReflect\b/, undefined, "It uses Reflect, which isn't allowed in server code. Use plain property access and Object.keys, Object.entries or Object.assign instead."],
+  [
+    "computed access on globalThis",
+    /\b(?:globalThis|self|this)\s*(?:\?\.)?\s*\[/,
+    undefined,
+    "It indexes globalThis, self or this with brackets, which isn't allowed in server code. Use the global by name, such as fetch or crypto.",
+  ],
 ]
 
 /** Spaces for everything but line breaks, so positions and lines stay where they were. */
@@ -212,8 +222,8 @@ export function validateServerRoute(code: string, ctx: ServerRouteContext): stri
     ([token, pattern, bracket]) =>
       (pattern.test(views.blanked) || (bracket !== undefined && hasCodeMatch(bracket, views))) &&
       !(token === "Function" && /\bnew\s+Function\b/.test(views.blanked))
-  ).map(([token]) => token)
-  for (const token of forbidden) problems.push(`It uses ${token}, which isn't allowed in server code.`)
+  )
+  for (const [token, , , message] of forbidden) problems.push(message ?? `It uses ${token}, which isn't allowed in server code.`)
 
   return problems
 }

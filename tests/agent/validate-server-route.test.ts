@@ -114,6 +114,46 @@ describe("validateServerRoute", () => {
     }
   })
 
+  it("rejects ways of reaching code through bracket keys, Reflect and the global object", () => {
+    const shapes = [
+      '({})["constructor"]["constructor"]("return process")()',
+      '[].filter["constructor"]("return process")()',
+      "[].filter['constructor']('return process')()",
+      "[].filter[`constructor`]('return process')()",
+      'Reflect.get(globalThis, "eval")',
+      'const r = Reflect',
+      'const p = globalThis["pro" + "cess"]',
+      'const e = globalThis["\\u0065val"]',
+      'globalThis["fetch"] = async () => new Response()',
+      'const e = this["eval"]',
+      'const e = self["eval"]',
+      'const e = globalThis?.["eval"]',
+    ]
+    for (const shape of shapes) {
+      expect(validateServerRoute(route(shape), ctx).length, shape).toBeGreaterThan(0)
+    }
+    expect(validateServerRoute(route('const r = Reflect.get(globalThis, "eval")'), ctx).join()).toContain("Reflect")
+    expect(validateServerRoute(route('const e = this["eval"]'), ctx).join()).toContain("globalThis, self or this")
+  })
+
+  it("still accepts ordinary bracket access and words", () => {
+    const code = `
+import { ok } from "../../../server/respond"
+
+export async function POST(request: Request): Promise<Response> {
+  const obj: Record<string, string> = { key: "v" }
+  const headers: Record<string, string> = { "content-type": "application/json" }
+  const items = [1, 2, 3]
+  const first = items[0]
+  const type = headers["content-type"]
+  const text = "A Reflection on this[0] and globalThis[x] and a constructor"
+  // Reflect on globalThis["x"]
+  return ok({ value: obj["key"], first, type, text })
+}
+`
+    expect(validateServerRoute(code, ctx)).toEqual([])
+  })
+
   it("accepts ordinary server code", () => {
     const code = `
 import { accessToken } from "@/server/google"
