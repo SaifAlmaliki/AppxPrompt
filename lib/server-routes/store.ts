@@ -1,9 +1,9 @@
 // The server functions, agents and helpers of a project's app. Server only, and the only
 // module that reads or writes the `server_routes` table.
 
-import { and, asc, eq, inArray, notInArray } from "drizzle-orm"
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm"
 
-import { db, serverRoutes, type ServerRoute } from "@/db"
+import { db, projects, serverRoutes, type ServerRoute } from "@/db"
 import type { AppPlan, ScreenStatus } from "@/lib/agent-protocol"
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -59,6 +59,23 @@ export async function setServerRouteStatus(
     .returning()
   if (!row) throw new Error(`The server route ${path} doesn't exist.`)
   return row
+}
+
+/** Saves a finished route, and in the same transaction drops its queued change, if it had one, from the plan. */
+export async function finishServerRoute(projectId: string, path: string, code: string): Promise<ServerRoute> {
+  return db.transaction(async (tx) => {
+    await tx
+      .update(projects)
+      .set({ plan: sql`${projects.plan} #- ${`{pendingChanges,serverRoutes,"${path}"}`}::text[]` })
+      .where(eq(projects.id, projectId))
+    const [row] = await tx
+      .update(serverRoutes)
+      .set({ status: "done", code })
+      .where(and(eq(serverRoutes.projectId, projectId), eq(serverRoutes.path, path)))
+      .returning()
+    if (!row) throw new Error(`The server route ${path} doesn't exist.`)
+    return row
+  })
 }
 
 export async function saveServerHelper(projectId: string, path: string, purpose: string, code: string): Promise<ServerRoute> {

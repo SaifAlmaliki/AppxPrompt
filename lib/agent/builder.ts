@@ -1,21 +1,35 @@
 import { Agent, assistant, run, user, type AgentInputItem } from "@openai/agents"
 import { and, asc, eq, ne, sql } from "drizzle-orm"
 
-import { db, messages, projects, screens, type Project, type Screen } from "@/db"
+import { db, messages, projects, screens, type Project, type Screen, type ServerRoute } from "@/db"
 import type { Locale } from "@/i18n/config"
-import { componentLabel, screenFilePath, statusEvent, toProjectScreen, type AgentEvent, type AppPlan, type PendingChanges } from "@/lib/agent-protocol"
+import {
+  componentLabel,
+  screenFilePath,
+  statusEvent,
+  toProjectScreen,
+  toProjectServerRoute,
+  type AgentEvent,
+  type AppPlan,
+  type PendingChanges,
+  type PlannedServerRoute,
+} from "@/lib/agent-protocol"
 import { mergePlan } from "@/lib/agent/changes"
 import { generateComponents, writeComponent } from "@/lib/agent/components"
 import { BUILDER_MODEL, configureAgents } from "@/lib/agent/config"
 import { changeCollections, generateFoundation } from "@/lib/agent/foundation"
 import { BUILDER_INSTRUCTIONS, builderPrompt } from "@/lib/agent/instructions"
 import { BuildLostError, type BuildLog } from "@/lib/agent/builds"
+import { buildServerRoute, nextServerRoute, serviceContext } from "@/lib/agent/server-builder"
 import { fatalScreenProblem, screenProblems, visibleCode } from "@/lib/agent/validate-screen"
 import { refundUnfinishedBuild } from "@/lib/billing/credits"
 import { isBackendLinked, setUpBackend } from "@/lib/cloudhike/backend"
 import { isolate } from "@/lib/i18n/activity"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { fillGeneratedImages, hasGeneratedImages } from "@/lib/imagekit"
+import { serverAllowedHosts } from "@/lib/sandbox/bundle"
+import { finishServerRoute, listServerRoutes, saveServerHelper, setServerRouteStatus } from "@/lib/server-routes/store"
+import { listServiceDefinitions } from "@/lib/services/store"
 
 const builderAgent = new Agent({
   name: "AppxPrompt Screen Builder",
@@ -102,6 +116,53 @@ export function changesSummary({ added, updated, removed, failed = [] }: Pending
   return t("changesSummary", { what, missed })
 }
 
+/** Writes one server function or agent route, and checks it. A route that can't be written is marked failed, so the build carries on. */
+async function buildServerRouteStep(log: BuildLog, project: Project, plan: AppPlan, route: PlannedServerRoute, serverRows: ServerRoute[]) {
+  const row = serverRows.find((candidate) => candidate.path === route.path)!
+  const requests = plan.pendingChanges?.serverRoutes
+  const queued = requests !== undefined && Object.hasOwn(requests, route.path)
+
+  const writing = await setServerRouteStatus(project.id, route.path, "generating")
+  log.emit({ type: "server-route", route: toProjectServerRoute({ ...writing, code: null }) })
+  log.emit(statusEvent("writingServerFunction", { name: route.purpose }))
+
+  let saved: ServerRoute
+  try {
+    const definitions = await listServiceDefinitions(project.id)
+    const result = await buildServerRoute(
+      {
+        plan,
+        route,
+        current: queued ? row.code : null,
+        request: requests?.[route.path] || null,
+        services: definitions.filter((definition) => route.services.includes(definition.slug)).map(serviceContext),
+        helpers: serverRows.filter((other) => other.kind === "helper" && other.code !== null).map((other) => ({ path: other.path, code: other.code! })),
+        dataHosts: serverAllowedHosts(plan, []),
+      },
+      {
+        signal: log.signal,
+        saveHelper: async (path, purpose, code) => {
+          await saveServerHelper(project.id, path, purpose, code)
+        },
+        onChecking: () => log.emit(statusEvent("checkingServerFunction")),
+      }
+    )
+    await log.flush()
+
+    if ("code" in result) {
+      saved = await finishServerRoute(project.id, route.path, result.code)
+    } else {
+      console.error(`Writing server function ${route.path} failed`, result.problems)
+      saved = await setServerRouteStatus(project.id, route.path, "failed")
+    }
+  } catch (error) {
+    if (log.signal.aborted || error instanceof BuildLostError) throw error
+    console.error(`Writing server function ${route.path} failed`, error)
+    saved = await setServerRouteStatus(project.id, route.path, "failed")
+  }
+  log.emit({ type: "server-route", route: toProjectServerRoute(saved) })
+}
+
 /**
  * Does the next piece of a build: the foundation, or one screen, streaming each
  * file's code as it's written. Pieces that are already done are kept, so this
@@ -177,6 +238,14 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
       },
     })
     log.emit({ type: "plan", plan: next })
+    return true
+  }
+
+  // Functions come first, then agents that may import them, and both before the screens that call them.
+  const serverRows = await listServerRoutes(project.id)
+  const route = nextServerRoute(plan.serverRoutes ?? [], serverRows)
+  if (route) {
+    await buildServerRouteStep(log, project, plan, route, serverRows)
     return true
   }
 
@@ -293,7 +362,11 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   }
 
   const built = rows.filter((row) => row.status === "done")
-  const failed = rows.filter((row) => row.status !== "done")
+  // A server function or agent that couldn't be written counts like a screen that couldn't be: it fails the build, and its credits go back.
+  const failed = [
+    ...rows.filter((row) => row.status !== "done").map((row) => row.name),
+    ...serverRows.filter((serverRow) => serverRow.kind !== "helper" && serverRow.status !== "done").map((serverRow) => serverRow.purpose),
+  ]
 
   // Deploying can take minutes, so it gets a step of its own. It's safe to repeat if this step is retried.
   const linked = failed.length === 0 && (await isBackendLinked(project))
@@ -316,7 +389,7 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   const refunded = status === "failed" ? await refundUnfinishedBuild(log.buildId) : 0
   const refundNote = refunded > 0 ? ` ${t("refund", { credits: refunded })}` : ""
 
-  const names = (list: Screen[]) => commaList(isolateNames(list.map((row) => row.name), locale), locale)
+  const names = (list: (Screen | string)[]) => commaList(isolateNames(list.map((item) => (typeof item === "string" ? item : item.name)), locale), locale)
   const content =
     failed.length === 0
       ? changes

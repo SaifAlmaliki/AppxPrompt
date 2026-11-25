@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto"
 import { and, asc, eq, gt, sql, type SQL } from "drizzle-orm"
 
 import { buildEvents, builds, db, projects, screens, type Project } from "@/db"
-import { statusEvent, toProjectScreen, type AgentEvent, type AppPlan } from "@/lib/agent-protocol"
+import { statusEvent, toProjectScreen, toProjectServerRoute, type AgentEvent, type AppPlan } from "@/lib/agent-protocol"
 import { prepareScreens } from "@/lib/agent/builder"
 import { refundCharge, refundUnfinishedBuild, type BuildCharge } from "@/lib/billing/credits"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { getJobRun, startJobRun } from "@/lib/jobs"
+import { failWaitingServerRoutes, prepareServerRoutes } from "@/lib/server-routes/store"
 
 export const BUILD_WORKER_PATH = "/api/jobs/build-step"
 
@@ -139,9 +140,11 @@ export async function startBuild(project: Project, plan: AppPlan, firstEvents: A
   try {
     log.emit(plan.pendingChanges ? statusEvent("preparingChanges") : statusEvent("preparingBuild", { count: plan.screens.length }))
     const rows = await prepareScreens(project.id, plan)
+    const serverRows = await prepareServerRoutes(project.id, plan)
     await db.update(projects).set({ status: "building" }).where(eq(projects.id, project.id))
     log.emit({ type: "project-status", status: "building" })
     log.emit({ type: "screens", screens: rows.map(toProjectScreen) })
+    log.emit({ type: "server-routes", routes: serverRows.map(toProjectServerRoute) })
     await log.flush()
 
     const jobId = await startJobRun({ path: BUILD_WORKER_PATH, body: { buildId: build.id, step: 1 }, retries: JOB_RETRIES })
@@ -195,11 +198,13 @@ export async function failBuild(buildId: string, reason: "buildStopped" | "build
     .set({ status: "failed" })
     .where(and(eq(screens.projectId, build.projectId), sql`${screens.status} in ('pending', 'generating')`))
     .returning()
+  const stuckRoutes = await failWaitingServerRoutes(build.projectId)
   await db.update(projects).set({ status: "failed" }).where(eq(projects.id, build.projectId))
   await refundUnfinishedBuild(buildId).catch((error) => console.error(`Refunding build ${buildId} failed`, error))
 
   stuck.sort((a, b) => a.position - b.position)
   for (const row of stuck) log.emit({ type: "screen", screen: toProjectScreen(row) })
+  for (const row of stuckRoutes) log.emit({ type: "server-route", route: toProjectServerRoute(row) })
   log.emit({ type: "status", label: null })
   log.emit({ type: "project-status", status: "failed" })
   log.emit({ type: "error", message })

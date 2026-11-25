@@ -1603,7 +1603,9 @@
     "writingScreen": "جارٍ كتابة {name} ({position, number, integer} من {total, number, integer})…",
     "rewritingScreen": "جارٍ إعادة كتابة {name} ({position, number, integer} من {total, number, integer})…",
     "polishingScreen": "جارٍ صقل {name}…",
-    "generatingScreenImages": "جارٍ إنشاء صور {name}…"
+    "generatingScreenImages": "جارٍ إنشاء صور {name}…",
+    "writingServerFunction": "جارٍ كتابة دالة الخادم: {name}…",
+    "checkingServerFunction": "جارٍ فحص دالة الخادم…"
   },
   "agentMessages": {
     "confirm": "تبدو الخطة جيدة، ابدأ البناء!",

@@ -1603,7 +1603,9 @@
     "writingScreen": "Writing {name} ({position, number, integer} of {total, number, integer})…",
     "rewritingScreen": "Rewriting {name} ({position, number, integer} of {total, number, integer})…",
     "polishingScreen": "Polishing {name}…",
-    "generatingScreenImages": "Generating images for {name}…"
+    "generatingScreenImages": "Generating images for {name}…",
+    "writingServerFunction": "Writing the server function: {name}…",
+    "checkingServerFunction": "Checking the server function…"
   },
   "agentMessages": {
     "confirm": "Looks good, build it!",
