@@ -2,9 +2,9 @@ import { Agent, assistant, run, tool, user, type AgentInputItem, type Tool } fro
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { db, messages, projects, screens, type Project, type Screen } from "@/db"
+import { db, messages, projects, screens, type Project, type Screen, type ServerRoute } from "@/db"
 import { MAX_TABS, MIN_TABS, SCREEN_LAYOUTS, statusEvent, type AppPlan, type ChatMessage, type StatusKey } from "@/lib/agent-protocol"
-import { mergePlan, planAppChanges, slugify, type AppChanges } from "@/lib/agent/changes"
+import { mergePlan, normalizeServerRoutes, planAppChanges, slugify, type AppChanges } from "@/lib/agent/changes"
 import { configureAgents, DEFAULT_SCREEN_COUNT, PLANNER_MODEL } from "@/lib/agent/config"
 import { plannerInstructions, type PlannerState } from "@/lib/agent/instructions"
 import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
@@ -19,6 +19,7 @@ import { buildCost, PLANS } from "@/lib/plans"
 import { expandNumberReply } from "@/lib/interview-choices"
 import { normalizeService, serviceDefinitionSchema } from "@/lib/services/definition"
 import { integrationsEnabled } from "@/lib/services/flags"
+import { listServerRoutes } from "@/lib/server-routes/store"
 import { plannerServices } from "@/lib/services/status"
 import { getServiceNotes, listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
@@ -28,6 +29,7 @@ type PlannerContext = PlannerState & {
   projectId: string
   run: ProjectRun
   rows: Pick<Screen, "slug" | "name" | "code">[]
+  serverRows: Pick<ServerRoute, "path" | "code">[]
   /** The plan proposed during this turn, saved with the reply. */
   proposedPlan: AppPlan | null
   /** Assistant replies already saved in this chat, before this turn. */
@@ -42,6 +44,17 @@ type PlannerContext = PlannerState & {
   /** What's left of this turn's searches and page reads. */
   research: ResearchBudget
 }
+
+const serverRouteSchema = z.object({
+  id: z.string().describe("Short kebab-case id, e.g. 'booking-slots'"),
+  path: z.string().describe("The route file, app/api/<name>+api.ts, e.g. 'app/api/booking/slots+api.ts'. Nested folders are fine."),
+  purpose: z.string().describe("One plain sentence on what it does and what it returns"),
+  kind: z.enum(["function", "agent"]),
+  services: z
+    .array(z.string())
+    .describe("Slugs of the registered services it uses, plus 'backend' if it reads or saves the app's own data"),
+  access: z.enum(["public", "signed_in"]).describe("Who can call it. It answers POST only."),
+})
 
 const screenSchema = z.object({
   id: z.string().describe("Unique kebab-case slug, e.g. 'workout-detail'"),
@@ -79,6 +92,9 @@ const planSchema = z.object({
   screens: z
     .array(screenSchema)
     .describe(`At most ${DEFAULT_SCREEN_COUNT}, plus a default Sign In screen, unless the person explicitly asks for more, in build order. The first one is where the app opens.`),
+  serverRoutes: z
+    .array(serverRouteSchema)
+    .describe("Server functions the screens call. Empty unless a feature needs an outside service or must do work screens can't be trusted with."),
 })
 
 const appChangesSchema = z.object({
@@ -118,6 +134,14 @@ const appChangesSchema = z.object({
     .string()
     .nullable()
     .describe("What the app needs to store that it doesn't yet: new collections or fields, with sample data ideas. Null if nothing."),
+  addServerRoutes: z.array(serverRouteSchema).describe("New server functions the person's latest message needs. Never one the current plan already has."),
+  editServerRoutes: z
+    .array(serverRouteSchema.extend({ request: z.string().describe("Exactly what to change in this function, with every detail the person gave") }))
+    .describe("Existing server functions to change, each with its complete updated details and what to change. The path can't change."),
+  removeServerRoutePaths: z.array(z.string()).describe("Paths of server functions to delete. The screens that call them are rewritten without the calls."),
+  removeServices: z
+    .array(z.string())
+    .describe("Slugs of registered services the app should stop using. Their keys are deleted, and the functions and screens that used them are rewritten without them."),
 })
 
 const themeSchema = z.object({
@@ -146,7 +170,7 @@ const backendSchema = z.object({
 })
 
 /** Tidies a proposed plan, or returns why it can't be used. */
-function normalizePlan(input: z.infer<typeof planSchema>, maxScreens: number): AppPlan | string {
+function normalizePlan(input: z.infer<typeof planSchema>, maxScreens: number, ctx: PlannerContext): AppPlan | string {
   if (input.screens.length < 1 || input.screens.length > maxScreens) {
     return `The plan has ${input.screens.length} screens. Plan between 1 and ${maxScreens}.`
   }
@@ -175,7 +199,12 @@ function normalizePlan(input: z.infer<typeof planSchema>, maxScreens: number): A
       ...new Set(screen.navigatesTo.map((id) => idMap.get(id) ?? slugify(id)).filter((id) => used.has(id) && id !== screen.id)),
     ]
   }
-  return { ...input, screens }
+  const serverRoutes = normalizeServerRoutes(input.serverRoutes, {
+    services: ctx.services.map((service) => service.slug),
+    enabled: integrationsEnabled(),
+  })
+  if (typeof serverRoutes === "string") return serverRoutes
+  return { ...input, screens, serverRoutes }
 }
 
 const UPGRADE_NOTE = "The person now sees a popup about upgrading to Pro, so mention it in one short sentence and don't repeat what it says."
@@ -189,8 +218,7 @@ function screenLimitReached(ctx: PlannerContext) {
 
 /** Checks there's enough for this work, so the reply can say so. The build itself is what charges for it. */
 function creditsMissing(ctx: PlannerContext, plan: AppPlan) {
-  // Task 13 puts the project's server rows in PlannerContext; until then no route counts as built.
-  const cost = buildCost(plan, ctx.rows, [])
+  const cost = buildCost(plan, ctx.rows, ctx.serverRows)
   if (cost <= ctx.account.credits) return null
   ctx.run.emit({ type: "upgrade", reason: "credits" })
   return `This costs ${cost} credits and the person has ${ctx.account.credits}. ${UPGRADE_NOTE}`
@@ -222,7 +250,7 @@ const proposePlan = tool<typeof planSchema, PlannerContext>({
     if (input.screens.length > PLANS[ctx.account.plan].maxScreens) {
       return `Plan not saved: ${screenLimitReached(ctx)} Call propose_plan again with what matters most within the limit, folding the rest into those screens.`
     }
-    const plan = normalizePlan(input, PLANS[ctx.account.plan].maxScreens)
+    const plan = normalizePlan(input, PLANS[ctx.account.plan].maxScreens, ctx)
     if (typeof plan === "string") return `Plan not saved: ${plan} Fix it and call propose_plan again.`
 
     await db.update(projects).set({ plan, status: "planning" }).where(eq(projects.id, ctx.projectId))
@@ -254,7 +282,7 @@ const confirmPlan = tool<z.ZodObject<Record<string, never>>, PlannerContext>({
 const updateApp = tool<typeof appChangesSchema, PlannerContext>({
   name: "update_app",
   description:
-    "Change the built app: add, edit, rename, or remove screens, add or edit its shared components, choose the screen it opens on, and add to its data. Put everything the person's latest message asks for in one call, and nothing from earlier messages. The work starts right after your reply.",
+    "Change the built app: add, edit, rename, or remove screens, add or edit its shared components, add, edit, or remove its server functions, remove services it no longer uses, choose the screen it opens on, and add to its data. Put everything the person's latest message asks for in one call, and nothing from earlier messages. The work starts right after your reply.",
   parameters: appChangesSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
@@ -266,11 +294,15 @@ const updateApp = tool<typeof appChangesSchema, PlannerContext>({
     if (input.addScreens.length > 0 && screenCount > PLANS[ctx.account.plan].maxScreens) {
       return `Nothing changed: ${screenLimitReached(ctx)} Offer to fold this into an existing screen, or to replace a screen.`
     }
-    const changes = planAppChanges(ctx.plan, ctx.rows, input, PLANS[ctx.account.plan].maxScreens)
+    const changes = planAppChanges(ctx.plan, ctx.rows, input, PLANS[ctx.account.plan].maxScreens, {
+      services: ctx.services.map((service) => service.slug),
+      enabled: integrationsEnabled(),
+    })
     if (typeof changes === "string") return `Nothing changed: ${changes} Fix it and call update_app again.`
     const missing = creditsMissing(ctx, changes.plan)
     if (missing) return `Nothing changed: ${missing}`
     ctx.changes = changes
+    ctx.services = ctx.services.filter((service) => !changes.removedServices.includes(service.slug))
     return "Queued. The changes start right after your reply, so don't say they're finished yet."
   },
 })
@@ -456,6 +488,7 @@ export async function runPlannerTurn(
     .select({ slug: screens.slug, name: screens.name, code: screens.code })
     .from(screens)
     .where(eq(screens.projectId, project.id))
+  const serverRows = await listServerRoutes(project.id)
 
   const integrations = integrationsEnabled()
   const context: PlannerContext = {
@@ -464,6 +497,8 @@ export async function runPlannerTurn(
     projectId: project.id,
     run: projectRun,
     rows,
+    serverRows,
+    serverRoutes: project.plan?.serverRoutes ?? [],
     status: project.status,
     platform: project.platform,
     plan: project.plan,

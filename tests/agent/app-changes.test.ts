@@ -1,8 +1,44 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { planAppChanges, type AppChangeRequest } from "@/lib/agent/changes"
+import { applyAppChanges, planAppChanges, type AppChangeRequest } from "@/lib/agent/changes"
 import type { AppPlan, PlannedScreen } from "@/lib/agent-protocol"
 import { PLANS } from "@/lib/plans"
+import { removeServerRoutes } from "@/lib/server-routes/store"
+import { removeService } from "@/lib/services/store"
+
+const events = vi.hoisted(() => [] as string[])
+const updates = vi.hoisted(() => [] as unknown[])
+
+vi.mock("@/db", () => {
+  const tx = {
+    select: () => ({ from: () => ({ where: () => ({ orderBy: async () => [] }) }) }),
+    insert: () => ({ values: async () => [] }),
+    update: () => ({
+      set: (values: unknown) => ({
+        where: () => {
+          updates.push(values)
+          const done = Promise.resolve([{ plan: { screens: [] } }]) as Promise<unknown[]> & { returning: () => Promise<unknown[]> }
+          done.returning = async () => [{ plan: { screens: [] } }]
+          return done
+        },
+      }),
+    }),
+  }
+  return {
+    db: {
+      transaction: async (run: (tx: unknown) => Promise<unknown>) => {
+        const result = await run(tx)
+        events.push("committed")
+        return result
+      },
+    },
+    projects: {},
+    screens: {},
+    serverRoutes: {},
+  }
+})
+vi.mock("@/lib/server-routes/store", () => ({ removeServerRoutes: vi.fn() }))
+vi.mock("@/lib/services/store", () => ({ removeService: vi.fn(async () => void events.push("removed")) }))
 
 function screen(id: string, name: string, tab: string | null = null): PlannedScreen {
   return {
@@ -44,6 +80,10 @@ function request(changes: Partial<AppChangeRequest>): AppChangeRequest {
     editComponents: [],
     firstScreenId: null,
     dataChange: null,
+    addServerRoutes: [],
+    editServerRoutes: [],
+    removeServerRoutePaths: [],
+    removeServices: [],
     ...changes,
   }
 }
@@ -81,5 +121,51 @@ describe("planAppChanges", () => {
     expect(planAppChanges(english, [], request({ addScreens: [screen("settings-screen", "Settings Screen")] }), 10)).toMatch(
       /already has/
     )
+  })
+})
+
+describe("removing a service", () => {
+  const slots = {
+    id: "booking-slots",
+    path: "app/api/booking/slots+api.ts",
+    purpose: "Lists the free booking times",
+    kind: "function" as const,
+    services: ["google-calendar", "backend"],
+    access: "signed_in" as const,
+  }
+  const built = {
+    ...arabicPlan,
+    navigation: "stack",
+    screens: [screen("book", "Book")],
+    serverRoutes: [slots],
+  } as AppPlan
+  const rows = [{ slug: "book", name: "Book", code: 'await callServer("/api/booking/slots", {})' }]
+  const options = { services: ["google-calendar"], enabled: true }
+
+  it("strips the service from its routes, queues their rewrite and edits the screens that call them", () => {
+    const result = planAppChanges(built, rows, request({ removeServices: ["google-calendar"] }), 10, options)
+    if (typeof result === "string") throw new Error(result)
+    expect(result.plan.serverRoutes).toMatchObject([{ path: slots.path, services: ["backend"] }])
+    expect(result.plan.pendingChanges?.serverRoutes?.[slots.path]).toContain("google-calendar service was removed")
+    expect(result.plan.pendingChanges?.edits.book).toContain("/api/booking/slots no longer uses it")
+    expect(result.plan.pendingChanges?.updated).toEqual(expect.arrayContaining(["google-calendar", slots.purpose]))
+    expect(result.removedServices).toEqual(["google-calendar"])
+  })
+
+  it("refuses a service that isn't registered", () => {
+    expect(planAppChanges(built, rows, request({ removeServices: ["stripe"] }), 10, options)).toContain("stripe")
+  })
+
+  it("deletes the service after the transaction commits", async () => {
+    events.length = 0
+    updates.length = 0
+    const result = planAppChanges(built, rows, request({ removeServices: ["google-calendar"] }), 10, options)
+    if (typeof result === "string") throw new Error(result)
+    await applyAppChanges("p1", result)
+    expect(removeService).toHaveBeenCalledTimes(1)
+    expect(removeService).toHaveBeenCalledWith("p1", "google-calendar")
+    expect(events).toEqual(["committed", "removed"])
+    expect(updates).toContainEqual({ status: "pending" })
+    expect(removeServerRoutes).toHaveBeenCalledWith(expect.anything(), "p1", [])
   })
 })

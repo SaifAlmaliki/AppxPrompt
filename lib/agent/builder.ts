@@ -237,7 +237,8 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
         (plan.collections ?? []).map((c) => c.name),
         (plan.components ?? []).map((c) => c.name),
         !edit,
-        edit ? `${edit.code}\n${edit.request}` : ""
+        edit ? `${edit.code}\n${edit.request}` : "",
+        plan.serverRoutes?.length ? plan.serverRoutes.map((route) => route.path) : null
       )
       if (problems.length > 0) {
         log.emit({ type: "screen", screen: writing() })

@@ -1,17 +1,26 @@
-import { asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, sql } from "drizzle-orm"
 
-import { db, projects, screens, type Screen } from "@/db"
+import { db, projects, screens, serverRoutes, type Screen } from "@/db"
 import {
+  API_ROUTE_FILE,
+  apiRouteUrl,
+  BACKEND_SERVICE,
   COMPONENT_NAME,
   componentLabel,
   MAX_TABS,
   MIN_TABS,
   screenFilePath,
   screenRoute,
+  SERVER_ROUTE_ID,
   type AppPlan,
   type PendingChanges,
   type PlannedScreen,
+  type PlannedServerRoute,
 } from "@/lib/agent-protocol"
+import { matchApiRoute } from "@/lib/sandbox/routes"
+import { removeServerRoutes } from "@/lib/server-routes/store"
+import { findKeys } from "@/lib/services/key-patterns"
+import { removeService } from "@/lib/services/store"
 
 /** What the person asked to change about a built app. */
 export type AppChangeRequest = {
@@ -24,9 +33,30 @@ export type AppChangeRequest = {
   editComponents: { name: string; request: string }[]
   firstScreenId: string | null
   dataChange: string | null
+  addServerRoutes: PlannedServerRoute[]
+  editServerRoutes: (PlannedServerRoute & { request: string })[]
+  removeServerRoutePaths: string[]
+  /** Slugs of registered services the app stops using. */
+  removeServices: string[]
 }
 
-export type AppChanges = { plan: AppPlan; removed: string[] }
+export type AppChanges = {
+  plan: AppPlan
+  removed: string[]
+  /** Paths of the server functions the app no longer has. */
+  removedServerRoutes: string[]
+  /** Slugs of the services to delete once the changes are saved. */
+  removedServices: string[]
+}
+
+export type ServerRouteOptions = {
+  /** Slugs of the services registered for the app. */
+  services: string[]
+  enabled: boolean
+}
+
+export const MAX_SERVER_ROUTES = 10
+const MAX_PURPOSE = 300
 
 export function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "screen"
@@ -57,12 +87,61 @@ function linksTo(code: string, slug: string) {
   return new RegExp(`["'\`]/${slug}(?:["'\`?])`).test(code)
 }
 
+/** The server functions as they'll be saved, or the first reason they can't be. */
+export function normalizeServerRoutes(input: PlannedServerRoute[], options: ServerRouteOptions): PlannedServerRoute[] | string {
+  if (input.length === 0) return []
+  if (!options.enabled) return "Server functions aren't available on this AppxPrompt server yet."
+  if (input.length > MAX_SERVER_ROUTES) return `An app has at most ${MAX_SERVER_ROUTES} server functions.`
+
+  const urls = new Set<string>()
+  const ids = new Set<string>()
+  const routes: PlannedServerRoute[] = []
+  for (const route of input) {
+    if (!API_ROUTE_FILE.test(route.path)) {
+      return `${route.path} isn't a server function path. Use app/api/<name>+api.ts.`
+    }
+    const url = apiRouteUrl(route.path)
+    if (urls.has(url)) return `${route.path} answers on ${url}, which another server function already uses. Give each its own path.`
+    urls.add(url)
+
+    const base = slugify(route.id || route.path)
+    let id = base
+    for (let n = 2; ids.has(id); n++) id = `${base}-${n}`
+    if (!SERVER_ROUTE_ID.test(id)) {
+      return `${route.id || route.path} isn't a valid server function id. Use short kebab-case that starts with a letter, at most 40 characters.`
+    }
+    ids.add(id)
+
+    const unknown = route.services.find((slug) => slug !== BACKEND_SERVICE && !options.services.includes(slug))
+    if (unknown) return `Register ${unknown} with register_service before planning a function that uses it.`
+
+    const purpose = route.purpose.trim()
+    if (purpose.length < 1 || purpose.length > MAX_PURPOSE) {
+      return `The purpose of ${route.path} must be 1 to ${MAX_PURPOSE} characters.`
+    }
+    if (findKeys(purpose).length > 0) {
+      return `The purpose of ${route.path} contains what looks like a key. Never put a key in a plan: the owner enters it in the keys dialog.`
+    }
+
+    routes.push({ id, path: route.path, purpose, kind: route.kind, services: [...new Set(route.services)], access: route.access })
+  }
+  return routes
+}
+
+const SERVER_CALL_PATH = /\bcallServer(?:<[^>]*>)?\(\s*(["'`])([^"'`]+)\1/g
+
+/** Whether a screen's code calls the function at `path`. */
+function callsRoute(code: string, path: string) {
+  return [...code.matchAll(SERVER_CALL_PATH)].some((match) => matchApiRoute([path], match[2]))
+}
+
 /** The plan after `request`, or why it can't be used. Nothing is saved yet. */
 export function planAppChanges(
   plan: AppPlan,
   rows: Pick<Screen, "slug" | "name" | "code">[],
   request: AppChangeRequest,
-  maxScreens: number
+  maxScreens: number,
+  options: ServerRouteOptions = { services: [], enabled: false }
 ): AppChanges | string {
   const existing = new Set(plan.screens.map((screen) => screen.id))
   const missing = [...request.editScreens.map((s) => s.id), ...request.removeScreenIds].filter((id) => !existing.has(id))
@@ -80,6 +159,39 @@ export function planAppChanges(
   if (badNames.length > 0) {
     return `Can't add ${badNames.join(", ")}. Each new component needs its own PascalCase name, and editComponents changes one the app already has.`
   }
+
+  const currentRoutes = plan.serverRoutes ?? []
+  const knownRoutes = new Set(currentRoutes.map((route) => route.path))
+  const missingRoutes = [...request.editServerRoutes.map((route) => route.path), ...request.removeServerRoutePaths].filter(
+    (path) => !knownRoutes.has(path)
+  )
+  if (missingRoutes.length > 0) return `These server functions don't exist: ${missingRoutes.join(", ")}.`
+  const unregistered = request.removeServices.filter((slug) => !options.services.includes(slug))
+  if (unregistered.length > 0) return `These services aren't registered: ${unregistered.join(", ")}.`
+
+  const removedPaths = new Set(request.removeServerRoutePaths)
+  const editedRoutes = request.editServerRoutes.filter((route) => !removedPaths.has(route.path))
+  const editedPaths = new Set(editedRoutes.map((route) => route.path))
+  const droppedServices = new Set(request.removeServices)
+  const dropServices = (route: PlannedServerRoute) =>
+    route.services.some((slug) => droppedServices.has(slug)) ? { ...route, services: route.services.filter((slug) => !droppedServices.has(slug)) } : route
+  const keptRoutes = currentRoutes.filter((route) => !removedPaths.has(route.path) && !editedPaths.has(route.path))
+  const changesRoutes =
+    request.addServerRoutes.length > 0 || editedRoutes.length > 0 || removedPaths.size > 0 || currentRoutes.some((route) => dropServices(route) !== route)
+  let nextRoutes = currentRoutes
+  if (changesRoutes) {
+    const result = normalizeServerRoutes(
+      [
+        ...keptRoutes,
+        ...editedRoutes.map(({ request: _text, ...route }) => route),
+        ...request.addServerRoutes,
+      ].map(dropServices),
+      { ...options, services: options.services.filter((slug) => !droppedServices.has(slug)) }
+    )
+    if (typeof result === "string") return result
+    nextRoutes = result
+  }
+  const removedRoutes = currentRoutes.filter((route) => removedPaths.has(route.path))
 
   const removed = plan.screens.filter((screen) => request.removeScreenIds.includes(screen.id))
   const removedIds = removed.map((screen) => screen.id)
@@ -174,7 +286,45 @@ export function planAppChanges(
     edits[row.slug] = edits[row.slug] ? `${edits[row.slug]}\n${note}` : note
   }
 
+  // A screen calling a function that's gone, or one that no longer uses a removed service, has to change too.
+  const addNote = (slug: string, note: string) => {
+    edits[slug] = edits[slug] ? `${edits[slug]}\n${note}` : note
+  }
+  const callers = (path: string) => rows.filter((row) => row.code && !removedIds.includes(row.slug) && callsRoute(row.code, path))
+  for (const route of removedRoutes) {
+    const url = apiRouteUrl(route.path)
+    for (const row of callers(route.path)) {
+      addNote(row.slug, `The server function ${url} no longer exists. Remove what calls it, and any control that only did that.`)
+    }
+  }
+  const strippedRoutes = currentRoutes.filter((route) => !removedPaths.has(route.path) && dropServices(route) !== route)
+  for (const route of strippedRoutes) {
+    const url = apiRouteUrl(route.path)
+    for (const slug of route.services.filter((slug) => droppedServices.has(slug))) {
+      for (const row of callers(route.path)) {
+        addNote(row.slug, `The ${slug} service was removed, so ${url} no longer uses it. Remove what depended on it.`)
+      }
+    }
+  }
+
   // What's still waiting from an earlier change comes first, so this one can build on it.
+  const serverQueue: Record<string, string> = Object.fromEntries(
+    Object.entries(plan.pendingChanges?.serverRoutes ?? {}).filter(([path]) => !removedPaths.has(path))
+  )
+  const queueRoute = (path: string, text: string) => {
+    const waiting = serverQueue[path]
+    serverQueue[path] = waiting ? `${waiting}\n${text}` : text
+  }
+  for (const route of request.addServerRoutes) serverQueue[route.path] = ""
+  for (const route of editedRoutes) queueRoute(route.path, route.request)
+  for (const route of strippedRoutes) {
+    for (const slug of route.services.filter((slug) => droppedServices.has(slug))) {
+      queueRoute(route.path, `The ${slug} service was removed. Rewrite this function without it, and drop what only it did.`)
+    }
+  }
+  const purposeOf = (path: string) => nextRoutes.find((route) => route.path === path)?.purpose
+  const routePurposes = (paths: string[]) => paths.map(purposeOf).filter((purpose): purpose is string => Boolean(purpose))
+
   const components = { ...earlierComponents }
   const queueComponent = (name: string, purpose: string, text: string) => {
     const waiting = components[name]?.request
@@ -201,12 +351,22 @@ export function planAppChanges(
     data: [earlier?.data, request.dataChange].filter(Boolean).join("\n") || null,
     edits,
     components,
-    added: [...new Set([...(earlier?.added ?? []), ...names(added), ...newNames.map(componentLabel)])],
+    ...(Object.keys(serverQueue).length > 0 ? { serverRoutes: serverQueue } : {}),
+    added: [
+      ...new Set([
+        ...(earlier?.added ?? []),
+        ...names(added),
+        ...newNames.map(componentLabel),
+        ...routePurposes(request.addServerRoutes.map((route) => route.path)),
+      ]),
+    ],
     updated: [
       ...new Set([
         ...(earlier?.updated ?? []),
         ...names(request.editScreens),
         ...request.editComponents.map((c) => componentLabel(c.name)),
+        ...request.removeServices,
+        ...routePurposes([...editedRoutes.map((route) => route.path), ...strippedRoutes.map((route) => route.path)]),
       ]),
     ],
     removed: [...new Set([...(earlier?.removed ?? []), ...names(removed)])],
@@ -215,11 +375,14 @@ export function planAppChanges(
   const { appName, navigation } = request
   return {
     removed: removedIds,
+    removedServerRoutes: [...removedPaths],
+    removedServices: request.removeServices,
     plan: {
       ...plan,
       ...(appName ? { appName } : {}),
       ...(navigation ? { navigation } : {}),
       screens: next,
+      ...(plan.serverRoutes || nextRoutes.length > 0 ? { serverRoutes: nextRoutes } : {}),
       pendingChanges,
     },
   }
@@ -255,9 +418,10 @@ export async function mergePlan(projectId: string, changes: Partial<AppPlan>) {
  * Saves the changes and queues the work: new screens and edited screens wait for
  * the build, and an edited screen keeps its code until its new code is ready.
  */
-export async function applyAppChanges(projectId: string, { plan, removed }: AppChanges) {
+export async function applyAppChanges(projectId: string, { plan, removed, removedServerRoutes, removedServices }: AppChanges) {
   const edits = plan.pendingChanges?.edits ?? {}
-  return db.transaction(async (tx) => {
+  const queuedRoutes = Object.keys(plan.pendingChanges?.serverRoutes ?? {})
+  const saved = await db.transaction(async (tx) => {
     const rows = await tx.select().from(screens).where(eq(screens.projectId, projectId)).orderBy(asc(screens.position))
     const bySlug = new Map(rows.map((row) => [row.slug, row]))
 
@@ -293,6 +457,14 @@ export async function applyAppChanges(projectId: string, { plan, removed }: AppC
         .where(eq(screens.id, row.id))
     }
 
+    await removeServerRoutes(tx, projectId, removedServerRoutes)
+    if (queuedRoutes.length > 0) {
+      await tx
+        .update(serverRoutes)
+        .set({ status: "pending" })
+        .where(and(eq(serverRoutes.projectId, projectId), inArray(serverRoutes.path, queuedRoutes)))
+    }
+
     const { themePackage: _themePackage, backend: _backend, ...changes } = plan
     if (changes.components) {
       changes.components = changes.components.map((c) => ({ ...c, code: rewriteRoutes(c.code, moved) }))
@@ -304,4 +476,6 @@ export async function applyAppChanges(projectId: string, { plan, removed }: AppC
       .returning({ plan: projects.plan })
     return project.plan!
   })
+  for (const slug of removedServices) await removeService(projectId, slug)
+  return saved
 }

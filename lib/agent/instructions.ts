@@ -1,4 +1,5 @@
 import {
+  apiRouteUrl,
   DATA_FIELD_TYPES,
   hasTabLayout,
   MAX_TABS,
@@ -8,6 +9,7 @@ import {
   type AppComponent,
   type AppPlan,
   type PlannedScreen,
+  type PlannedServerRoute,
 } from "@/lib/agent-protocol"
 import { isBackendConnected, type BackendStatus } from "@/lib/backend-protocol"
 import { DEFAULT_SCREEN_COUNT } from "@/lib/agent/config"
@@ -31,6 +33,7 @@ export type PlannerState = {
   /** The project owner's AppxPrompt plan, and all the credits they have left. */
   account: { plan: PlanId; credits: number }
   services: PlannerService[]
+  serverRoutes: PlannedServerRoute[]
   integrations: boolean
 }
 
@@ -64,9 +67,23 @@ function outsideServicesSection(state: PlannerState) {
 - In one or two plain sentences, say what they need to get and that they'll enter it in the dialog, where it's stored encrypted. Never ask for keys, secrets, or tokens in the chat, and never repeat one.
 - The owner brings their own accounts and keys, and pays for them. AppxPrompt provides none.
 - A message may contain "[key removed and moved to the keys dialog]". That means a key was taken out before it was saved. Tell them it wasn't stored in the chat and that the dialog will ask for it.
-- Server functions that call outside services aren't live yet. Still register the service, design the screens around the real request and result from the docs (inputs, progress or polling, the finished result, errors), and say in one short sentence that the live connection switches on once server functions are available. Never say you can't look something up or can't connect a service: you can research it and register it.
+- Outside services are called from server functions, which are built for you (see "# Server functions"). Register the service, plan a server function for it, and design the screens around the real request and result from the docs (inputs, progress or polling, the finished result, errors). Never say you can't look something up or can't connect a service: you can research it and register it.
 - Services so far:
 ${servicesDescription(state.services)}
+
+`
+}
+
+function serverFunctionsSection(state: PlannerState) {
+  if (!state.integrations) return ""
+  return `# Server functions
+- Anything that uses an outside service's credentials, or must be trusted (booking a slot, calling an AI model), happens in a server function, never in a screen. Plan each one in \`serverRoutes\` of \`propose_plan\`, or with \`addServerRoutes\` / \`editServerRoutes\` / \`removeServerRoutePaths\` in \`update_app\`.
+- Each has a path like "app/api/booking/slots+api.ts", one plain sentence of purpose, the slugs of the services it uses, and "backend" if it reads or saves the app's data. You decide which functions exist and what each does; the server builder writes them.
+- Register a service with \`register_service\` before planning a function that uses it.
+- When the person no longer wants a service, list its slug in \`removeServices\` of \`update_app\`. Its keys are deleted, and the functions and screens that used it are rewritten without it.
+- A function that uses the app's data needs the CloudHike backend. If it isn't connected, tell the person to click Connect Backend; until then those functions answer that the backend isn't connected.
+- Keep each function small and specific: it returns only what the screen needs, such as free times rather than whole calendar events.
+- Name in each screen's details which function it calls and when, such as "the Book button calls the booking function".
 
 `
 }
@@ -89,7 +106,7 @@ export function plannerInstructions(state: PlannerState) {
 - Target platform: ${PLATFORM_LABELS[state.platform]}
 - AppxPrompt plan: ${PLANS[state.account.plan].name}, with ${state.account.credits} credits left. Each new screen costs ${SCREEN_CREDITS} credits and each round of changes ${EDIT_CREDITS}. Chatting and switching themes are free. If a tool reports a plan limit, tell them plainly and never say the work happened.
 - Backend: ${backendDescription(state.backend)}
-${state.assetNames.length > 0 ? `- Reference files attached to the first prompt: ${state.assetNames.join(", ")}. You can only see their names, so use them as hints and don't claim to have read them.\n` : ""}- Current plan: ${state.plan ? `\n\`\`\`json\n${JSON.stringify({ ...state.plan, themePackage: undefined, collections: undefined, components: undefined, pendingChanges: undefined }, null, 2)}\n\`\`\`` : "none yet"}
+${state.assetNames.length > 0 ? `- Reference files attached to the first prompt: ${state.assetNames.join(", ")}. You can only see their names, so use them as hints and don't claim to have read them.\n` : ""}- Current plan: ${state.plan ? `\n\`\`\`json\n${JSON.stringify({ ...state.plan, themePackage: undefined, collections: undefined, components: undefined, pendingChanges: undefined, serverRoutes: state.serverRoutes?.length ? state.serverRoutes : undefined }, null, 2)}\n\`\`\`` : "none yet"}
 ${state.plan?.collections ? `- Data the app stores: ${state.plan.collections.map((c) => `${c.name} (${c.fields.map((f) => f.name).join(", ")})`).join("; ") || "nothing yet"}\n` : ""}${state.plan?.components?.length ? `- Shared components: ${state.plan.components.map((c) => componentDescription(c, state.rows)).join("; ")}\n` : ""}${state.plan?.themePackage ? `- Themes: ${state.plan.themePackage.themes.map((t) => `${t.name} (id "${t.id}", ${t.mode}${t.id === state.plan?.themePackage?.activeThemeId ? ", active" : ""})`).join("; ")}\n` : ""}
 # What to act on
 - Do only what the person's latest message asks. Earlier messages are background for understanding it, and what they asked for has already been dealt with, so never do it again or carry it into this change.
@@ -129,7 +146,7 @@ A message can start with a \`<selected-element file="..." line="..." label="..."
 - For each collection, decide whether everyone should see the same records (a public feed, a catalog). Pass those as \`sharedCollections\`. Everything else is private to each person. Only a record's creator can change it.
 - If \`setup_backend\` fails, say why in plain words and what they can do about it. Never show keys, connection strings, or other credentials.
 
-${outsideServicesSection(state)}# Planning rules
+${outsideServicesSection(state)}${serverFunctionsSection(state)}# Planning rules
 - Plan at most ${screenTarget} ${screenTarget === 1 ? "screen" : "screens"}, however big the idea is. Pick the ones that make up the core journey, and fold the rest into them: add and edit forms open as modals, and settings or details become sections of a screen. Plan fewer if the app needs fewer. A default Sign In screen (see below) doesn't count toward this limit, but the whole plan can't go above ${maxScreens}.
 - Only go above ${screenTarget} when the person explicitly asks for more, such as naming a number of screens or asking to add one, and then plan what they asked for, up to ${maxScreens}. A long feature list or a big idea is not asking for more screens.
 - Most apps need a Sign In screen, so include one by default, even when the person doesn't mention it. This covers any app with personal data, saved progress, profiles, bookings, orders, or anything shared between people. Leave it out only for simple tools that keep nothing personal (a calculator, a unit converter, a timer), or when the person says they don't want it. If they name an exact number of screens, it counts as one of them.
@@ -490,6 +507,14 @@ function tabBarRules(plan: AppPlan, screen: PlannedScreen) {
   return `\n# Tab bar\nThis screen opens on top of the tabs and isn't one, so it has no tab bar: never draw one. Use \`router.replace()\` to open a tab, or \`router.back()\` to return to one.\n`
 }
 
+function serverFunctionsBlock(routes: PlannedServerRoute[]) {
+  return `# Server functions
+These run on the app's server. Call them with \`import { callServer, ServerError } from "@/lib/server"\` and \`await callServer("<url>", { ...input })\`, which returns the function's JSON:
+${routes.map((route) => `- "${apiRouteUrl(route.path)}": ${route.purpose}`).join("\n")}
+- Only call one when the person does something, such as pressing a button, never when the screen opens.
+- Wrap each call in try/catch. For a ServerError, show friendly copy by \`error.code\`: "not_connected": this feature isn't set up yet; "sign_in": ask them to sign in; "bad_request": say what to fix; "unavailable": try again later; "preview": a calm note that this works in the app's live preview, with no error styling.`
+}
+
 export function builderPrompt({
   plan,
   screen,
@@ -520,7 +545,7 @@ Mode: ${plan.design.mode} (other themes are one switch away, so rely on the toke
 
 # Data collections
 ${collections || `None. Use useStoredValue for anything that must be saved.`}
-${plan.backend ? `\n# Backend\nThe app runs on CloudHike with these services: ${plan.backend.services.join(", ")}. A person's records may start empty, so the empty states matter.\n` : ""}
+${plan.serverRoutes?.length ? `\n${serverFunctionsBlock(plan.serverRoutes)}\n` : ""}${plan.backend ? `\n# Backend\nThe app runs on CloudHike with these services: ${plan.backend.services.join(", ")}. A person's records may start empty, so the empty states matter.\n` : ""}
 # Shared components
 ${components.map(componentApi).join("\n\n") || "None yet, so this screen draws everything itself."}
 

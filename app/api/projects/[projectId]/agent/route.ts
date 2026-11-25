@@ -12,6 +12,7 @@ import { detectChatLanguage } from "@/lib/i18n/chat-language"
 import { chatLocale, errorResponse, serverT, translatorFor, type ErrorKey, type ErrorValues, type Translator } from "@/lib/i18n/server"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { redactKeys } from "@/lib/services/key-patterns"
+import { listServiceSummaries } from "@/lib/services/store"
 import { getCurrentUser, type SessionUser } from "@/lib/session"
 
 // Planning takes seconds. Following a build's stream can take a few minutes, and the build runs on CloudHike Jobs.
@@ -158,6 +159,9 @@ async function respond(run: ProjectRun, project: Project, user: SessionUser, t: 
         throw cause
       })
     : plan!
+  if (changes && changes.removedServices.length > 0) {
+    run.emit({ type: "services", services: await listServiceSummaries(project.id) })
+  }
   // Keeps this request's stream going through the build. `startRun` sends the final `done`.
   const build = await startBuild(project, nextPlan, changes ? [{ type: "plan", plan: nextPlan }] : [], charge)
   for await (const event of followBuild(build.id)) {
