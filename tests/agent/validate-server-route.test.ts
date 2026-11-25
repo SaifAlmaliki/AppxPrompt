@@ -133,6 +133,39 @@ export async function POST(request: Request): Promise<Response> {
     expect(validateServerRoute(code, ctx)).toEqual([])
   })
 
+  it("ignores process, eval, Function and imports written in prose", () => {
+    const shapes = [
+      'return new Response("Could not process. Try again", { status: 502 })',
+      'const message = "Function not found"',
+      "// never eval user input\nconst n = 1",
+      "/* new Function and require(x) are not allowed,\n process.env.OTHER too */\nconst n = 1",
+      "const message = `Could not process ${request.url}. Function not found`",
+      "const note = 'import x from \"openai\"'",
+      '// import x from "openai"\nconst n = 1',
+      'const text = "call eval(x) or import(y) or process.binding or [\\"eval\\"]"',
+      "const text = '[\"Function\"] and [\"process\"]'",
+    ]
+    for (const shape of shapes) {
+      expect(validateServerRoute(route(shape), ctx), shape).toEqual([])
+    }
+  })
+
+  it("still checks template expressions and code next to prose", () => {
+    const shapes = [
+      "const p = process",
+      'const v = "" + process.env.X',
+      "const v = `key ${process.env.X}`",
+      'const v = `a ${eval("1")} b`',
+      'const v = "a" + eval("1")',
+      'const v = "Function not found"\nconst F = Function',
+      '// eval\nconst e = globalThis["eval"]',
+      "const v = globalThis[`Function`]",
+    ]
+    for (const shape of shapes) {
+      expect(validateServerRoute(route(shape), ctx).length, shape).toBeGreaterThan(0)
+    }
+  })
+
   it("rejects a credential literal", () => {
     const key = "sk-proj-" + "a".repeat(40)
     expect(validateServerRoute(route(`const k = "${key}"`), ctx)).toContain(
