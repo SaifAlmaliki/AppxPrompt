@@ -13,19 +13,43 @@ export function renewalDelay(expiresAtSeconds: number, nowMs: number) {
 }
 
 /**
+ * The token to hold when the page hands over a new one. A page that renders again mints a fresh
+ * token, which replaces the one held unless the one held (renewed meanwhile) outlasts it.
+ */
+export function heldToken(held: string | null, fromPage: string | null): string | null {
+  if (fromPage === null) return null
+  if (held === null) return fromPage
+  const heldExpiry = sandboxTokenExpiry(held)
+  const pageExpiry = sandboxTokenExpiry(fromPage)
+  return heldExpiry !== null && (pageExpiry === null || heldExpiry > pageExpiry) ? held : fromPage
+}
+
+/** When to renew the held token: after this many ms, or null when it can't be read or there's none. */
+export function renewalIn(held: string | null, nowMs: number) {
+  const expiry = held === null ? null : sandboxTokenExpiry(held)
+  return expiry === null ? null : renewalDelay(expiry, nowMs)
+}
+
+/**
  * The owner's sandbox token, renewed before it runs out and when the tab comes back
  * with little time left. Without a first token (a viewer, or integrations off) it stays null.
  */
 export function useSandboxToken(projectId: string, initial: string | null): string | null {
-  const [token, setToken] = React.useState(initial)
-  const enabled = initial !== null
+  const [held, setHeld] = React.useState(initial)
+  const token = heldToken(held, initial)
 
+  // A newer token from the page replaces the held one, so renewal follows the token in use.
+  React.useEffect(() => {
+    setHeld((current) => heldToken(current, initial))
+  }, [initial])
+
+  const enabled = token !== null
   React.useEffect(() => {
     if (!enabled) return
     let active = true
     let renewing = false
     let timer: ReturnType<typeof setTimeout> | undefined
-    let expiresAt = sandboxTokenExpiry(initial)
+    const expiresAt = sandboxTokenExpiry(token!)
 
     const schedule = (delay: number) => {
       clearTimeout(timer)
@@ -42,12 +66,10 @@ export function useSandboxToken(projectId: string, initial: string | null): stri
         if (response.status === 401 || response.status === 404) retry = false
         const body = response.ok ? await response.json().catch(() => null) : null
         const next = typeof body?.token === "string" ? body.token : null
-        const expiry = next ? (sandboxTokenExpiry(next) ?? (typeof body?.expiresAt === "number" ? body.expiresAt : null)) : null
-        if (active && next && expiry) {
-          expiresAt = expiry
+        if (active && next && sandboxTokenExpiry(next) !== null) {
           retry = false
-          setToken(next)
-          schedule(renewalDelay(expiry, Date.now()))
+          // The held token changes, so this effect runs again and schedules from the new expiry.
+          setHeld(next)
         }
       } catch {
         // Offline for now: try again shortly.
@@ -57,7 +79,8 @@ export function useSandboxToken(projectId: string, initial: string | null): stri
       if (active && retry) schedule(RETRY_MS)
     }
 
-    if (expiresAt) schedule(renewalDelay(expiresAt, Date.now()))
+    const delay = renewalIn(token, Date.now())
+    if (delay !== null) schedule(delay)
 
     function onVisible() {
       if (document.visibilityState !== "visible") return
@@ -70,7 +93,7 @@ export function useSandboxToken(projectId: string, initial: string | null): stri
       clearTimeout(timer)
       document.removeEventListener("visibilitychange", onVisible)
     }
-  }, [enabled, initial, projectId])
+  }, [enabled, token, projectId])
 
-  return enabled ? token : null
+  return token
 }

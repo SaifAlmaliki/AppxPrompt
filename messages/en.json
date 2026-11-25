@@ -1393,7 +1393,7 @@
       "save": "We couldn't save that. Please try again.",
       "retest": "We couldn't test that. Please try again.",
       "remove": "We couldn't remove that. Please try again.",
-    "resetServerKey": "We couldn't reset the server key. Please try again."
+      "resetServerKey": "We couldn't reset the server key. Please try again."
     },
     "card": {
       "text": "Connect {name} to finish {purpose}",
