@@ -82,7 +82,7 @@
 - **Flag.** `APP_INTEGRATIONS=1` turns on the planner's `register_service` tool, its instructions, and the "Services & keys" header button. Paste protection, the 0015 chat-history redaction migration, and Sentry scrubbing are always on.
 - **OAuth callback.** Owners register `<NEXT_PUBLIC_APP_URL>/api/oauth/callback` as the redirect URL in their own OAuth client, such as Google Cloud Console.
 - **Research.** The agent researches services with `web_search` (Tavily, `TAVILY_API_KEY`) and `read_page`, which only reads public https addresses and connects through a DNS check that blocks private ones. Research notes are saved on the service (`project_services.definition.notes`), never contain credential values, and are reused by later build steps.
-- **Phase 1.** Screens can't use the credentials yet. Server functions come in phase 3.
+- **Phase 1.** Credentials never reach screens; only server functions can use them (see Server functions while building).
 
 ## Server functions while building
 
@@ -94,7 +94,7 @@
 - **Credentials.** They reach the VM only over stdin, never through env, args, files, or logs.
 - **Sandbox token.** Only the owner gets one. It lasts 1 hour and the workspace renews it. Shared viewers and public visitors never get a token and never see server code.
 - **Server key and gateway.** `APPXPROMPT_SERVER_KEY` is sealed and lives in the hidden service `appxprompt`. The gateway mode is set by `x-appxprompt-as: caller|app`.
-- **Fair-use caps.** 60 requests per minute per project, 30 seconds per request in the VM, 1 MB bodies, and 3 hours of sandbox time per project per day. Hobby sessions last at most 45 minutes.
+- **Fair-use caps.** 60 requests per minute per project, 30 seconds per request in the VM, 1 MB bodies, and 3 hours of sandbox time per project per day. Vercel Hobby plan sessions last at most 45 minutes.
 - **Activity tab.** Owner-only list of recent calls: time, function, result, service, and duration. The newest 200 are kept. Bodies, headers, and queries are never stored.
 - **Local development.** Data functions need a public `NEXT_PUBLIC_APP_URL` (a tunnel, e.g. `ngrok http 3000`), since the sandbox has to call back to the app.
 
