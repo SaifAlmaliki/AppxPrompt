@@ -9,9 +9,11 @@ Sentry.init({
   // Capture 100% of traces in development and 10% in production.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
 
-  // Vercel Analytics / Speed Insights are served from hashed first-party paths
-  // (e.g. /abd9ec3b62d16918/script.js); their errors on outdated bots/browsers aren't actionable.
-  denyUrls: [/\/[a-f0-9]{16}\/script\.js/],
+  // Scripts we don't ship. Their errors aren't actionable:
+  // - Vercel Analytics / Speed Insights hashed paths (e.g. /abd9ec3b62d16918/script.js)
+  // - Facebook's in-app browser, which injects app://browser_declutter and can throw
+  //   SyntaxError: Unexpected end of input from that script (APPXPROMPT-B).
+  denyUrls: [/\/[a-f0-9]{16}\/script\.js/, /^app:\/\/browser_declutter/],
 
   beforeSend: (event) => scrubSecrets(event),
   beforeSendTransaction: (event) => scrubSecrets(event),
