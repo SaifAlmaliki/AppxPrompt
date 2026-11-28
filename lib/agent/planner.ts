@@ -1,4 +1,4 @@
-import { Agent, assistant, run, tool, user, type AgentInputItem, type Tool } from "@openai/agents"
+﻿import { Agent, assistant, run, tool, user, type AgentInputItem, type RunStreamEvent, type Tool } from "@openai/agents"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
@@ -540,33 +540,47 @@ export async function runPlannerTurn(
     latestUserMessage: [...thread].reverse().find((message) => message.role === "user")?.content ?? "",
     interviewBlocked: false,
     research: newResearchBudget(),
+    turnStartedAt,
   }
 
   projectRun.emit(statusEvent(thread.length > 1 ? "readingMessage" : "readingRequest"))
   const input = toInputItems(thread)
-  const first = await streamPlannerRun(projectRun, context, input, "")
-  let text = first.text
-  let failedCall = first.leaked !== null && !first.toolRan
+  // A hard stop, so the reply is saved before the platform ends the request.
+  const stop = new AbortController()
+  const stopTimer = setTimeout(() => stop.abort(), Math.max(0, turnStartedAt + PLANNER_HARD_STOP_MS - Date.now()))
+  let text = ""
+  let failedCall = false
+  let stopped = false
+  try {
+    const first = await streamPlannerRun(projectRun, context, input, "", stop.signal)
+    text = first.text
+    stopped = first.stopped
+    failedCall = first.leaked !== null && !first.toolRan
 
-  // The model wrote a tool call out as text, so nothing happened. It gets one more go.
-  if (failedCall) {
-    const retry = await streamPlannerRun(projectRun, context, [...input, assistant(text || "â€¦"), user(leakedCallNudge(first.leaked))], text)
-    text += retry.text
-    failedCall = retry.leaked !== null && !retry.toolRan
+    // The model wrote a tool call out as text, so nothing happened. It gets one more go, if there's time.
+    if (failedCall && !stopped && canRetry(context)) {
+      const retry = await streamPlannerRun(projectRun, context, [...input, assistant(text || "â€¦"), user(leakedCallNudge(first.leaked))], text, stop.signal)
+      text += retry.text
+      stopped = retry.stopped
+      failedCall = retry.leaked !== null && !retry.toolRan
+    }
+  } finally {
+    clearTimeout(stopTimer)
   }
 
   projectRun.emit({ type: "status", label: null })
   // The route has already set the project's chat language to the language of this message.
   const fixed = translatorFor(chatLocale(project), "agentMessages")
-  const content =
-    (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
-    (context.confirmed
-      ? fixed("planStarting")
-      : context.changes
-        ? fixed("changesStarting")
-        : context.proposedPlan
-          ? fixed("planProposed")
-          : fixed("noReply"))
+  const content = stopped
+    ? stoppedReply(text, fixed("turnStopped"))
+    : (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
+      (context.confirmed
+        ? fixed("planStarting")
+        : context.changes
+          ? fixed("changesStarting")
+          : context.proposedPlan
+            ? fixed("planProposed")
+            : fixed("noReply"))
 
   const [saved] = await db
     .insert(messages)
@@ -588,9 +602,7 @@ function leakedCallNudge(tool: string | null) {
  * never reaches the chat: `leaked` names it, and `toolRan` says whether any real call ran.
  * `before` is what the person has already seen, so new text starts a new paragraph.
  */
-async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
-  const result = await run(plannerAgentFor(context.integrations), input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns })
-
+async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string, signal: AbortSignal) {
   let text = ""
   let responseHasText = false
   let toolRan = false
@@ -603,7 +615,40 @@ async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext,
     projectRun.emit({ type: "text-delta", delta: shown })
   }
 
-  for await (const event of result) {
+  // A tool that hangs can keep the stream from ending, so the hard stop also ends the wait for the next event.
+  const hardStop = new Promise<"stopped">((resolve) => {
+    if (signal.aborted) resolve("stopped")
+    else signal.addEventListener("abort", () => resolve("stopped"), { once: true })
+  })
+
+  try {
+    const result = await Promise.race([
+      run(plannerAgentFor(context.integrations), input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns, signal }),
+      hardStop,
+    ])
+    if (result === "stopped") return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+
+    const events = result[Symbol.asyncIterator]()
+    while (true) {
+      const next = await Promise.race([events.next(), hardStop])
+      if (next === "stopped") {
+        events.return?.().catch(() => {})
+        return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+      }
+      if (next.done) break
+      handle(next.value)
+    }
+    await Promise.race([result.completed, hardStop])
+  } catch (error) {
+    if (!signal.aborted) throw error
+    return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+  }
+  if (signal.aborted) return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+  show(filter.flush())
+
+  return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: false }
+
+  function handle(event: RunStreamEvent) {
     if (event.type === "raw_model_stream_event") {
       const data = event.data
       if (data.type === "response_started") {
@@ -634,10 +679,6 @@ async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext,
       announcedTools.clear()
     }
   }
-  await result.completed
-  show(filter.flush())
-
-  return { text: text.trimEnd(), leaked: filter.leaked, toolRan }
 }
 
 type RawChunk = {
