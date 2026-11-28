@@ -1,6 +1,18 @@
 // Runs inside the sandbox VM. Web APIs only, so it can be unit-tested without Node's http.
+import { AsyncLocalStorage } from "node:async_hooks"
 import { matchApiRoute } from "../lib/sandbox/routes"
 import type { RuntimeBundle } from "../lib/sandbox/bundle"
+import {
+  DIAGNOSTIC_HEADER,
+  MAX_DIAGNOSTIC_FETCHES,
+  MAX_THROWN_MESSAGE_LENGTH,
+  MAX_THROWN_NAME_LENGTH,
+  encodeDiagnostic,
+  type CallDiagnostic,
+  type FetchDiagnostic,
+  type FetchError,
+} from "../lib/sandbox/diagnostic"
+import { KEY_BOUNDARY, KEY_PATTERN_SOURCES } from "../lib/services/key-patterns"
 
 export const RUNTIME_LIMITS = { timeoutMs: 30_000, maxBodyBytes: 1_048_576, maxRedirects: 5 }
 
@@ -24,15 +36,30 @@ function errorResponse(status: number, code: ErrorCode, message: string, service
   return Response.json({ error: { code, message, ...(service ? { service } : {}) } }, { status })
 }
 
-function notAllowed(host: string) {
-  return new TypeError(`${host} isn't one of this app's allowed hosts.`)
+class BlockedHostError extends TypeError {
+  constructor(readonly host: string) {
+    super(`${host} isn't one of this app's allowed hosts.`)
+  }
+}
+
+// withErrors (generated server/respond.ts) hangs the error it caught on the generic answer under this key.
+const THROWN_KEY = Symbol.for("appxprompt.thrown")
+
+export type FetchOutcome = { host: string; status?: number; error?: FetchError }
+/** Called once per outgoing fetch with the host it starts at; the function it returns is told how the fetch ended. */
+export type FetchObserver = (host: string) => ((outcome: FetchOutcome) => void) | undefined
+
+function fetchErrorKind(error: unknown): FetchError {
+  if (error instanceof BlockedHostError) return "blocked"
+  const name = error && typeof error === "object" ? (error as { name?: unknown }).name : undefined
+  return name === "TimeoutError" || name === "AbortError" ? "timeout" : "network"
 }
 
 /** Wraps fetch so server code can only reach https hosts on the allow list, redirects included. */
-export function guardedFetch(fetchImpl: typeof fetch, allowedHosts: string[]): typeof fetch {
+export function guardedFetch(fetchImpl: typeof fetch, allowedHosts: string[], observe?: FetchObserver): typeof fetch {
   const allowed = new Set(allowedHosts.map((host) => host.toLowerCase()))
   const check = (url: URL) => {
-    if (url.protocol !== "https:" || !allowed.has(url.hostname.toLowerCase())) throw notAllowed(url.hostname || url.protocol)
+    if (url.protocol !== "https:" || !allowed.has(url.hostname.toLowerCase())) throw new BlockedHostError(url.hostname || url.protocol)
   }
 
   return async (input, init) => {
@@ -53,15 +80,39 @@ export function guardedFetch(fetchImpl: typeof fetch, allowedHosts: string[]): t
       options = { ...init }
     }
 
+    const finished = observe?.(url.hostname)
     for (let hop = 0; ; hop++) {
-      check(url)
-      const response = await fetchImpl(url.href, { ...options, redirect: "manual" })
+      try {
+        check(url)
+      } catch (error) {
+        finished?.({ host: url.hostname || "unknown", error: "blocked" })
+        throw error
+      }
+      let response: Response
+      try {
+        response = await fetchImpl(url.href, { ...options, redirect: "manual" })
+      } catch (error) {
+        finished?.({ host: url.hostname, error: fetchErrorKind(error) })
+        throw error
+      }
       const location = response.headers.get("location")
-      if (!REDIRECT_STATUSES.has(response.status) || !location) return response
-      if (hop >= RUNTIME_LIMITS.maxRedirects) throw new TypeError("Too many redirects.")
+      if (!REDIRECT_STATUSES.has(response.status) || !location) {
+        finished?.({ host: url.hostname, status: response.status })
+        return response
+      }
+      if (hop >= RUNTIME_LIMITS.maxRedirects) {
+        finished?.({ host: url.hostname, error: "network" })
+        throw new TypeError("Too many redirects.")
+      }
 
       const next = new URL(location, url)
-      check(next)
+      try {
+        check(next)
+      } catch (error) {
+        finished?.({ host: next.hostname || "unknown", error: "blocked" })
+        await response.body?.cancel().catch(() => {})
+        throw error
+      }
       const method = (options.method ?? "GET").toUpperCase()
       const toGet = response.status === 303 ? method !== "HEAD" : (response.status === 301 || response.status === 302) && method === "POST"
       const headers = new Headers(options.headers)
@@ -177,6 +228,23 @@ function secretForms(secret: string) {
   ]
 }
 
+const HIDDEN = "[hidden]"
+const KEY_PATTERN = new RegExp(`${KEY_BOUNDARY}(${KEY_PATTERN_SOURCES.join("|")})`, "g")
+const KEY_PATTERN_ANYWHERE = new RegExp(KEY_PATTERN_SOURCES.join("|"), "i")
+const MAX_SCRUBBED_LENGTH = 100_000
+
+type CallState = {
+  startedAt: number
+  fetches: FetchDiagnostic[]
+  pending: Map<FetchDiagnostic, number>
+  thrown?: { name: string; message: string }
+  timedOut: boolean
+}
+
+function newCallState(): CallState {
+  return { startedAt: Date.now(), fetches: [], pending: new Map(), timedOut: false }
+}
+
 // Neither the evaluator nor the timeout below is a security boundary. The sandbox VM's network policy is the egress wall.
 // The timer can't stop a synchronous infinite loop (nothing else runs to fire it), so a spinning route
 // is cut off by the host's own deadline, which restarts the VM.
@@ -193,7 +261,94 @@ export function createDispatcher(
     .filter((value): value is string => typeof value === "string" && value.length >= MIN_SECRET_LENGTH)
     .flatMap(secretForms)
   const sandboxProcess = Object.freeze({ env })
-  const guarded = guardedFetch(options.fetch, bundle.allowedHosts)
+  const orderedSecrets = [...new Set(secrets)].sort((a, b) => b.length - a.length)
+  const lowerSecrets = secrets.map((secret) => secret.toLowerCase())
+  const allowedHostSet = new Set(bundle.allowedHosts.map((host) => host.toLowerCase()))
+  const calls = new AsyncLocalStorage<CallState>()
+
+  function leaksSecret(text: string) {
+    return secrets.some((secret) => text.includes(secret))
+  }
+
+  /** Error text for the owner: every form of every secret and anything shaped like a key is cut out. */
+  function scrubText(text: string) {
+    let out = text.slice(0, MAX_SCRUBBED_LENGTH)
+    for (const secret of orderedSecrets) out = out.split(secret).join(HIDDEN)
+    out = out.replace(KEY_PATTERN, (_match, prefix: string) => prefix + HIDDEN)
+    return leaksSecret(out) ? HIDDEN : out
+  }
+
+  /** A host that is on the allow list, or one that carries nothing that looks like a credential. */
+  function safeHost(host: string) {
+    const lower = host.toLowerCase()
+    if (allowedHostSet.has(lower)) return lower
+    if (lowerSecrets.some((secret) => lower.includes(secret)) || KEY_PATTERN_ANYWHERE.test(lower)) return "redacted"
+    return lower || "unknown"
+  }
+
+  const observe: FetchObserver = (host) => {
+    const state = calls.getStore()
+    if (!state || state.fetches.length >= MAX_DIAGNOSTIC_FETCHES) return undefined
+    const entry: FetchDiagnostic = { host: safeHost(host), ms: 0 }
+    const startedAt = Date.now()
+    state.fetches.push(entry)
+    state.pending.set(entry, startedAt)
+    return (outcome) => {
+      state.pending.delete(entry)
+      entry.ms = Date.now() - startedAt
+      entry.host = safeHost(outcome.host)
+      if (outcome.status !== undefined) entry.status = outcome.status
+      if (outcome.error) entry.error = outcome.error
+    }
+  }
+
+  function describeThrown(error: unknown) {
+    let name = "Error"
+    let message = ""
+    try {
+      if (error && typeof error === "object") {
+        const { name: n, message: m } = error as { name?: unknown; message?: unknown }
+        if (typeof n === "string" && n) name = n
+        if (typeof m === "string") message = m
+      } else {
+        message = String(error)
+      }
+    } catch {
+      // A throwing getter leaves the plain defaults.
+    }
+    return {
+      name: scrubText(name).slice(0, MAX_THROWN_NAME_LENGTH),
+      message: scrubText(message.split(/\r?\n/, 1)[0]).slice(0, MAX_THROWN_MESSAGE_LENGTH),
+    }
+  }
+
+  function diagnosticOf(state: CallState): CallDiagnostic {
+    const now = Date.now()
+    const fetches = state.fetches.map((entry) => {
+      const copy = { ...entry }
+      const startedAt = state.pending.get(entry)
+      if (startedAt !== undefined) {
+        copy.ms = now - startedAt
+        if (state.timedOut) copy.error = "timeout"
+      }
+      return copy
+    })
+    return { ms: now - state.startedAt, fetches, ...(state.thrown ? { thrown: state.thrown } : {}) }
+  }
+
+  /** Whatever the function put under the diagnostic header is replaced: only the runtime writes it. */
+  function withDiagnostic(response: Response, state: CallState) {
+    try {
+      const encoded = encodeDiagnostic(diagnosticOf(state))
+      if (encoded) response.headers.set(DIAGNOSTIC_HEADER, encoded)
+      else response.headers.delete(DIAGNOSTIC_HEADER)
+    } catch {
+      response.headers.delete(DIAGNOSTIC_HEADER)
+    }
+    return response
+  }
+
+  const guarded = guardedFetch(options.fetch, bundle.allowedHosts, observe)
   const modules = new Map<string, { exports: Record<string, unknown> }>()
 
   function load(path: string): Record<string, unknown> {
@@ -219,19 +374,19 @@ export function createDispatcher(
     return module.exports
   }
 
-  async function run(handler: Handler, request: Request, params: Record<string, string>) {
+  async function run(handler: Handler, request: Request, params: Record<string, string>, state: CallState) {
     const result = await handler(request, params)
+    if (result instanceof Response) {
+      const caught = (result as unknown as Record<symbol, unknown>)[THROWN_KEY]
+      if (caught !== undefined) state.thrown = describeThrown(caught)
+    }
     if (!(result instanceof Response)) throw new HttpError(500, "unavailable", "The server function didn't answer.")
     const body = await readCapped(result.body, maxBodyBytes)
     if (!body) throw new HttpError(500, "unavailable", "The server function's answer was too large.")
     return { result, body }
   }
 
-  function leaksSecret(text: string) {
-    return secrets.some((secret) => text.includes(secret))
-  }
-
-  return async (request) => {
+  async function handle(request: Request, state: CallState): Promise<Response> {
     try {
       const url = new URL(request.url)
       const match = matchApiRoute(bundle.routes, url.pathname)
@@ -254,9 +409,12 @@ export function createDispatcher(
 
       let timer: ReturnType<typeof setTimeout> | undefined
       const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new HttpError(504, "unavailable", "The server function took too long.")), timeoutMs)
+        timer = setTimeout(() => {
+          state.timedOut = true
+          reject(new HttpError(504, "unavailable", "The server function took too long."))
+        }, timeoutMs)
       })
-      const pending = run(handler as Handler, forwarded, match.params)
+      const pending = run(handler as Handler, forwarded, match.params, state)
       pending.catch(() => {})
       try {
         const { result, body } = await Promise.race([pending, timeout])
@@ -272,7 +430,14 @@ export function createDispatcher(
       }
     } catch (error) {
       if (error instanceof HttpError) return errorResponse(error.status, error.code, error.message)
+      state.thrown = describeThrown(error)
       return errorResponse(500, "unavailable", "The server function failed.")
     }
+  }
+
+  return async (request) => {
+    const state = newCallState()
+    const response = await calls.run(state, () => handle(request, state))
+    return withDiagnostic(response, state)
   }
 }

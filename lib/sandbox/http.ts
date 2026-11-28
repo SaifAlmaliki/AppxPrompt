@@ -1,5 +1,7 @@
 // The parts of the server-function proxy that need no database, no sandbox and no Next.js.
 
+import { DIAGNOSTIC_HEADER } from "./diagnostic"
+
 export type ServerErrorCode = "not_connected" | "sign_in" | "bad_request" | "unavailable" | "preview"
 
 export const MAX_SERVER_BODY_BYTES = 1_048_576
@@ -34,11 +36,12 @@ export function forwardRequestHeaders(headers: Headers): Record<string, string> 
   return kept
 }
 
-/** The few headers of a VM's answer that may reach the browser, plus the guard headers, which the VM can't change. */
+/** The few headers of a VM's answer that may reach the browser (never the diagnostic), plus the guard headers, which the VM can't change. */
 export function safeResponseHeaders(headers: Record<string, string>): Record<string, string> {
   const kept: Record<string, string> = {}
   for (const [name, value] of Object.entries(headers)) {
-    if (KEPT_RESPONSE_HEADERS.includes(name.toLowerCase())) kept[name.toLowerCase()] = value
+    const lower = name.toLowerCase()
+    if (lower !== DIAGNOSTIC_HEADER && KEPT_RESPONSE_HEADERS.includes(lower)) kept[lower] = value
   }
   return { ...kept, ...SANDBOX_RESPONSE_GUARD_HEADERS }
 }

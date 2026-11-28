@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server"
 
 import { integrationsEnabled } from "@/lib/services/flags"
+import { DIAGNOSTIC_HEADER, decodeDiagnostic, type CallDiagnostic } from "./diagnostic"
 import {
   MAX_SERVER_BODY_BYTES,
   SANDBOX_CORS_HEADERS,
@@ -37,6 +38,8 @@ export type ServerCall = {
   errorCode: string | null
   service: string | null
   durationMs: number
+  /** Which hosts the function reached and what it threw. For the owner's Activity tab only. */
+  diagnostic?: CallDiagnostic | null
 }
 
 export type ServerProxyOptions = {
@@ -44,6 +47,14 @@ export type ServerProxyOptions = {
 }
 
 type Context = { params: Promise<{ projectId: string; path: string[] }> }
+
+/** The VM's diagnostic for the call. Read here and never forwarded: safeResponseHeaders keeps only a short list of headers. */
+function readDiagnostic(headers: Record<string, string>): CallDiagnostic | null {
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() === DIAGNOSTIC_HEADER) return decodeDiagnostic(value)
+  }
+  return null
+}
 
 function reply(body: unknown, status: number) {
   return NextResponse.json(body, { status, headers: { ...SANDBOX_CORS_HEADERS, "cache-control": "no-store" } })
@@ -70,9 +81,18 @@ export function createServerProxy({ onCall = () => {} }: ServerProxyOptions = {}
     const method = request.method
     const callPath = "/" + path.map(encodeURIComponent).join("/")
 
-    const finish = (response: Response, errorCode: string | null, service: string | null = null) => {
+    const finish = (response: Response, errorCode: string | null, service: string | null = null, diagnostic: CallDiagnostic | null = null) => {
       try {
-        const result = onCall({ projectId, path: callPath, method, status: response.status, errorCode, service, durationMs: Date.now() - startedAt })
+        const result = onCall({
+          projectId,
+          path: callPath,
+          method,
+          status: response.status,
+          errorCode,
+          service,
+          durationMs: Date.now() - startedAt,
+          diagnostic,
+        })
         if (result) result.catch(() => {})
       } catch {
         // Recording a call must never change its answer.
@@ -100,12 +120,13 @@ export function createServerProxy({ onCall = () => {} }: ServerProxyOptions = {}
       if (answer.status < 200 || answer.status > 599) return fail("unavailable", "The server function gave an unusable answer.", 502)
       if (Buffer.byteLength(answer.body) > MAX_SERVER_BODY_BYTES) return fail("unavailable", "The server function's answer is too large.", 502)
 
+      const diagnostic = readDiagnostic(answer.headers)
       const error = readSandboxError(answer.status, answer.headers, answer.body)
       const response = new NextResponse(NO_BODY_STATUSES.has(answer.status) ? null : answer.body, {
         status: answer.status,
         headers: { ...safeResponseHeaders(answer.headers), ...SANDBOX_CORS_HEADERS, "cache-control": "no-store" },
       })
-      return finish(response, error.code, error.service)
+      return finish(response, error.code, error.service, diagnostic)
     } catch (error) {
       if (error instanceof SandboxUnavailableError) return fail("unavailable", UNAVAILABLE_MESSAGES[error.reason], 503)
       console.error("Server function proxy failed", error instanceof Error ? error.name : "unknown")

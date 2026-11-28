@@ -1,0 +1,1 @@
+ALTER TABLE "server_route_calls" ADD COLUMN "detail" jsonb;

@@ -4,12 +4,50 @@ import * as React from "react"
 import { useFormatter, useTranslations } from "next-intl"
 import { ActivityIcon, RefreshCwIcon } from "lucide-react"
 
-import { serverCallResult, type ServerCallEntry } from "@/lib/server-routes/activity-protocol"
+import type { FetchDiagnostic } from "@/lib/sandbox/diagnostic"
+import { describeFetch, failingFetch, serverCallResult, type ServerCallEntry } from "@/lib/server-routes/activity-protocol"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const REFRESH_MS = 5000
+
+/** Why a call failed, in plain words, and the hosts it reached. Only the owner's Activity tab ever loads this. */
+function CallDetail({ call, failed }: { call: ServerCallEntry; failed: boolean }) {
+  const t = useTranslations("preview.activity.detail")
+  const detail = call.detail
+  if (!detail) return null
+
+  const line = (fetch: FetchDiagnostic) => {
+    const { key, host, status } = describeFetch(fetch)
+    return t(key, { host, status: status ?? 0 })
+  }
+  const problem = failed ? failingFetch(detail) : null
+  const thrown = failed ? detail.thrown : undefined
+
+  return (
+    <>
+      {problem && <p dir="auto" className="mt-1 break-words text-foreground">{line(problem)}</p>}
+      {thrown && (
+        <p dir="auto" className="mt-1 break-words text-foreground">
+          {t("thrown", { name: thrown.name, message: thrown.message })}
+        </p>
+      )}
+      {detail.fetches.length > 0 && (
+        <details className="mt-1 text-muted-foreground">
+          <summary className="cursor-pointer">{t("calls", { count: detail.fetches.length })}</summary>
+          <ul className="mt-1 space-y-0.5">
+            {detail.fetches.map((fetch, index) => (
+              <li key={index} dir="auto" className="break-words">
+                {line(fetch)} · {t("milliseconds", { count: fetch.ms })}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
+  )
+}
 
 /** The owner's view of their app's recent server function calls. Mounted only while its tab is open. */
 export function ActivityPanel({ projectId }: { projectId: string }) {
@@ -99,6 +137,7 @@ export function ActivityPanel({ projectId }: { projectId: string }) {
                         {call.service && (
                           <span className="block text-muted-foreground">{t("service", { service: call.service })}</span>
                         )}
+                        <CallDetail call={call} failed={result !== "ok"} />
                       </TableCell>
                       <TableCell className="text-end text-xs whitespace-nowrap text-muted-foreground">
                         {t("milliseconds", { count: call.durationMs })}

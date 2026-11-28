@@ -26,6 +26,7 @@ import type { Locale } from "@/i18n/config";
 import { BACKEND_STATES, type BackendServiceStatus } from "@/lib/backend-protocol";
 import { CREDIT_REASONS, FREE_SIGNUP_CREDITS, PLAN_IDS } from "@/lib/plans";
 import { PROJECT_PLATFORMS, PROJECT_STATUSES } from "@/lib/projects";
+import type { CallDiagnostic } from "@/lib/sandbox/diagnostic";
 import type { ServerCallErrorCode } from "@/lib/server-routes/activity-protocol";
 import type { ServiceDefinition } from "@/lib/services/protocol";
 import { APP_BUILD_FORMATS, APP_BUILD_PLATFORMS, APP_BUILD_STATUSES, WEB_PUBLISH_STATUSES } from "@/lib/publish-protocol";
@@ -218,6 +219,8 @@ export const serverRouteCalls = pgTable(
     errorCode: text("error_code").$type<ServerCallErrorCode>(),
     service: text("service"),
     durationMs: integer("duration_ms").notNull(),
+    /** Hosts the function reached (never paths, queries, headers or bodies) and the scrubbed first line of what it threw. */
+    detail: jsonb("detail").$type<CallDiagnostic>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("server_route_calls_project_id_idx").on(table.projectId, table.id)]

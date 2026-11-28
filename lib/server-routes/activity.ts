@@ -1,10 +1,12 @@
 // What the owner sees of their app's server function calls. Server only. A row holds
-// the function's path, method, status, error code, service and duration, and nothing
+// the function's path, method, status, error code, service and duration, plus a checked
+// diagnostic (hostnames it called and the scrubbed first line of an error), and nothing
 // else: no body, header, query string, address or token ever reaches this file's table.
 
 import { desc, eq, notInArray, and } from "drizzle-orm"
 
 import { db, serverRouteCalls } from "@/db"
+import { sanitizeDiagnostic } from "@/lib/sandbox/diagnostic"
 import { SERVER_CALL_ERROR_CODES, type ServerCallEntry } from "@/lib/server-routes/activity-protocol"
 
 export const MAX_STORED_CALLS = 200
@@ -20,6 +22,13 @@ export type ServerCallInput = {
   errorCode: string | null
   service: string | null
   durationMs: number
+  diagnostic?: unknown
+}
+
+/** Stored only when it says something the other columns don't: an outgoing call or an error. */
+function toDetail(diagnostic: unknown) {
+  const detail = sanitizeDiagnostic(diagnostic)
+  return detail && (detail.fetches.length > 0 || detail.thrown) ? detail : null
 }
 
 /** The row to store: the query string is cut off and every field is held to a safe shape. */
@@ -34,6 +43,7 @@ export function toCallRow(call: ServerCallInput) {
     errorCode: code as ServerCallEntry["errorCode"],
     service,
     durationMs: Math.max(0, Math.trunc(call.durationMs)),
+    detail: toDetail(call.diagnostic),
   }
 }
 
@@ -70,6 +80,7 @@ export async function listServerCalls(projectId: string, limit = 100): Promise<S
     errorCode: row.errorCode,
     service: row.service,
     durationMs: row.durationMs,
+    detail: toDetail(row.detail),
     createdAt: row.createdAt.toISOString(),
   }))
 }

@@ -136,10 +136,13 @@ export function withErrors<A extends unknown[]>(handler: (request: Request, ...a
     } catch (error) {
       if (error instanceof ServiceNotConnected) return fail("not_connected", error.message, error.service);
       if (error instanceof SignInRequired) return fail("sign_in", "Sign in to continue.");
-      return new Response(JSON.stringify({ error: { code: "unavailable", message: "Something went wrong. Try again." } }), {
+      const response = new Response(JSON.stringify({ error: { code: "unavailable", message: "Something went wrong. Try again." } }), {
         status: 500,
         headers: JSON_HEADERS,
       });
+      // Only the server runtime reads this, to tell the app's owner why it failed. It never reaches the app.
+      Object.defineProperty(response, Symbol.for("appxprompt.thrown"), { value: error });
+      return response;
     }
   };
 }

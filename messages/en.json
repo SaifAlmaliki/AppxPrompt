@@ -904,7 +904,7 @@
       "beingWritten": "Being written"
     },
     "activity": {
-      "description": "The latest calls your app made to its server functions. Nothing but the address and the result is kept.",
+      "description": "The latest calls your app made to its server functions. Only the address, the result and the names of the websites it called are kept, never any data.",
       "refresh": "Refresh",
       "loadFailed": "We couldn't load the activity. Please try again.",
       "emptyTitle": "No calls yet",
@@ -923,6 +923,15 @@
         "bad_request": "The request was not valid",
         "unavailable": "The test server isn't available",
         "preview": "Only works in your preview"
+      },
+      "detail": {
+        "status": "Called {host}: answered {status}",
+        "blocked": "Blocked: {host} isn't an allowed host",
+        "timeout": "{host} timed out",
+        "network": "Couldn't reach {host}",
+        "thrown": "The function threw {name}: {message}",
+        "calls": "{count, plural, one {# outgoing call} other {# outgoing calls}}",
+        "milliseconds": "{count} ms"
       }
     }
   },
