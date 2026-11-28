@@ -1645,6 +1645,7 @@
     "changesStarting": "On it! I'm making those changes now.",
     "planProposed": "Here's the plan. Confirm it to start building, or tell me what to change.",
     "noReply": "Sorry, I couldn't come up with a reply. Could you say that again?",
+    "turnStopped": "This step took longer than I can spend in one go. Reply \"continue\" and I'll pick up where I left off.",
     "ready": "{appName} is ready! I built all {count, plural, one {# screen} other {# screens}}: {names}.\n\nTap through the app in the preview, and try other looks from the Theme menu at the top of the canvas.{backendNote}",
     "backendCloud": "Everything people add is saved to your CloudHike backend.",
     "backendLocal": "Everything you add is saved on the device for now. Click Connect Backend at the top when you'd like it in the cloud.",
