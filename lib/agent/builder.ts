@@ -1,7 +1,7 @@
 import { Agent, assistant, run, user, type AgentInputItem } from "@openai/agents"
 import { and, asc, eq, ne, sql } from "drizzle-orm"
 
-import { db, messages, projects, screens, type Project, type Screen, type ServerRoute } from "@/db"
+import { builds, db, messages, projects, screens, type Project, type Screen, type ServerRoute } from "@/db"
 import type { Locale } from "@/i18n/config"
 import {
   BACKEND_SERVICE,
@@ -21,6 +21,7 @@ import { BUILDER_MODEL, configureAgents } from "@/lib/agent/config"
 import { changeCollections, generateFoundation } from "@/lib/agent/foundation"
 import { BUILDER_INSTRUCTIONS, builderPrompt } from "@/lib/agent/instructions"
 import { BuildLostError, type BuildLog } from "@/lib/agent/builds"
+import { jobTimeoutSeconds } from "@/lib/jobs"
 import { buildServerRoute, nextServerRoute, serviceContext } from "@/lib/agent/server-builder"
 import { fatalScreenProblem, screenProblems, visibleCode } from "@/lib/agent/validate-screen"
 import { refundUnfinishedBuild } from "@/lib/billing/credits"
@@ -41,19 +42,22 @@ const builderAgent = new Agent({
   instructions: BUILDER_INSTRUCTIONS,
 })
 
-// A build step runs at most 300 seconds (see app/api/jobs/build-step), so a function's try and fixes stay within the time left of it.
-const SERVER_STEP_BUDGET_MS = 285_000
+// A step runs for as long as Jobs allows, but never past the route's own 300 seconds (app/api/jobs/build-step).
+// A function's try and fixes stay within what is left of it, less a margin to answer.
+const STEP_MARGIN_MS = 15_000
+const SERVER_STEP_BUDGET_MS = Math.min(jobTimeoutSeconds(), 300) * 1000 - STEP_MARGIN_MS
 
-/** The sentence about each built function that failed its test, or an empty string. */
+/** The sentence about each function built since `since` that failed its test, or an empty string. Earlier failures stay on the Code tab. */
 export function selfTestNote(
-  rows: { path: string; purpose: string; kind: string; selfTest: string | null; selfTestDetail: string | null }[],
+  rows: { path: string; purpose: string; kind: string; selfTest: string | null; selfTestDetail: string | null; updatedAt: Date }[],
   planned: PlannedServerRoute[],
-  locale: Locale
+  locale: Locale,
+  since: Date
 ) {
   const t = translatorFor(locale, "agentMessages")
   const wrap = (text: string) => (locale === "ar" ? isolate(text) : text)
   return rows
-    .filter((row) => row.kind === "function" && row.selfTest === "failed")
+    .filter((row) => row.kind === "function" && row.selfTest === "failed" && row.updatedAt >= since)
     .map((row) => {
       const name = planned.find((route) => route.path === row.path)?.id.replaceAll("-", " ") ?? row.purpose
       const summary = (row.selfTestDetail ?? "it didn't work").replace(/[.\s]+$/, "")
@@ -437,7 +441,11 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   const refundNote = refunded > 0 ? ` ${t("refund", { credits: refunded })}` : ""
 
   const names = (list: (Screen | string)[]) => commaList(isolateNames(list.map((item) => (typeof item === "string" ? item : item.name)), locale), locale)
-  const testNote = selfTestNote(serverRows, plan.serverRoutes ?? [], locale)
+  // Only the functions this build wrote are mentioned: an earlier failure shows on the Code tab, not in every message.
+  const [thisBuild] = serverRows.some((serverRow) => serverRow.selfTest === "failed")
+    ? await db.select({ createdAt: builds.createdAt }).from(builds).where(eq(builds.id, log.buildId))
+    : []
+  const testNote = thisBuild ? selfTestNote(serverRows, plan.serverRoutes ?? [], locale, thisBuild.createdAt) : ""
   const testSentence = testNote ? ` ${testNote}` : ""
   const content =
     failed.length === 0

@@ -6,6 +6,7 @@ import { apiRouteUrl } from "@/lib/agent-protocol"
 import { DIAGNOSTIC_HEADER, decodeDiagnostic, type CallDiagnostic } from "@/lib/sandbox/diagnostic"
 import { MAX_SERVER_BODY_BYTES } from "@/lib/sandbox/http"
 import { SandboxUnavailableError, type SandboxRunner } from "@/lib/sandbox/runner"
+import { SELF_TEST_REASONS } from "@/lib/server-routes/self-test-protocol"
 
 export type SelfTestStatus = "passed" | "failed" | "skipped"
 
@@ -97,7 +98,7 @@ export async function selfTestRoute(input: SelfTestInput): Promise<SelfTestResul
   const connected = new Set(input.connectedServices ?? [])
   const backend = input.backendSlug ?? "backend"
   const uses = input.usesServices ?? []
-  if (uses.some((slug) => (slug === backend ? !input.backendConnected : !connected.has(slug)))) return skipped("a service isn't connected")
+  if (uses.some((slug) => (slug === backend ? !input.backendConnected : !connected.has(slug)))) return skipped(SELF_TEST_REASONS.serviceNotConnected)
 
   const startedAt = clock.now()
   const remaining = () => budgetMs - (clock.now() - startedAt)
@@ -118,24 +119,22 @@ export async function selfTestRoute(input: SelfTestInput): Promise<SelfTestResul
     }
   }
 
+  // A server that is still starting, or one that failed to start, gets one more try after a pause, inside the same budget.
+  const isStartTrouble = (value: Attempt) =>
+    value.kind === "error" && value.error instanceof SandboxUnavailableError && (value.error.reason === "starting" || value.error.reason === "failed")
   let outcome = await attempt()
-  if (outcome.kind === "error" && outcome.error instanceof SandboxUnavailableError && outcome.error.reason === "starting") {
-    if (remaining() > SELF_TEST_RETRY_DELAY_MS) {
-      await clock.delay(SELF_TEST_RETRY_DELAY_MS)
-      outcome = await attempt()
-    } else {
-      return skipped("the test server was still starting")
-    }
+  if (isStartTrouble(outcome) && remaining() > SELF_TEST_RETRY_DELAY_MS) {
+    await clock.delay(SELF_TEST_RETRY_DELAY_MS)
+    outcome = await attempt()
   }
 
   if (outcome.kind === "timeout") return { status: "failed", reason: TOOK_TOO_LONG }
   if (outcome.kind === "error") {
     const error = outcome.error
-    if (!(error instanceof SandboxUnavailableError)) return skipped("the test server couldn't be reached")
-    if (error.reason === "disabled") return skipped("the test server isn't running")
-    if (error.reason === "limit") return skipped("testing is paused until tomorrow")
-    if (error.reason === "starting") return skipped("the test server was still starting")
-    return { status: "failed", reason: "the test server couldn't start with this code" }
+    if (!(error instanceof SandboxUnavailableError)) return skipped(SELF_TEST_REASONS.couldNotReach)
+    if (error.reason === "disabled") return skipped(SELF_TEST_REASONS.serverNotRunning)
+    if (error.reason === "limit") return skipped(SELF_TEST_REASONS.paused)
+    return skipped(error.reason === "starting" ? SELF_TEST_REASONS.stillStarting : SELF_TEST_REASONS.couldNotStart)
   }
 
   const answer = outcome.value
@@ -171,12 +170,20 @@ function fetchProblem(fetch: CallDiagnostic["fetches"][number]): string | null {
   return null
 }
 
+const MAX_THROWN_TEXT = 120
+
+/** Error text that is safe to put in a chat sentence: one line, no Markdown control characters, and not long. */
+export function plainText(text: string, max: number): string {
+  const clean = text.replace(/[*_[\]()#>|~`\\]/g, "").replace(/\s+/g, " ").trim()
+  return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean
+}
+
 /** A short plain description of why a test failed. It names only hosts, statuses and the error's name and message. */
 export function summarizeSelfTest(result: SelfTestResult): string {
   const parts: string[] = []
   if (result.reason) parts.push(result.reason)
   const thrown = result.diagnostic?.thrown
-  if (thrown && result.reason !== TOOK_TOO_LONG) parts.push(`it threw ${thrown.name}: ${thrown.message}`)
+  if (thrown && result.reason !== TOOK_TOO_LONG) parts.push(`it threw ${plainText(thrown.name, MAX_THROWN_TEXT)}: ${plainText(thrown.message, MAX_THROWN_TEXT)}`)
   const problems = (result.diagnostic?.fetches ?? []).flatMap((fetch) => fetchProblem(fetch) ?? [])
   parts.push(...[...new Set(problems)].slice(0, 3))
   if (parts.length === 0) parts.push(result.httpStatus ? `it answered ${result.httpStatus}` : "it didn't work")

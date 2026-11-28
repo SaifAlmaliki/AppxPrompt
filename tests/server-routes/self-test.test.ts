@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { DIAGNOSTIC_HEADER, encodeDiagnostic, type CallDiagnostic } from "@/lib/sandbox/diagnostic"
 import { SandboxUnavailableError, type SandboxResponse, type SandboxRunner } from "@/lib/sandbox/runner"
-import { selfTestRoute, summarizeSelfTest, type SelfTestClock } from "@/lib/server-routes/self-test"
+import { plainText, selfTestRoute, summarizeSelfTest, type SelfTestClock } from "@/lib/server-routes/self-test"
 
 const PATH = "app/api/trends/feed+api.ts"
 
@@ -153,21 +153,54 @@ describe("selfTestRoute", () => {
     expect(await pending).toMatchObject({ status: "failed" })
   })
 
-  it("skips when the test server isn't there, and fails when it can't start", async () => {
-    const throws = (reason: "disabled" | "limit" | "failed") =>
+  it("skips when the test server isn't there or is paused", async () => {
+    const throws = (reason: "disabled" | "limit") =>
       runnerOf(async () => {
         throw new SandboxUnavailableError(reason)
       })
     expect(await selfTestRoute({ ...base, runner: throws("disabled") })).toMatchObject({ status: "skipped" })
     expect(await selfTestRoute({ ...base, runner: throws("limit") })).toMatchObject({ status: "skipped" })
-    expect(await selfTestRoute({ ...base, runner: throws("failed") })).toMatchObject({ status: "failed" })
   })
 
+  it("retries a server that failed to start once, then skips instead of failing the route", async () => {
+    const { clock } = fakeClock()
+    let calls = 0
+    const flaky = runnerOf(async () => {
+      if (++calls === 1) throw new SandboxUnavailableError("failed")
+      return json(200, { ok: true })
+    })
+    expect(await selfTestRoute({ ...base, runner: flaky, clock })).toMatchObject({ status: "passed" })
+
+    const broken = runnerOf(async () => {
+      throw new SandboxUnavailableError("failed")
+    })
+    expect(await selfTestRoute({ ...base, runner: broken, clock: fakeClock().clock })).toEqual({
+      status: "skipped",
+      reason: "the test server couldn't start",
+    })
+    expect(broken.invoke).toHaveBeenCalledTimes(2)
+  })
   it("treats the sandbox's own 30-second stop as a timeout", async () => {
     const diagnostic: CallDiagnostic = { ms: 30_000, fetches: [{ host: "api.apify.com", ms: 30_000, error: "timeout" }] }
     const runner = runnerOf(async () => json(504, errorBody("unavailable", "The server function took too long."), diagnostic))
     const result = await selfTestRoute({ ...base, runner })
     expect(summarizeSelfTest(result)).toBe("it took more than 30 seconds; the request to api.apify.com timed out")
+  })
+})
+
+describe("plainText", () => {
+  it("makes error text one short line without Markdown characters", () => {
+    expect(plainText("bad *thing*\n[click](http://x) `code` # > | ~ _x_", 200)).toBe("bad thing clickhttp://x code x")
+    expect(plainText("a".repeat(300), 50)).toHaveLength(50)
+  })
+
+  it("is applied to what was thrown", () => {
+    const summary = summarizeSelfTest({
+      status: "failed",
+      httpStatus: 500,
+      diagnostic: { ms: 1, fetches: [], thrown: { name: "Error", message: "**bold**\nline two [link](x)" } },
+    })
+    expect(summary).toBe("it threw Error: bold line two linkx")
   })
 })
 

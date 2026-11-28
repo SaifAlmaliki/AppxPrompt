@@ -16,6 +16,7 @@ import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import { validateServerRoute } from "@/lib/agent/validate-server-route"
 import { visibleCode } from "@/lib/agent/validate-screen"
+import { SELF_TEST_REASONS } from "@/lib/server-routes/self-test-protocol"
 import { SELF_TEST_MIN_STEP_MS, summarizeSelfTest, type SelfTestResult } from "@/lib/server-routes/self-test"
 import { refreshTokenName, type ServiceDefinition } from "@/lib/services/protocol"
 
@@ -43,7 +44,8 @@ export type SelfTestHooks = {
   timeLeftMs?: () => number
 }
 
-export type Generate = (input: AgentInputItem[]) => Promise<string>
+/** `stop` aborts the call when the build step can't wait for it any longer. */
+export type Generate = (input: AgentInputItem[], stop?: AbortSignal) => Promise<string>
 
 type ValidationContext = Parameters<typeof validateServerRoute>[1]
 
@@ -163,8 +165,9 @@ export async function buildServerRoute(
       })
       // One budget for this build step, kept across its rewrite.
       const context: RunContext = { research: newResearchBudget() }
-      return async (input) => {
-        const result = await run(agent, input, { context, signal: options.signal, maxTurns: MAX_SERVER_BUILDER_TURNS, errorHandlers: endRunAtMaxTurns })
+      return async (input, stop) => {
+        const signal = stop && options.signal ? AbortSignal.any([options.signal, stop]) : (stop ?? options.signal)
+        const result = await run(agent, input, { context, signal, maxTurns: MAX_SERVER_BUILDER_TURNS, errorHandlers: endRunAtMaxTurns })
         options.signal?.throwIfAborted()
         return `${visibleCode(typeof result.finalOutput === "string" ? result.finalOutput : "").trim()}\n`
       }
@@ -198,26 +201,48 @@ export async function buildServerRoute(
 
   const selfTest = options.selfTest
   if (!selfTest) return { code }
-  if (ctx.route.kind !== "function") return { code, selfTest: { status: "skipped", detail: "agents aren't tried on their own" } }
+  if (ctx.route.kind !== "function") return { code, selfTest: { status: "skipped", detail: SELF_TEST_REASONS.agent } }
 
   let testBody = extractTestBody(code)
+  if (testBody === SKIP_TEST) return { code, selfTest: { status: "skipped", detail: SELF_TEST_REASONS.sendsOrSpends } }
   let outcome = await runSelfTest(selfTest, code, testBody, options.signal)
+  let earlierFailure: string | null = null
   for (let round = 0; outcome.result.status === "failed"; round++) {
     const summary = summarizeSelfTest(outcome.result)
+    earlierFailure = summary
     const failed: RouteSelfTest = { status: "failed", detail: summary }
-    if (round >= MAX_FIX_ROUNDS || (selfTest.timeLeftMs?.() ?? Infinity) < FIX_ROUND_MIN_MS) return { code, selfTest: failed }
+    const left = selfTest.timeLeftMs?.() ?? Infinity
+    if (round >= MAX_FIX_ROUNDS || left < FIX_ROUND_MIN_MS) return { code, selfTest: failed }
 
-    const fixed = visibleCode(await generate([prompt, assistant(code), user(selfTestFixMessage(summary))])).trim() + "\n"
+    // The fix may take no longer than what leaves room for trying it again.
+    const stop = left === Infinity ? undefined : AbortSignal.timeout(left - SELF_TEST_MIN_STEP_MS)
+    let fixed: string
+    try {
+      fixed = visibleCode(await generate([prompt, assistant(code), user(selfTestFixMessage(summary))], stop)).trim() + "\n"
+    } catch (error) {
+      options.signal?.throwIfAborted()
+      if (!stop?.aborted) throw error
+      return { code, selfTest: failed }
+    }
+    options.signal?.throwIfAborted()
     // A fix that breaks the rules isn't kept: the file that passed the checks stays, as a failed test.
     if (problemsOf(fixed).length > 0) return { code, selfTest: failed }
     code = fixed
-    testBody = extractTestBody(code) ?? testBody
-    outcome = await runSelfTest(selfTest, code, testBody, options.signal)
+    const next = extractTestBody(code)
+    if (next === SKIP_TEST) {
+      outcome = { result: { status: "skipped", reason: SELF_TEST_REASONS.sendsOrSpends } }
+    } else {
+      testBody = next ?? testBody
+      outcome = await runSelfTest(selfTest, code, testBody, options.signal)
+    }
   }
   const { result } = outcome
+  // A fix that couldn't be tried again doesn't hide that the route failed before.
+  if (result.status === "skipped" && earlierFailure !== null) {
+    return { code, selfTest: { status: "failed", detail: `${earlierFailure} (the fix wasn't tried again)` } }
+  }
   return { code, selfTest: { status: result.status, detail: result.status === "skipped" ? (result.reason ?? null) : null } }
 }
-
 /** The message the builder gets when its route failed the one try. */
 export const selfTestFixMessage = (summary: string) => `The route didn't work when tried: ${summary}. Fix it and save it again.`
 
@@ -225,11 +250,16 @@ const MAX_FIX_ROUNDS = 2
 /** A fix takes a model call and another try, so one doesn't start with less than this left of the step. */
 const FIX_ROUND_MIN_MS = 2 * SELF_TEST_MIN_STEP_MS
 const MAX_TEST_BODY_LENGTH = 4000
-const TEST_BODY_LINE = /^[ \t]*\/\/[ \t]*testBody:[ \t]*(\{.*\})[ \t]*$/m
+const TEST_BODY_LINE = /^[ \t]*\/\/[ \t]*testBody:[ \t]*(\{.*\}|skip)[ \t]*$/
 
-/** The sample request the builder gave on the first line of its file, or null when there isn't a usable one. */
-export function extractTestBody(code: string): Record<string, unknown> | null {
-  const line = TEST_BODY_LINE.exec(code)?.[1]
+/** What `// testBody: skip` gives: the route sends or spends something, so it isn't tried. */
+export const SKIP_TEST = Symbol("skip-test")
+
+/** The sample request the builder gave on the first non-empty line of its file, SKIP_TEST for `skip`, or null when there isn't a usable one. */
+export function extractTestBody(code: string): Record<string, unknown> | typeof SKIP_TEST | null {
+  const first = code.split(/\r?\n/).find((line) => line.trim() !== "")
+  const line = first === undefined ? undefined : TEST_BODY_LINE.exec(first)?.[1]
+  if (line === "skip") return SKIP_TEST
   if (!line || line.length > MAX_TEST_BODY_LENGTH) return null
   try {
     const body: unknown = JSON.parse(line)
@@ -245,13 +275,13 @@ async function runSelfTest(
   testBody: Record<string, unknown> | null,
   signal: AbortSignal | undefined
 ): Promise<{ result: SelfTestResult }> {
-  if (testBody === null) return { result: { status: "skipped", reason: "no sample request was given" } }
-  if ((selfTest.timeLeftMs?.() ?? Infinity) < SELF_TEST_MIN_STEP_MS) return { result: { status: "skipped", reason: "not enough time" } }
+  if (testBody === null) return { result: { status: "skipped", reason: SELF_TEST_REASONS.noSampleRequest } }
+  if ((selfTest.timeLeftMs?.() ?? Infinity) < SELF_TEST_MIN_STEP_MS) return { result: { status: "skipped", reason: SELF_TEST_REASONS.notEnoughTime } }
   try {
     return { result: await selfTest.run(code, testBody) }
   } catch (error) {
     signal?.throwIfAborted()
     console.error("Trying a server function failed", error instanceof Error ? error.name : "unknown")
-    return { result: { status: "skipped", reason: "the test couldn't run" } }
+    return { result: { status: "skipped", reason: SELF_TEST_REASONS.couldNotRun } }
   }
 }

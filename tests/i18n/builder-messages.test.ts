@@ -78,18 +78,23 @@ describe("changesSummary in Arabic", () => {
 
 describe("selfTestNote", () => {
   const planned = [{ id: "trends-feed", path: "app/api/trends+api.ts" }] as never
-  const row = (extra: object = {}) => ({ path: "app/api/trends+api.ts", purpose: "Trends", kind: "function", selfTest: "failed", selfTestDetail: "api.apify.com answered 402.", ...extra })
+  const row = (extra: object = {}) => ({ path: "app/api/trends+api.ts", purpose: "Trends", kind: "function", selfTest: "failed", selfTestDetail: "api.apify.com answered 402.", updatedAt: new Date("2026-01-02T00:00:00Z"), ...extra })
+  const since = new Date("2026-01-01T00:00:00Z")
 
   it("says in one sentence which function failed its test", () => {
-    expect(selfTestNote([row()], planned, "en")).toBe("The trends feed didn't work in a test: api.apify.com answered 402. You can ask me to fix it.")
+    expect(selfTestNote([row()], planned, "en", since)).toBe("The trends feed didn't work in a test: api.apify.com answered 402. You can ask me to fix it.")
   })
 
   it("says nothing for functions that passed, were skipped or are helpers", () => {
-    expect(selfTestNote([row({ selfTest: "passed" }), row({ selfTest: "skipped" }), row({ kind: "helper" }), row({ selfTest: null })], planned, "en")).toBe("")
+    expect(selfTestNote([row({ selfTest: "passed" }), row({ selfTest: "skipped" }), row({ kind: "helper" }), row({ selfTest: null })], planned, "en", since)).toBe("")
+  })
+
+  it("leaves out a function that failed in an earlier build", () => {
+    expect(selfTestNote([row({ updatedAt: new Date("2025-12-31T00:00:00Z") })], planned, "en", since)).toBe("")
   })
 
   it("keeps the name and the summary in their own direction in Arabic", () => {
-    const text = selfTestNote([row()], planned, "ar")
+    const text = selfTestNote([row()], planned, "ar", since)
     expect(text).toContain(isolate("trends feed"))
     expect(text).toContain(isolate("api.apify.com answered 402"))
     expect(text).not.toContain("didn't work")

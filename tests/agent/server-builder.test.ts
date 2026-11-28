@@ -16,6 +16,7 @@ import {
   buildServerRoute,
   createSaveHelperTool,
   extractTestBody,
+  SKIP_TEST,
   nextServerRoute,
   routeValidationContext,
   serviceContext,
@@ -330,6 +331,66 @@ describe("buildServerRoute self-test", () => {
     const agent = await buildServerRoute(context({ route: { ...slots, kind: "agent" } }), { ...options, generate: sequence(first), selfTest: { run } })
     expect(agent).toMatchObject({ selfTest: { status: "skipped" } })
     expect(run).not.toHaveBeenCalled()
+  })
+
+  it("keeps an earlier failure when the fix can't be tried again", async () => {
+    const run = results(failure, { status: "skipped", reason: "the test couldn't run" })
+    const result = await buildServerRoute(context(), { ...options, generate: sequence(first, second), selfTest: { run } })
+    expect(result).toEqual({
+      code: second,
+      selfTest: { status: "failed", detail: "www.googleapis.com answered 402 (the fix wasn't tried again)" },
+    })
+
+    const left = [300_000, 300_000, 30_000]
+    const timed = results(failure, { status: "passed" })
+    const late = await buildServerRoute(context(), {
+      ...options,
+      generate: sequence(first, second),
+      selfTest: { run: timed, timeLeftMs: () => left.shift() ?? 0 },
+    })
+    expect(late).toMatchObject({ selfTest: { status: "failed", detail: expect.stringContaining("(the fix wasn't tried again)") } })
+  })
+
+  it("stops a fix that would take longer than the step has left", async () => {
+    const generate = vi.fn(async (_input: unknown, stop?: AbortSignal) => {
+      if (!stop) return first
+      expect(stop.aborted).toBe(false)
+      throw new DOMException("The operation was aborted.", "TimeoutError")
+    })
+    const spy = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+      const controller = new AbortController()
+      controller.abort()
+      return controller.signal
+    })
+    const result = await buildServerRoute(context(), { ...options, generate, selfTest: { run: results(failure), timeLeftMs: () => 150_000 } })
+    expect(spy).toHaveBeenCalledWith(90_000)
+    expect(result).toEqual({ code: first, selfTest: { status: "failed", detail: "www.googleapis.com answered 402" } })
+    spy.mockRestore()
+  })
+
+  it("doesn't try a route that sends or spends something", async () => {
+    const skipRoute = withBody(validRoute, "skip")
+    const run = results()
+    expect(extractTestBody(skipRoute)).toBe(SKIP_TEST)
+    expect(await buildServerRoute(context(), { ...options, generate: sequence(skipRoute), selfTest: { run } })).toEqual({
+      code: skipRoute,
+      selfTest: { status: "skipped", detail: "it sends or spends something, so it wasn't tried" },
+    })
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it("tells the builder when to skip the try", () => {
+    const line =
+      "- If the route's main job costs the owner money per call or reaches people or other services (sending messages, payments, posting, or starting a paid generation job), write `// testBody: skip` instead, so it isn't tried."
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain(line)
+    const instructions = SERVER_BUILDER_INSTRUCTIONS
+    expect(instructions.indexOf(line)).toBeGreaterThan(instructions.indexOf("- With each route, give a small `testBody`"))
+  })
+
+  it("only reads the first non-empty line for the sample request", () => {
+    expect(extractTestBody(`\n  \n// testBody: {"a": 1}\n${validRoute}`)).toEqual({ a: 1 })
+    expect(extractTestBody(`import x from "y"\n// testBody: {"a": 1}\n${validRoute}`)).toBeNull()
+    expect(extractTestBody(`// testBody: {"a": 1}\n// testBody: {"b": 2}\n`)).toEqual({ a: 1 })
   })
 
   it("carries on when the try itself breaks", async () => {

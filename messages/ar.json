@@ -906,7 +906,20 @@
         "passed": "تمّت تجربتها",
         "failed": "فشلت التجربة: <bdi>{summary}</bdi>",
         "skipped": "لم تُجرَّب بعد: <bdi>{reason}</bdi>",
-        "untried": "لم تُجرَّب بعد"
+        "untried": "لم تُجرَّب بعد",
+        "reasons": {
+          "sendsOrSpends": "ترسل شيئًا أو تنفق مالًا، لذلك لم تُجرَّب",
+          "serviceNotConnected": "هناك خدمة غير مرتبطة",
+          "notEnoughTime": "لا يتوفر وقت كافٍ",
+          "noSampleRequest": "لم يُقدَّم طلب تجريبي",
+          "serverNotRunning": "خادم التجربة غير قيد التشغيل",
+          "paused": "التجارب متوقفة حتى الغد",
+          "stillStarting": "كان خادم التجربة لا يزال يبدأ",
+          "couldNotStart": "تعذّر تشغيل خادم التجربة",
+          "couldNotReach": "تعذّر الوصول إلى خادم التجربة",
+          "couldNotRun": "تعذّر إجراء التجربة",
+          "agent": "لا تُجرَّب الوكلاء تلقائيًا"
+        }
       }
     },
     "activity": {

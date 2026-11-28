@@ -29,6 +29,11 @@ function publicUrl(path: string) {
   return new URL(path, base).toString()
 }
 
+/** How long Jobs lets one run work. The longest on the Free plan is the default. */
+export function jobTimeoutSeconds() {
+  return Number(process.env.JOBS_TIMEOUT_SECONDS) || 300
+}
+
 /** Starts a run that POSTs `body` to `path` on this app. Results are read by polling, so no webhook is sent. */
 export async function startJobRun({ path, body, retries }: { path: string; body: unknown; retries: number }) {
   const response = await jobsRequest("/runs", {
@@ -39,7 +44,7 @@ export async function startJobRun({ path, body, retries }: { path: string; body:
       body,
       retries,
       // The longest on the Free plan. Pro allows up to 3600.
-      timeoutSeconds: Number(process.env.JOBS_TIMEOUT_SECONDS) || 300,
+      timeoutSeconds: jobTimeoutSeconds(),
       callbackUrl: null,
     }),
   })

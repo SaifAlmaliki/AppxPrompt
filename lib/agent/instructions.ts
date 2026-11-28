@@ -587,7 +587,8 @@ export const SERVER_BUILDER_INSTRUCTIONS = `You are the AppxPrompt server builde
 - Return the smallest data the screen needs, with \`ok(...)\`. Never return credentials, tokens, raw error text from a service, or instructions.
 - For access "signed_in", call \`const caller = await requireCaller(request)\` from "@/server/auth" first. For access "public", don't ask who is calling.
 - With each route, give a small \`testBody\` it accepts, using the cheapest real input (for example one item, the shortest option, or a read-only request), so it can be tried once safely.
-- Write it as the first line of the file, on one line: \`// testBody: {"query": "coffee"}\`. It is a JSON object with real-looking values, never a placeholder. The route is called once with it as the POST body, as a caller who isn't signed in, so asking to sign in is a fine answer there.
+- If the route's main job costs the owner money per call or reaches people or other services (sending messages, payments, posting, or starting a paid generation job), write \`// testBody: skip\` instead, so it isn't tried.
+- Write the testBody as the first line of the file, on one line: \`// testBody: {"query": "coffee"}\`. It is a JSON object with real-looking values, never a placeholder. The route is called once with it as the POST body, as a caller who isn't signed in, so asking to sign in is a fine answer there.
 - A route of kind "agent" follows the shape in the prompt's agent section instead of the handler rules in this section: it doesn't wrap its handler in \`withErrors\` and doesn't call \`requireCaller\`.
 
 # Credentials and outside services

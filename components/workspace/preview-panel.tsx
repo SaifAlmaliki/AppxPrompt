@@ -29,6 +29,7 @@ import type { ServerTarget } from "@/lib/generated-app/server-files"
 import type { ElementEdits, PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import { resetPreviewStorage } from "@/lib/preview-storage"
 import { isWebPublishActive } from "@/lib/publish-protocol"
+import { selfTestReasonKey } from "@/lib/server-routes/self-test-protocol"
 import { activeTheme } from "@/lib/themes"
 import { buildFileTree, languageForPath, type FileNode } from "@/lib/workspace-data"
 import { cn } from "@/lib/utils"
@@ -387,7 +388,9 @@ function useServerTestLabel() {
     const bdi = (chunks: React.ReactNode) => <bdi>{chunks}</bdi>
     if (test.status === "passed") return t("passed")
     if (test.status === "failed") return t.rich("failed", { summary: test.detail ?? "", bdi })
-    return test.detail ? t.rich("skipped", { reason: test.detail, bdi }) : t("untried")
+    if (!test.detail) return t("untried")
+    const known = selfTestReasonKey(test.detail)
+    return t.rich("skipped", { reason: known ? t(`reasons.${known}`) : test.detail, bdi })
   }
 }
 

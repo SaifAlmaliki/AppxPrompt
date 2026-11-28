@@ -906,7 +906,20 @@
         "passed": "Tested",
         "failed": "Test failed: <bdi>{summary}</bdi>",
         "skipped": "Not tested yet: <bdi>{reason}</bdi>",
-        "untried": "Not tested yet"
+        "untried": "Not tested yet",
+        "reasons": {
+          "sendsOrSpends": "it sends or spends something, so it wasn't tried",
+          "serviceNotConnected": "a service isn't connected",
+          "notEnoughTime": "not enough time",
+          "noSampleRequest": "no sample request was given",
+          "serverNotRunning": "the test server isn't running",
+          "paused": "testing is paused until tomorrow",
+          "stillStarting": "the test server was still starting",
+          "couldNotStart": "the test server couldn't start",
+          "couldNotReach": "the test server couldn't be reached",
+          "couldNotRun": "the test couldn't run",
+          "agent": "agents aren't tried on their own"
+        }
       }
     },
     "activity": {
