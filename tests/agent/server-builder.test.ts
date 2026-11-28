@@ -169,6 +169,13 @@ describe("SERVER_BUILDER_INSTRUCTIONS", () => {
     }
     expect(SERVER_BUILDER_INSTRUCTIONS).toMatch(/no Buffer, no "node:" modules and no npm packages/)
   })
+
+  it("writes calls that fit the sandbox and reports problems clearly", () => {
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain("# Calls that fit")
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain("A call has at most 30 seconds")
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain("Report every problem the person should read with `fail(code, message)`")
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain("Memory in the server doesn't last")
+  })
 })
 
 describe("buildServerRoute", () => {

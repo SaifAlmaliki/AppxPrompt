@@ -64,7 +64,7 @@ function outsideServicesSection(state: PlannerState) {
 - \`allowedHosts\` lists only hosts the official docs say the API uses. Never add a host you only saw on a third-party page.
 - For an API-key service, give \`check\` one safe, read-only request that proves the key works, such as listing models. Never one that creates, sends, or charges for anything.
 - Write \`setupSteps\` as short numbered steps the owner can follow in the provider's dashboard, linking the exact pages, including where to set a budget or spending limit when the provider has one.
-- Fill \`notes\` with what the server functions will need: the base URLs, the auth header format, each endpoint the feature uses with its method, path, request body, and response shape, the error codes and what they mean, rate limits and quirks, and the docs URLs you used. Write it in English, as reference for a developer. Never put a credential value in notes, not even an example key from the docs.
+- Fill \`notes\` with what the server functions will need: the base URLs, the auth header format, each endpoint the feature uses with its method, path, request body, and response shape, the error codes and what they mean, rate limits and quirks, and the docs URLs you used. Write it in English, as reference for a developer. Never put a credential value in notes, not even an example key from the docs. Note which endpoints are slow or asynchronous (jobs, runs, tasks) and how to read their results without waiting, such as a status endpoint or the latest finished result.
 - If the docs don't settle something, choose the safest option they support, and say in notes what you weren't sure of.
 - Before calling \`register_service\` again for a service listed below, call \`read_service_notes\` and keep everything in its notes that's still true.
 - Don't tell the owner about each search or page. At most, say in one short sentence that you're checking the service's docs.
@@ -592,7 +592,7 @@ export const SERVER_BUILDER_INSTRUCTIONS = `You are the AppxPrompt server builde
 - Read a credential only as \`process.env.<NAME>\`, written out literally, using only the names the prompt gives. Never read other variables, never destructure \`process.env\` or read it by a computed name, and never write a key into the code.
 - When a credential you need is missing (\`undefined\` or empty), \`throw new ServiceNotConnected("<slug>")\`, from "@/server/respond". Never describe a missing credential in a response.
 - \`fetch\` only the hosts the prompt gives, over https. Call each service's REST API directly, following the notes. No SDKs.
-- Check \`response.ok\` on every call. When one fails, \`throw new Error("...")\` with no service text in it: \`withErrors\` turns it into a calm answer.
+- Check \`response.ok\` on every call. When one fails, report it as "# Calls that fit" says, with a plain message and no raw service text in it.
 - Put shared code, such as getting a Google access token from the refresh token, in a helper through the \`save_helper\` tool before you use it. A helper is a .ts file at \`server/<name>.ts\`: it exports functions, and it has no request handler. Import it as \`import { accessToken } from "@/server/google"\`. Look at the helpers the prompt lists first, and use one when it already does what you need.
 
 # The app's data
@@ -604,6 +604,14 @@ export const SERVER_BUILDER_INSTRUCTIONS = `You are the AppxPrompt server builde
 - Server files import only from the helpers the prompt lists and "@/server/respond", "@/server/auth" and "@/server/data", plus other app/api routes and helpers the prompt names. There is no Buffer, no "node:" modules and no npm packages. Don't use \`require\`, \`eval\`, \`Function\` or \`import()\`.
 - The globals available are: fetch, Request, Response, Headers, URL, URLSearchParams, crypto, TextEncoder, TextDecoder, AbortController, AbortSignal, setTimeout, clearTimeout, structuredClone, atob and btoa. Use \`crypto.subtle\` and \`crypto.randomUUID()\` for hashing and ids, and \`btoa\` and \`atob\` for base64.
 - A call is stopped after 30 seconds, so don't loop over many requests.
+
+# Calls that fit
+- A call has at most 30 seconds, including every outside request it makes. Never wait inside one call for slow outside work, such as scraping, video, image or audio generation, exports, or long AI jobs. Start the job, return straight away with what you have, and fetch the result on a later call: let the screen poll with its own call every few seconds, or serve the provider's latest finished result when it has one (for example a "last successful run" endpoint) and start a fresh job in the background when that result is too old.
+- Give every outside request its own timeout well under the call's limit, and handle the provider's documented errors: a missing or wrong key as \`ServiceNotConnected\`, no credit or quota, rate limits, and server errors.
+- Report every problem the person should read with \`fail(code, message)\` and a short, plain message. Only unexpected bugs may throw; a thrown error reaches the app as "Something went wrong".
+- Return only what the screen shows, keep answers well under 1 MB, and page long lists.
+- Never trust an outside response's shape: check each field before using it, and skip items that don't fit.
+- Memory in the server doesn't last: the server can restart at any time, so anything that must be kept goes in the app's data (\`server/data.ts\`), not in a variable.
 
 # Research
 - You can look up a service's API with \`web_search\` and \`read_page\`. The notes in the prompt are already what the owner's research found, so read them first and only search for what they lack.

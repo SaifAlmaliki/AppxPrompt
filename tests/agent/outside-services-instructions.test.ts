@@ -68,6 +68,10 @@ describe("# Outside services", () => {
     expect(plannerInstructions(state({ integrations: false }))).not.toContain("only say a key dialog is open")
   })
 
+  it("asks the notes to flag slow or asynchronous endpoints", () => {
+    expect(plannerInstructions(state())).toContain("Note which endpoints are slow or asynchronous")
+  })
+
   it("keeps the old backend line when integrations are off", () => {
     expect(plannerInstructions(state({ integrations: false }))).toContain("the app has no server code of its own")
   })
