@@ -931,7 +931,7 @@
         "network": "Couldn't reach {host}",
         "thrown": "The function threw {name}: {message}",
         "calls": "{count, plural, one {# outgoing call} other {# outgoing calls}}",
-        "milliseconds": "{count} ms"
+        "timed": "{line} · {count} ms"
       }
     }
   },

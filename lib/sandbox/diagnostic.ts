@@ -18,6 +18,11 @@ export type CallDiagnostic = { ms: number; fetches: FetchDiagnostic[]; thrown?: 
 const MAX_HOST_LENGTH = 253
 const HOSTNAME = /^(?:[a-z0-9_](?:[a-z0-9_.-]*[a-z0-9_])?|\[[0-9a-f:.]+\])$/i
 
+/** Whether a host can be stored and shown as is. The runtime records "invalid" for one that can't. */
+export function isRecordableHost(host: string): boolean {
+  return host.length > 0 && host.length <= MAX_HOST_LENGTH && HOSTNAME.test(host)
+}
+
 function isCount(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2_147_483_647
 }
@@ -25,7 +30,7 @@ function isCount(value: unknown): value is number {
 function sanitizeFetch(value: unknown): FetchDiagnostic | null {
   if (!value || typeof value !== "object") return null
   const { host, status, error, ms } = value as Record<string, unknown>
-  if (typeof host !== "string" || host.length > MAX_HOST_LENGTH || !HOSTNAME.test(host)) return null
+  if (typeof host !== "string" || !isRecordableHost(host)) return null
   if (!isCount(ms)) return null
   const entry: FetchDiagnostic = { host: host.toLowerCase(), ms }
   if (status !== undefined) {
@@ -47,9 +52,9 @@ export function sanitizeDiagnostic(value: unknown): CallDiagnostic | null {
 
   const checked: FetchDiagnostic[] = []
   for (const item of fetches) {
+    // One bad entry costs only itself, never the error text beside it.
     const entry = sanitizeFetch(item)
-    if (!entry) return null
-    checked.push(entry)
+    if (entry) checked.push(entry)
   }
 
   const result: CallDiagnostic = { ms, fetches: checked }
@@ -69,16 +74,40 @@ function toBase64Url(text: string) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
 
-/** The header value, trimmed (last calls first, then the error text) until it fits. */
+const MIN_KEPT_MESSAGE_LENGTH = 40
+
+function failed(fetch: FetchDiagnostic) {
+  return Boolean(fetch.error) || (fetch.status ?? 0) >= 400
+}
+
+/** The header value. Over the limit, the error text is shortened first, then successful calls go before failed ones. */
 export function encodeDiagnostic(diagnostic: CallDiagnostic): string {
   const draft: CallDiagnostic = { ms: diagnostic.ms, fetches: [...diagnostic.fetches], ...(diagnostic.thrown ? { thrown: { ...diagnostic.thrown } } : {}) }
+  const dropLast = (match: (fetch: FetchDiagnostic) => boolean) => {
+    const index = draft.fetches.findLastIndex(match)
+    if (index < 0) return false
+    draft.fetches.splice(index, 1)
+    return true
+  }
   for (;;) {
     const encoded = toBase64Url(JSON.stringify(draft))
     if (encoded.length <= MAX_DIAGNOSTIC_HEADER_LENGTH) return encoded
-    if (draft.fetches.length > 0) draft.fetches.pop()
-    else if (draft.thrown && draft.thrown.message.length > 0) draft.thrown.message = draft.thrown.message.slice(0, draft.thrown.message.length >> 1)
-    else if (draft.thrown) delete draft.thrown
-    else return ""
+    const message = draft.thrown?.message ?? ""
+    if (draft.thrown && message.length > MIN_KEPT_MESSAGE_LENGTH) {
+      draft.thrown.message = message.slice(0, Math.max(MIN_KEPT_MESSAGE_LENGTH, message.length >> 1))
+    } else if (dropLast((fetch) => !failed(fetch))) {
+      continue
+    } else if (draft.fetches.filter(failed).length > 1) {
+      dropLast(failed)
+    } else if (draft.thrown && message.length > 0) {
+      draft.thrown.message = message.slice(0, message.length >> 1)
+    } else if (draft.thrown) {
+      delete draft.thrown
+    } else if (draft.fetches.length > 0) {
+      draft.fetches.pop()
+    } else {
+      return ""
+    }
   }
 }
 

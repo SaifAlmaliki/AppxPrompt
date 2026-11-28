@@ -39,7 +39,7 @@ function CallDetail({ call, failed }: { call: ServerCallEntry; failed: boolean }
           <ul className="mt-1 space-y-0.5">
             {detail.fetches.map((fetch, index) => (
               <li key={index} dir="auto" className="break-words">
-                {line(fetch)} · {t("milliseconds", { count: fetch.ms })}
+                {t("timed", { line: line(fetch), count: fetch.ms })}
               </li>
             ))}
           </ul>

@@ -8,6 +8,7 @@ import {
   MAX_THROWN_MESSAGE_LENGTH,
   MAX_THROWN_NAME_LENGTH,
   encodeDiagnostic,
+  isRecordableHost,
   type CallDiagnostic,
   type FetchDiagnostic,
   type FetchError,
@@ -80,7 +81,9 @@ export function guardedFetch(fetchImpl: typeof fetch, allowedHosts: string[], ob
       options = { ...init }
     }
 
-    const finished = observe?.(url.hostname)
+    // The diagnostic names the host the app called, not where a redirect ended (a blocked redirect names the blocked target).
+    const first = url.hostname
+    const finished = observe?.(first)
     for (let hop = 0; ; hop++) {
       try {
         check(url)
@@ -92,16 +95,16 @@ export function guardedFetch(fetchImpl: typeof fetch, allowedHosts: string[], ob
       try {
         response = await fetchImpl(url.href, { ...options, redirect: "manual" })
       } catch (error) {
-        finished?.({ host: url.hostname, error: fetchErrorKind(error) })
+        finished?.({ host: first, error: fetchErrorKind(error) })
         throw error
       }
       const location = response.headers.get("location")
       if (!REDIRECT_STATUSES.has(response.status) || !location) {
-        finished?.({ host: url.hostname, status: response.status })
+        finished?.({ host: first, status: response.status })
         return response
       }
       if (hop >= RUNTIME_LIMITS.maxRedirects) {
-        finished?.({ host: url.hostname, error: "network" })
+        finished?.({ host: first, error: "network" })
         throw new TypeError("Too many redirects.")
       }
 
@@ -231,7 +234,9 @@ function secretForms(secret: string) {
 const HIDDEN = "[hidden]"
 const KEY_PATTERN = new RegExp(`${KEY_BOUNDARY}(${KEY_PATTERN_SOURCES.join("|")})`, "g")
 const KEY_PATTERN_ANYWHERE = new RegExp(KEY_PATTERN_SOURCES.join("|"), "i")
-const MAX_SCRUBBED_LENGTH = 100_000
+const MAX_SCRUBBED_LENGTH = 1_000_000
+/** A web address in an error message: only its host is kept (no credentials, path or query). */
+const URL_IN_TEXT = /https?:\/\/(?:[^\s/?#@]*@)?([^\s/?#:]+)(?::\d+)?[^\s]*/gi
 
 type CallState = {
   startedAt: number
@@ -261,7 +266,14 @@ export function createDispatcher(
     .filter((value): value is string => typeof value === "string" && value.length >= MIN_SECRET_LENGTH)
     .flatMap(secretForms)
   const sandboxProcess = Object.freeze({ env })
-  const orderedSecrets = [...new Set(secrets)].sort((a, b) => b.length - a.length)
+  // A multi-line secret (a PEM key, a service-account JSON) is also removed one line at a time.
+  const scrubbedSecrets = bundle.secretNames
+    .map((name) => env[name])
+    .filter((value): value is string => typeof value === "string" && value.length >= MIN_SECRET_LENGTH)
+    .flatMap((value) => [value, ...value.split(/\r?\n/).map((line) => line.trim())])
+    .filter((value, index, all) => value.length >= MIN_SECRET_LENGTH && all.indexOf(value) === index)
+    .flatMap(secretForms)
+  const orderedSecrets = [...new Set(scrubbedSecrets)].sort((a, b) => b.length - a.length)
   const lowerSecrets = secrets.map((secret) => secret.toLowerCase())
   const allowedHostSet = new Set(bundle.allowedHosts.map((host) => host.toLowerCase()))
   const calls = new AsyncLocalStorage<CallState>()
@@ -270,20 +282,21 @@ export function createDispatcher(
     return secrets.some((secret) => text.includes(secret))
   }
 
-  /** Error text for the owner: every form of every secret and anything shaped like a key is cut out. */
+  /** Whole text first, so no line of a secret survives a later cut: every form of every secret and anything shaped like a key goes. */
   function scrubText(text: string) {
     let out = text.slice(0, MAX_SCRUBBED_LENGTH)
     for (const secret of orderedSecrets) out = out.split(secret).join(HIDDEN)
     out = out.replace(KEY_PATTERN, (_match, prefix: string) => prefix + HIDDEN)
-    return leaksSecret(out) ? HIDDEN : out
+    return orderedSecrets.some((secret) => out.includes(secret)) || leaksSecret(out) ? HIDDEN : out
   }
 
-  /** A host that is on the allow list, or one that carries nothing that looks like a credential. */
+  /** A host that is on the allow list, or one that carries nothing that looks like a credential and can be shown. */
   function safeHost(host: string) {
     const lower = host.toLowerCase()
     if (allowedHostSet.has(lower)) return lower
     if (lowerSecrets.some((secret) => lower.includes(secret)) || KEY_PATTERN_ANYWHERE.test(lower)) return "redacted"
-    return lower || "unknown"
+    if (!lower) return "unknown"
+    return isRecordableHost(lower) ? lower : "invalid"
   }
 
   const observe: FetchObserver = (host) => {
@@ -316,9 +329,10 @@ export function createDispatcher(
     } catch {
       // A throwing getter leaves the plain defaults.
     }
+    const scrubbed = scrubText(message).replace(URL_IN_TEXT, "$1")
     return {
       name: scrubText(name).slice(0, MAX_THROWN_NAME_LENGTH),
-      message: scrubText(message.split(/\r?\n/, 1)[0]).slice(0, MAX_THROWN_MESSAGE_LENGTH),
+      message: scrubbed.split(/\r?\n/, 1)[0].slice(0, MAX_THROWN_MESSAGE_LENGTH),
     }
   }
 

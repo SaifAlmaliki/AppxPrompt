@@ -238,7 +238,7 @@ describe("server proxy onCall", () => {
   it.each([
     ["malformed", "not base64 !!"],
     ["not JSON", Buffer.from("hello").toString("base64url")],
-    ["off-shape", Buffer.from(JSON.stringify({ ms: 1, fetches: [{ host: "a.com/x?t=1", ms: 1 }] })).toString("base64url")],
+    ["off-shape", Buffer.from(JSON.stringify({ fetches: [] })).toString("base64url")],
     ["oversized", "A".repeat(MAX_DIAGNOSTIC_HEADER_LENGTH + 1)],
   ])("ignores a %s diagnostic header, and still strips it", async (_name, value) => {
     const onCall = vi.fn()
@@ -247,6 +247,14 @@ describe("server proxy onCall", () => {
     expect(response.status).toBe(200)
     expect(response.headers.get(DIAGNOSTIC_HEADER)).toBeNull()
     expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ diagnostic: null }))
+  })
+
+  it("drops an outgoing call whose host carries a path or query, keeping the rest", async () => {
+    const onCall = vi.fn()
+    const header = Buffer.from(JSON.stringify({ ms: 1, fetches: [{ host: "a.com/x?t=1", ms: 1 }, { host: "b.com", ms: 2 }] })).toString("base64url")
+    runner.invoke.mockResolvedValue({ status: 200, headers: { "content-type": "application/json", [DIAGNOSTIC_HEADER]: header }, body: "{}" })
+    await call(createServerProxy({ onCall }), ["x"])
+    expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ diagnostic: { ms: 1, fetches: [{ host: "b.com", ms: 2 }] } }))
   })
 
   it("reports a successful call with no error", async () => {
