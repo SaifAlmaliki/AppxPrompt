@@ -901,7 +901,13 @@
       "awaitingPlan": "Once you confirm the plan, each screen's code streams in here as the agent writes it.",
       "filesLabel": "Project files",
       "files": "Files",
-      "beingWritten": "Being written"
+      "beingWritten": "Being written",
+      "serverTest": {
+        "passed": "Tested",
+        "failed": "Test failed: <bdi>{summary}</bdi>",
+        "skipped": "Not tested yet: <bdi>{reason}</bdi>",
+        "untried": "Not tested yet"
+      }
     },
     "activity": {
       "description": "The latest calls your app made to its server functions. Only the address, the result and the names of the websites it called are kept, never any data.",
@@ -1650,7 +1656,8 @@
     "polishingScreen": "Polishing {name}…",
     "generatingScreenImages": "Generating images for {name}…",
     "writingServerFunction": "Writing the server function: {name}…",
-    "checkingServerFunction": "Checking the server function…"
+    "checkingServerFunction": "Checking the server function…",
+    "tryingServerFunction": "Trying the server function once…"
   },
   "agentMessages": {
     "confirm": "Looks good, build it!",
@@ -1665,6 +1672,7 @@
     "backendLocal": "Everything you add is saved on the device for now. Click Connect Backend at the top when you'd like it in the cloud.",
     "backendSynced": "Everything people add is saved to your CloudHike backend and syncs live.",
     "backendFailed": "I couldn't set up your CloudHike backend, so nothing moved to the cloud: {message}",
+    "selfTestFailed": "The {name} didn't work in a test: {summary}. You can ask me to fix it.",
     "refund": "I returned the {credits, plural, one {# credit} other {# credits}} for what didn't finish.",
     "failedNone": "I couldn't build the screens this time.{refundNote} Say \"try again\" and I'll have another go.",
     "failedSome": "I built {built, number, integer} of {total, number, integer} screens. {names} didn't come out right.{refundNote} Say \"try again\" and I'll retry {count, plural, one {it} other {them}}, keeping the finished screens.",

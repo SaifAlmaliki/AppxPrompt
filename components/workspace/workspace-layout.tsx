@@ -28,7 +28,7 @@ import { CanvasPanel } from "@/components/workspace/canvas-panel"
 import { ChatPanel, type ChatAsset } from "@/components/workspace/chat-panel"
 import { DownloadDialog } from "@/components/workspace/download-dialog"
 import { GitHubDialog } from "@/components/workspace/github-dialog"
-import { PreviewPanel } from "@/components/workspace/preview-panel"
+import { PreviewPanel, type ServerTests } from "@/components/workspace/preview-panel"
 import { PublishDialog } from "@/components/workspace/publish-dialog"
 import { ServiceDialog } from "@/components/workspace/service-dialog"
 import { ShareDialog } from "@/components/workspace/share-dialog"
@@ -324,6 +324,17 @@ export function WorkspaceLayout({
           ],
     [readOnly, agent.serverRoutes, agent.plan]
   )
+  const serverTests = React.useMemo<ServerTests>(
+    () =>
+      readOnly
+        ? {}
+        : Object.fromEntries(
+            agent.serverRoutes
+              .filter((route) => route.code && route.status === "done" && route.kind !== "helper")
+              .map((route) => [route.path, { status: route.selfTest, detail: route.selfTestDetail }])
+          ),
+    [readOnly, agent.serverRoutes]
+  )
   const snackServer = React.useMemo<ServerTarget>(() => ({ kind: "sandbox", projectId: project.id, token }), [project.id, token])
   const syncing = agent.status === "building"
 
@@ -347,6 +358,7 @@ export function WorkspaceLayout({
       app={app}
       appFiles={appFiles}
       serverFiles={serverFiles}
+      serverTests={serverTests}
       snackServer={snackServer}
       sandboxToken={token ?? ""}
       onServiceNeeded={onServiceNeeded}

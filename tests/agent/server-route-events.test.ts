@@ -9,6 +9,8 @@ const route = (path: string, extra: Partial<ProjectServerRoute> = {}): ProjectSe
   purpose: "p",
   status: "pending",
   code: null,
+  selfTest: null,
+  selfTestDetail: null,
   ...extra,
 })
 

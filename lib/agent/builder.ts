@@ -4,6 +4,7 @@ import { and, asc, eq, ne, sql } from "drizzle-orm"
 import { db, messages, projects, screens, type Project, type Screen, type ServerRoute } from "@/db"
 import type { Locale } from "@/i18n/config"
 import {
+  BACKEND_SERVICE,
   componentLabel,
   screenFilePath,
   statusEvent,
@@ -23,20 +24,43 @@ import { BuildLostError, type BuildLog } from "@/lib/agent/builds"
 import { buildServerRoute, nextServerRoute, serviceContext } from "@/lib/agent/server-builder"
 import { fatalScreenProblem, screenProblems, visibleCode } from "@/lib/agent/validate-screen"
 import { refundUnfinishedBuild } from "@/lib/billing/credits"
-import { isBackendLinked, setUpBackend } from "@/lib/cloudhike/backend"
+import { getBackendStatus, isBackendLinked, setUpBackend } from "@/lib/cloudhike/backend"
 import { isolate } from "@/lib/i18n/activity"
 import { chatLocale, translatorFor } from "@/lib/i18n/server"
 import { fillGeneratedImages, hasGeneratedImages } from "@/lib/imagekit"
 import { serverAllowedHosts } from "@/lib/sandbox/bundle"
+import { getSandboxRunner } from "@/lib/sandbox/runner"
 import { ifIntegrations } from "@/lib/server-routes/gate"
+import { SELF_TEST_BUDGET_MS, selfTestRoute } from "@/lib/server-routes/self-test"
 import { finishServerRoute, listServerRoutes, saveServerHelper, setServerRouteStatus } from "@/lib/server-routes/store"
-import { listServiceDefinitions } from "@/lib/services/store"
+import { listServiceDefinitions, listServiceSummaries } from "@/lib/services/store"
 
 const builderAgent = new Agent({
   name: "AppxPrompt Screen Builder",
   model: BUILDER_MODEL,
   instructions: BUILDER_INSTRUCTIONS,
 })
+
+// A build step runs at most 300 seconds (see app/api/jobs/build-step), so a function's try and fixes stay within the time left of it.
+const SERVER_STEP_BUDGET_MS = 285_000
+
+/** The sentence about each built function that failed its test, or an empty string. */
+export function selfTestNote(
+  rows: { path: string; purpose: string; kind: string; selfTest: string | null; selfTestDetail: string | null }[],
+  planned: PlannedServerRoute[],
+  locale: Locale
+) {
+  const t = translatorFor(locale, "agentMessages")
+  const wrap = (text: string) => (locale === "ar" ? isolate(text) : text)
+  return rows
+    .filter((row) => row.kind === "function" && row.selfTest === "failed")
+    .map((row) => {
+      const name = planned.find((route) => route.path === row.path)?.id.replaceAll("-", " ") ?? row.purpose
+      const summary = (row.selfTestDetail ?? "it didn't work").replace(/[.\s]+$/, "")
+      return t("selfTestFailed", { name: wrap(name), summary: wrap(summary) })
+    })
+    .join(" ")
+}
 
 // Keeps the style reference prompt small.
 const MAX_STYLE_REFERENCE = 8000
@@ -127,6 +151,27 @@ async function buildServerRouteStep(log: BuildLog, project: Project, plan: AppPl
   log.emit({ type: "server-route", route: toProjectServerRoute({ ...writing, code: null }) })
   log.emit(statusEvent("writingServerFunction", { name: route.purpose }))
 
+  const stepEndsAt = Date.now() + SERVER_STEP_BUDGET_MS
+  const timeLeftMs = () => stepEndsAt - Date.now()
+
+  /** Saves the code where the sandbox reads it, and calls the route once. Free: no credits are used. */
+  const tryRoute = async (code: string, testBody: Record<string, unknown>) => {
+    log.emit(statusEvent("tryingServerFunction"))
+    await setServerRouteStatus(project.id, route.path, "generating", code)
+    const [summaries, backend] = await Promise.all([listServiceSummaries(project.id), getBackendStatus(project.id, project.userId)])
+    return selfTestRoute({
+      projectId: project.id,
+      path: route.path,
+      testBody,
+      runner: getSandboxRunner(),
+      usesServices: route.services,
+      connectedServices: summaries.filter((service) => service.status === "connected").map((service) => service.slug),
+      backendConnected: backend.state === "ready",
+      backendSlug: BACKEND_SERVICE,
+      budgetMs: Math.min(SELF_TEST_BUDGET_MS, timeLeftMs()),
+    })
+  }
+
   let saved: ServerRoute
   try {
     const definitions = await listServiceDefinitions(project.id)
@@ -146,12 +191,13 @@ async function buildServerRouteStep(log: BuildLog, project: Project, plan: AppPl
           await saveServerHelper(project.id, path, purpose, code)
         },
         onChecking: () => log.emit(statusEvent("checkingServerFunction")),
+        selfTest: { run: tryRoute, timeLeftMs },
       }
     )
     await log.flush()
 
     if ("code" in result) {
-      saved = await finishServerRoute(project.id, route.path, result.code)
+      saved = await finishServerRoute(project.id, route.path, result.code, result.selfTest ?? null)
     } else {
       console.error(`Writing server function ${route.path} failed`, result.problems)
       saved = await setServerRouteStatus(project.id, route.path, "failed")
@@ -391,11 +437,13 @@ export async function runBuildStep(log: BuildLog, project: Project): Promise<boo
   const refundNote = refunded > 0 ? ` ${t("refund", { credits: refunded })}` : ""
 
   const names = (list: (Screen | string)[]) => commaList(isolateNames(list.map((item) => (typeof item === "string" ? item : item.name)), locale), locale)
+  const testNote = selfTestNote(serverRows, plan.serverRoutes ?? [], locale)
+  const testSentence = testNote ? ` ${testNote}` : ""
   const content =
     failed.length === 0
       ? changes
-        ? `${changesSummary(changes, locale)}${linked ? backendNote : ""}`
-        : t("ready", { appName: plan.appName, count: built.length, names: names(built), backendNote })
+        ? `${changesSummary(changes, locale)}${linked ? backendNote : ""}${testSentence}`
+        : `${t("ready", { appName: plan.appName, count: built.length, names: names(built), backendNote })}${testSentence}`
       : built.length === 0
         ? t("failedNone", { refundNote })
         : t("failedSome", { built: built.length, total: rows.length, names: names(failed), refundNote, count: failed.length })

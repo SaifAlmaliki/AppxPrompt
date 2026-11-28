@@ -16,6 +16,7 @@ import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import { validateServerRoute } from "@/lib/agent/validate-server-route"
 import { visibleCode } from "@/lib/agent/validate-screen"
+import { SELF_TEST_MIN_STEP_MS, summarizeSelfTest, type SelfTestResult } from "@/lib/server-routes/self-test"
 import { refreshTokenName, type ServiceDefinition } from "@/lib/services/protocol"
 
 export type ServerServiceContext = { slug: string; name: string; notes: string; allowedHosts: string[]; credentialNames: string[] }
@@ -30,6 +31,16 @@ export type ServerRouteContext = {
   helpers: { path: string; code: string }[]
   /** The hosts of the app's own data and sign-in, which a route using the backend may call. */
   dataHosts: string[]
+}
+
+/** How the one try of a route went, as it's kept: the detail is the plain reason it failed or wasn't tried. */
+export type RouteSelfTest = { status: SelfTestResult["status"]; detail: string | null }
+
+export type SelfTestHooks = {
+  /** Saves `code` where the sandbox reads it and calls the route once with `testBody`. */
+  run: (code: string, testBody: Record<string, unknown>) => Promise<SelfTestResult>
+  /** How much of the build step is left. */
+  timeLeftMs?: () => number
 }
 
 export type Generate = (input: AgentInputItem[]) => Promise<string>
@@ -137,8 +148,10 @@ export async function buildServerRoute(
     extraValidate?: (code: string) => string[]
     /** Called before each check of a written file. */
     onChecking?: () => void
+    /** Tries a checked function once, and gives the builder a chance to fix what fails. Without it, nothing is tried. */
+    selfTest?: SelfTestHooks
   }
-): Promise<{ code: string } | { problems: string[] }> {
+): Promise<{ code: string; selfTest?: RouteSelfTest } | { problems: string[] }> {
   const generate: Generate =
     options.generate ??
     (() => {
@@ -169,17 +182,76 @@ export async function buildServerRoute(
   const prompt = user(serverBuilderPrompt(ctx) + (options.extraPrompt ? `\n\n${options.extraPrompt}` : ""))
   let code = visibleCode(await generate([prompt])).trim() + "\n"
   let problems = problemsOf(code)
-  if (problems.length === 0) return { code }
+  if (problems.length > 0) {
+    code = visibleCode(
+      await generate([
+        prompt,
+        assistant(code),
+        user(
+          `This file has problems:\n${problems.map((problem) => `- ${problem}`).join("\n")}\nRewrite the complete file with these fixed and everything else kept. Reply with only the file.`
+        ),
+      ])
+    ).trim() + "\n"
+    problems = problemsOf(code)
+    if (problems.length > 0) return { problems }
+  }
 
-  code = visibleCode(
-    await generate([
-      prompt,
-      assistant(code),
-      user(
-        `This file has problems:\n${problems.map((problem) => `- ${problem}`).join("\n")}\nRewrite the complete file with these fixed and everything else kept. Reply with only the file.`
-      ),
-    ])
-  ).trim() + "\n"
-  problems = problemsOf(code)
-  return problems.length === 0 ? { code } : { problems }
+  const selfTest = options.selfTest
+  if (!selfTest) return { code }
+  if (ctx.route.kind !== "function") return { code, selfTest: { status: "skipped", detail: "agents aren't tried on their own" } }
+
+  let testBody = extractTestBody(code)
+  let outcome = await runSelfTest(selfTest, code, testBody, options.signal)
+  for (let round = 0; outcome.result.status === "failed"; round++) {
+    const summary = summarizeSelfTest(outcome.result)
+    const failed: RouteSelfTest = { status: "failed", detail: summary }
+    if (round >= MAX_FIX_ROUNDS || (selfTest.timeLeftMs?.() ?? Infinity) < FIX_ROUND_MIN_MS) return { code, selfTest: failed }
+
+    const fixed = visibleCode(await generate([prompt, assistant(code), user(selfTestFixMessage(summary))])).trim() + "\n"
+    // A fix that breaks the rules isn't kept: the file that passed the checks stays, as a failed test.
+    if (problemsOf(fixed).length > 0) return { code, selfTest: failed }
+    code = fixed
+    testBody = extractTestBody(code) ?? testBody
+    outcome = await runSelfTest(selfTest, code, testBody, options.signal)
+  }
+  const { result } = outcome
+  return { code, selfTest: { status: result.status, detail: result.status === "skipped" ? (result.reason ?? null) : null } }
+}
+
+/** The message the builder gets when its route failed the one try. */
+export const selfTestFixMessage = (summary: string) => `The route didn't work when tried: ${summary}. Fix it and save it again.`
+
+const MAX_FIX_ROUNDS = 2
+/** A fix takes a model call and another try, so one doesn't start with less than this left of the step. */
+const FIX_ROUND_MIN_MS = 2 * SELF_TEST_MIN_STEP_MS
+const MAX_TEST_BODY_LENGTH = 4000
+const TEST_BODY_LINE = /^[ \t]*\/\/[ \t]*testBody:[ \t]*(\{.*\})[ \t]*$/m
+
+/** The sample request the builder gave on the first line of its file, or null when there isn't a usable one. */
+export function extractTestBody(code: string): Record<string, unknown> | null {
+  const line = TEST_BODY_LINE.exec(code)?.[1]
+  if (!line || line.length > MAX_TEST_BODY_LENGTH) return null
+  try {
+    const body: unknown = JSON.parse(line)
+    return body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
+async function runSelfTest(
+  selfTest: SelfTestHooks,
+  code: string,
+  testBody: Record<string, unknown> | null,
+  signal: AbortSignal | undefined
+): Promise<{ result: SelfTestResult }> {
+  if (testBody === null) return { result: { status: "skipped", reason: "no sample request was given" } }
+  if ((selfTest.timeLeftMs?.() ?? Infinity) < SELF_TEST_MIN_STEP_MS) return { result: { status: "skipped", reason: "not enough time" } }
+  try {
+    return { result: await selfTest.run(code, testBody) }
+  } catch (error) {
+    signal?.throwIfAborted()
+    console.error("Trying a server function failed", error instanceof Error ? error.name : "unknown")
+    return { result: { status: "skipped", reason: "the test couldn't run" } }
+  }
 }

@@ -85,7 +85,13 @@ export type ProjectServerRoute = {
   purpose: string
   status: ScreenStatus
   code: string | null
+  /** How the one try of the function went, for the owner's Code tab. Null until it was tried. */
+  selfTest: SelfTestStatus | null
+  selfTestDetail: string | null
 }
+
+export const SELF_TEST_STATUSES = ["passed", "failed", "skipped"] as const
+export type SelfTestStatus = (typeof SELF_TEST_STATUSES)[number]
 
 /** An API route file: `app/api/<segments>+api.ts`, where a segment is a kebab-case name or `[param]`. */
 export const API_ROUTE_FILE = /^app\/api(?:\/(?:[a-z0-9][a-z0-9-]*|\[[a-z][A-Za-z0-9]*\]))+\+api\.ts$/
@@ -110,7 +116,16 @@ export function isServerFile(path: string) {
 }
 
 export function toProjectServerRoute(row: ServerRoute): ProjectServerRoute {
-  return { path: row.path, kind: row.kind, purpose: row.purpose, status: row.status, code: row.code }
+  const selfTest = SELF_TEST_STATUSES.find((status) => status === row.selfTest) ?? null
+  return {
+    path: row.path,
+    kind: row.kind,
+    purpose: row.purpose,
+    status: row.status,
+    code: row.code,
+    selfTest,
+    selfTestDetail: selfTest ? row.selfTestDetail : null,
+  }
 }
 
 export type PendingChanges = {

@@ -54,15 +54,18 @@ export async function setServerRouteStatus(
 ): Promise<ServerRoute> {
   const [row] = await db
     .update(serverRoutes)
-    .set(code === undefined ? { status } : { status, code })
+    .set({ status, ...(code === undefined ? {} : { code }), ...(status === "generating" ? { selfTest: null, selfTestDetail: null } : {}) })
     .where(and(eq(serverRoutes.projectId, projectId), eq(serverRoutes.path, path)))
     .returning()
   if (!row) throw new Error(`The server route ${path} doesn't exist.`)
   return row
 }
 
+/** How the one try of a built route went, as kept with it. */
+export type SelfTestRecord = { status: "passed" | "failed" | "skipped"; detail: string | null }
+
 /** Saves a finished route, and in the same transaction drops its queued change, if it had one, from the plan. */
-export async function finishServerRoute(projectId: string, path: string, code: string): Promise<ServerRoute> {
+export async function finishServerRoute(projectId: string, path: string, code: string, selfTest: SelfTestRecord | null = null): Promise<ServerRoute> {
   return db.transaction(async (tx) => {
     await tx
       .update(projects)
@@ -70,7 +73,7 @@ export async function finishServerRoute(projectId: string, path: string, code: s
       .where(eq(projects.id, projectId))
     const [row] = await tx
       .update(serverRoutes)
-      .set({ status: "done", code })
+      .set({ status: "done", code, selfTest: selfTest?.status ?? null, selfTestDetail: selfTest?.detail ?? null })
       .where(and(eq(serverRoutes.projectId, projectId), eq(serverRoutes.path, path)))
       .returning()
     if (!row) throw new Error(`The server route ${path} doesn't exist.`)
@@ -119,6 +122,8 @@ export async function copyServerRoutes(tx: Transaction, fromProjectId: string, t
       purpose: row.purpose,
       code: row.code,
       status: row.status,
+      selfTest: row.selfTest,
+      selfTestDetail: row.selfTestDetail,
     })),
   )
 }

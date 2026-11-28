@@ -4,7 +4,9 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import {
   AlertCircleIcon,
+  CheckCircle2Icon,
   ChevronRightIcon,
+  ClockIcon,
   ActivityIcon,
   Code2Icon,
   ExternalLinkIcon,
@@ -22,7 +24,7 @@ import {
 
 import { useHighlightedCode } from "@/hooks/use-highlighted-code"
 import type { WebPublishState } from "@/hooks/use-web-publish"
-import type { AppPlan, ProjectScreen } from "@/lib/agent-protocol"
+import type { AppPlan, ProjectScreen, SelfTestStatus } from "@/lib/agent-protocol"
 import type { ServerTarget } from "@/lib/generated-app/server-files"
 import type { ElementEdits, PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import { resetPreviewStorage } from "@/lib/preview-storage"
@@ -46,6 +48,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
+/** How the one try of each server function went, by file path. Only the owner gets any. */
+export type ServerTests = Record<string, { status: SelfTestStatus | null; detail: string | null }>
+
 export function PreviewPanel({
   projectId,
   plan,
@@ -53,6 +58,7 @@ export function PreviewPanel({
   app,
   appFiles,
   serverFiles,
+  serverTests,
   snackServer,
   sandboxToken,
   onServiceNeeded,
@@ -71,6 +77,7 @@ export function PreviewPanel({
   appFiles: PreviewFile[]
   /** The app's server code, listed after the other files. Only the owner gets any. */
   serverFiles: PreviewFile[]
+  serverTests: ServerTests
   /** Where the phone's copy of the app reaches its server functions. */
   snackServer: ServerTarget
   /** The owner's pass to the app's server functions in the preview. Empty for anyone else. */
@@ -138,7 +145,7 @@ export function PreviewPanel({
         />
       </TabsContent>
       <TabsContent value="code" className="min-h-0">
-        <CodeView screens={screens} appFiles={appFiles} serverFiles={serverFiles} />
+        <CodeView screens={screens} appFiles={appFiles} serverFiles={serverFiles} serverTests={serverTests} />
       </TabsContent>
       {showActivity && (
         <TabsContent value="activity" className="min-h-0">
@@ -300,7 +307,17 @@ function WebsiteBar({ webPublish, onOpenPublish }: { webPublish: WebPublishState
   )
 }
 
-function CodeView({ screens, appFiles, serverFiles }: { screens: ProjectScreen[]; appFiles: PreviewFile[]; serverFiles: PreviewFile[] }) {
+function CodeView({
+  screens,
+  appFiles,
+  serverFiles,
+  serverTests,
+}: {
+  screens: ProjectScreen[]
+  appFiles: PreviewFile[]
+  serverFiles: PreviewFile[]
+  serverTests: ServerTests
+}) {
   const t = useTranslations("preview.code")
   const files = [
     ...screens.filter((s) => s.code !== null),
@@ -343,11 +360,50 @@ function CodeView({ screens, appFiles, serverFiles }: { screens: ProjectScreen[]
           depth={0}
           activePath={active.filePath}
           writingPath={generating?.filePath}
+          serverTests={serverTests}
           onSelect={setChosenPath}
         />
       </nav>
-      <CodeFile path={active.filePath} code={active.code ?? ""} />
+      <div className="flex min-h-0 flex-col">
+        <ServerTestBadge test={serverTests[active.filePath]} />
+        <div className="min-h-0 flex-1">
+          <CodeFile path={active.filePath} code={active.code ?? ""} />
+        </div>
+      </div>
     </div>
+  )
+}
+
+const SERVER_TEST_STYLES = {
+  passed: { icon: CheckCircle2Icon, tone: "text-emerald-600", badge: "bg-emerald-50 text-emerald-800" },
+  failed: { icon: AlertCircleIcon, tone: "text-red-600", badge: "bg-red-50 text-red-800" },
+  skipped: { icon: ClockIcon, tone: "text-muted-foreground", badge: "bg-muted text-muted-foreground" },
+} as const
+
+/** The words for how a server function's one try went. */
+function useServerTestLabel() {
+  const t = useTranslations("preview.code.serverTest")
+  return (test: ServerTests[string]) => {
+    const bdi = (chunks: React.ReactNode) => <bdi>{chunks}</bdi>
+    if (test.status === "passed") return t("passed")
+    if (test.status === "failed") return t.rich("failed", { summary: test.detail ?? "", bdi })
+    return test.detail ? t.rich("skipped", { reason: test.detail, bdi }) : t("untried")
+  }
+}
+
+function serverTestStyle(test: ServerTests[string]) {
+  return SERVER_TEST_STYLES[test.status ?? "skipped"]
+}
+
+function ServerTestBadge({ test }: { test: ServerTests[string] | undefined }) {
+  const label = useServerTestLabel()
+  if (!test) return null
+  const { icon: Icon, badge } = serverTestStyle(test)
+  return (
+    <p className={cn("flex items-start gap-1.5 border-b border-border/60 px-3 py-1.5 text-xs", badge)}>
+      <Icon className="mt-0.5 size-3.5 shrink-0" />
+      <span className="min-w-0 wrap-break-word">{label(test)}</span>
+    </p>
   )
 }
 
@@ -356,15 +412,18 @@ function FileTree({
   depth,
   activePath,
   writingPath,
+  serverTests,
   onSelect,
 }: {
   nodes: FileNode[]
   depth: number
   activePath: string
   writingPath?: string
+  serverTests: ServerTests
   onSelect: (path: string) => void
 }) {
   const t = useTranslations("preview.code")
+  const testLabel = useServerTestLabel()
   return (
     <ul role={depth === 0 ? "tree" : "group"} dir="ltr">
       {nodes.map((node) =>
@@ -375,6 +434,7 @@ function FileTree({
             depth={depth}
             activePath={activePath}
             writingPath={writingPath}
+            serverTests={serverTests}
             onSelect={onSelect}
           />
         ) : (
@@ -396,6 +456,15 @@ function FileTree({
                 <FileCodeIcon className="size-3.5 shrink-0 text-sky-500" />
               )}
               <span className="truncate">{node.name}</span>
+              {serverTests[node.path] && (
+                <span className="ms-auto flex shrink-0 items-center">
+                  {React.createElement(serverTestStyle(serverTests[node.path]).icon, {
+                    className: cn("size-3.5", serverTestStyle(serverTests[node.path]).tone),
+                    "aria-hidden": true,
+                  })}
+                  <span className="sr-only">{testLabel(serverTests[node.path])}</span>
+                </span>
+              )}
               {node.path === writingPath && (
                 <span aria-label={t("beingWritten")} className="ms-auto size-1.5 shrink-0 animate-pulse rounded-full bg-violet-500" />
               )}
@@ -412,12 +481,14 @@ function FolderItem({
   depth,
   activePath,
   writingPath,
+  serverTests,
   onSelect,
 }: {
   node: Extract<FileNode, { type: "folder" }>
   depth: number
   activePath: string
   writingPath?: string
+  serverTests: ServerTests
   onSelect: (path: string) => void
 }) {
   const [open, setOpen] = React.useState(true)
@@ -441,6 +512,7 @@ function FolderItem({
           depth={depth + 1}
           activePath={activePath}
           writingPath={writingPath}
+          serverTests={serverTests}
           onSelect={onSelect}
         />
       )}

@@ -191,6 +191,10 @@ export const serverRoutes = pgTable(
     purpose: text("purpose").notNull(),
     code: text("code"),
     status: screenStatus("status").default("pending").notNull(),
+    /** How the one try of this function in the sandbox went: "passed", "failed" or "skipped". Null until tried. */
+    selfTest: text("self_test"),
+    /** For a failed try, what went wrong in a plain sentence. For a skipped one, why. */
+    selfTestDetail: text("self_test_detail"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

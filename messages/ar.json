@@ -901,7 +901,13 @@
       "awaitingPlan": "بعد أن تؤكد الخطة، تتدفق شيفرة كل شاشة هنا أثناء كتابة الوكيل لها.",
       "filesLabel": "ملفات المشروع",
       "files": "الملفات",
-      "beingWritten": "قيد الكتابة"
+      "beingWritten": "قيد الكتابة",
+      "serverTest": {
+        "passed": "تمّت تجربتها",
+        "failed": "فشلت التجربة: <bdi>{summary}</bdi>",
+        "skipped": "لم تُجرَّب بعد: <bdi>{reason}</bdi>",
+        "untried": "لم تُجرَّب بعد"
+      }
     },
     "activity": {
       "description": "آخر الاستدعاءات التي أجراها تطبيقك على دوال الخادم. لا يُحفظ سوى العنوان والنتيجة وأسماء المواقع التي اتصلت بها، ولا تُحفظ أي بيانات.",
@@ -1650,7 +1656,8 @@
     "polishingScreen": "جارٍ صقل {name}…",
     "generatingScreenImages": "جارٍ إنشاء صور {name}…",
     "writingServerFunction": "جارٍ كتابة دالة الخادم: {name}…",
-    "checkingServerFunction": "جارٍ فحص دالة الخادم…"
+    "checkingServerFunction": "جارٍ فحص دالة الخادم…",
+    "tryingServerFunction": "جارٍ تجربة دالة الخادم مرة واحدة…"
   },
   "agentMessages": {
     "confirm": "تبدو الخطة جيدة، ابدأ البناء!",
@@ -1665,6 +1672,7 @@
     "backendLocal": "يُحفظ كل ما تضيفه على الجهاز حاليًا. انقر على «ربط الواجهة الخلفية» في الأعلى عندما تريد نقله إلى السحابة.",
     "backendSynced": "يُحفظ كل ما يضيفه المستخدمون في واجهة CloudHike الخلفية ويُزامَن مباشرةً.",
     "backendFailed": "تعذّر عليّ إعداد واجهة CloudHike الخلفية، لذا لم ينتقل أي شيء إلى السحابة: {message}",
+    "selfTestFailed": "لم تعمل دالة الخادم «{name}» في الاختبار: {summary}. يمكنك أن تطلب مني إصلاحها.",
     "refund": "أعدتُ إليك {credits, plural, zero {{credits, number, integer} نقطة} one {نقطة واحدة} two {نقطتين} few {{credits, number, integer} نقاط} many {{credits, number, integer} نقطةً} other {{credits, number, integer} نقطة}} مقابل ما لم يكتمل.",
     "failedNone": "تعذّر عليّ بناء الشاشات هذه المرة.{refundNote} قل «حاول مرة أخرى» وسأحاول من جديد.",
     "failedSome": "بنيتُ {built, number, integer} من {total, number, integer} شاشة. لم تخرج {names} بالشكل المطلوب.{refundNote} قل «حاول مرة أخرى» وسأعيد المحاولة، مع الإبقاء على الشاشات المكتملة.",
