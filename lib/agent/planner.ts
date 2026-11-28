@@ -12,7 +12,7 @@ import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-ca
 import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import type { ProjectRun } from "@/lib/agent/runs"
-import { canRetry, OUT_OF_TIME, outOfTime, PLANNER_HARD_STOP_MS, stoppedReply } from "@/lib/agent/turn-budget"
+import { canRetry, OUT_OF_TIME, outOfTime, PLANNER_HARD_STOP_MS, turnReply } from "@/lib/agent/turn-budget"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
 import { getBackendStatus, setUpBackend } from "@/lib/cloudhike/backend"
@@ -600,16 +600,16 @@ export async function runPlannerTurn(
   projectRun.emit({ type: "status", label: null })
   // The route has already set the project's chat language to the language of this message.
   const fixed = translatorFor(chatLocale(project), "agentMessages")
-  const content = stopped
-    ? stoppedReply(text, fixed("turnStopped"))
-    : (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
-      (context.confirmed
-        ? fixed("planStarting")
-        : context.changes
-          ? fixed("changesStarting")
-          : context.proposedPlan
-            ? fixed("planProposed")
-            : fixed("noReply"))
+  const content = turnReply(
+    { stopped, text, failedCall, confirmed: context.confirmed, changes: Boolean(context.changes), proposedPlan: Boolean(context.proposedPlan) },
+    {
+      turnStopped: fixed("turnStopped"),
+      noReply: fixed("noReply"),
+      planStarting: fixed("planStarting"),
+      changesStarting: fixed("changesStarting"),
+      planProposed: fixed("planProposed"),
+    }
+  )
 
   const [saved] = await db
     .insert(messages)

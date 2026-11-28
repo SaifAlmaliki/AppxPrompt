@@ -35,3 +35,25 @@ export function canRetry(ctx: TurnClock, now = Date.now()): boolean {
 export function stoppedReply(streamed: string, fallback: string): string {
   return streamed.trim() || fallback
 }
+
+type TurnOutcome = {
+  stopped: boolean
+  text: string
+  failedCall: boolean
+  confirmed: boolean
+  changes: boolean
+  proposedPlan: boolean
+}
+
+type TurnWords = Record<"turnStopped" | "noReply" | "planStarting" | "changesStarting" | "planProposed", string>
+
+/**
+ * What the turn's assistant message says. A stopped turn that already confirmed the plan or queued
+ * changes still starts that work, so it says so rather than asking the person to continue.
+ */
+export function turnReply({ stopped, text, failedCall, confirmed, changes, proposedPlan }: TurnOutcome, words: TurnWords): string {
+  const started = confirmed ? words.planStarting : changes ? words.changesStarting : null
+  if (stopped) return started ? text.trim() || started : stoppedReply(text, words.turnStopped)
+  const reply = failedCall ? [text.trim(), words.noReply].filter(Boolean).join("\n\n") : text.trim()
+  return reply || started || (proposedPlan ? words.planProposed : words.noReply)
+}

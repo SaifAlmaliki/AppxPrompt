@@ -28,6 +28,7 @@ import {
   PLANNER_HARD_STOP_MS,
   PLANNER_TURN_BUDGET_MS,
   stoppedReply,
+  turnReply,
   turnTimeLeft,
 } from "@/lib/agent/turn-budget"
 import { RESEARCH_TIME_MS } from "@/lib/research/limits"
@@ -88,6 +89,44 @@ describe("the saved reply when a run is stopped", () => {
 
   it("keeps what was streamed", () => {
     expect(stoppedReply("I registered Stripe.", "fallback")).toBe("I registered Stripe.")
+  })
+})
+
+describe("turnReply", () => {
+  const words = {
+    turnStopped: "stopped",
+    noReply: "no reply",
+    planStarting: "plan starting",
+    changesStarting: "changes starting",
+    planProposed: "plan proposed",
+  }
+  const turn = { stopped: true, text: "", failedCall: false, confirmed: false, changes: false, proposedPlan: false }
+
+  it("says the build started when a stopped turn already confirmed the plan", () => {
+    expect(turnReply({ ...turn, confirmed: true }, words)).toBe("plan starting")
+  })
+
+  it("says the changes started when a stopped turn already queued them", () => {
+    expect(turnReply({ ...turn, changes: true }, words)).toBe("changes starting")
+  })
+
+  it("only asks to continue when a stopped turn produced no outcome", () => {
+    expect(turnReply(turn, words)).toBe("stopped")
+    expect(turnReply({ ...turn, proposedPlan: true }, words)).toBe("stopped")
+  })
+
+  it("keeps what was streamed on a stopped turn", () => {
+    expect(turnReply({ ...turn, text: "Building now.", confirmed: true }, words)).toBe("Building now.")
+    expect(turnReply({ ...turn, text: "Working on it." }, words)).toBe("Working on it.")
+  })
+
+  it("is unchanged for a turn that finished", () => {
+    const done = { ...turn, stopped: false }
+    expect(turnReply({ ...done, text: " Hi " }, words)).toBe("Hi")
+    expect(turnReply({ ...done, confirmed: true }, words)).toBe("plan starting")
+    expect(turnReply({ ...done, proposedPlan: true }, words)).toBe("plan proposed")
+    expect(turnReply(done, words)).toBe("no reply")
+    expect(turnReply({ ...done, text: "Oops", failedCall: true }, words)).toBe("Oops\n\nno reply")
   })
 })
 

@@ -150,13 +150,15 @@ export function WorkspaceLayout({
   // The agent asked for services: open one dialog at a time, the next when this one closes.
   const { serviceRequests, clearServiceRequest } = agent
   const dialogOpen = serviceDialog !== null
+  const openSlug = serviceDialog?.slug ?? null
   React.useEffect(() => {
     if (serviceRequests.length === 0) return
     if (readOnly) return clearServiceRequest()
-    if (dialogOpen) return
+    // Asked again for the one already open: it doesn't need to open a second time after it closes.
+    if (dialogOpen) return openSlug === serviceRequests[0] ? clearServiceRequest() : undefined
     openService(serviceRequests[0])
     clearServiceRequest()
-  }, [serviceRequests, dialogOpen, readOnly, openService, clearServiceRequest])
+  }, [serviceRequests, dialogOpen, openSlug, readOnly, openService, clearServiceRequest])
 
   // The agent asked for the backend: open the dialog once, with its reason.
   const { backendRequest, clearBackendRequest } = agent
