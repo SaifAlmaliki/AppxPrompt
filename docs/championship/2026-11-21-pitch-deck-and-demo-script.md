@@ -71,6 +71,7 @@ Bonus: one real quote from an owner you interviewed. **[FILL IN]**
 - The embedded 2-minute demo video (Part 2 below)
 - A small workflow strip: Idea → questions until confident → Plan card (screens, content source, services) → **Owner approves** → (key dialog for outside services) → Themes and data → Server functions → Components → Screens, each checked → Preview on phone → Owner publishes
 - Built vs planned, in two short lists (from Agent Card section 11)
+- One line under the strip: "No technical setup steps for owners. AppxPrompt tests and fixes its own server code, and learns per service." (The agent opens Connect Backend itself when the app needs it, tries each new server function once before handover, and saves what it learns about each outside service)
 
 **Say (10 seconds, before playing):**
 "Here's the agent building a real app from start to finish."
@@ -86,10 +87,10 @@ Bonus: one real quote from an owner you interviewed. **[FILL IN]**
 - **Result:** a working Expo app
 - **Mark in color:** the human approval points (plan confirmation, outside-service keys, backend connection, publishing) and the escalation path (questions, refunds, plain error messages)
 - **Data box:** sandboxed preview, encrypted tokens and keys, the agent never sees the owner's keys, keys pasted in the chat are removed before saving, public apps run on sample data only
-- **Server functions box** (built, first production test pending): run only in an isolated sandbox per project, network limited to the connected services, keys delivered over stdin only, two start-up self-checks, fair-use caps. Only the owner's preview and Expo Go can call them. Published apps don't run them yet (planned)
+- **Server functions box** (built, first production test pending): run only in an isolated sandbox per project, network limited to the connected services, keys delivered over stdin only, two start-up self-checks, fair-use caps. Only the owner's preview and Expo Go can call them. Published apps don't run them yet (planned). Each new function is tried once with a sample request and fixed automatically before handover (no credits charged), failure details are visible only to the owner in the Activity tab, and a "Fix it" button sends a failure to the agent
 
 **Say (35 seconds):**
-"Six specialized agents share the work, powered by Claude. Nothing gets built until the owner approves the plan. Every screen is checked against rules before it's saved, and rewritten once if it fails. Generated code runs in a sandbox, so it can't touch anyone's account. The app's data lives in the owner's own backend, not ours, and publishing always goes through the owner's own Expo account. When an app needs an outside service, the agent reads that service's official docs and opens a dialog for the owner's own keys. Those keys are encrypted, and only the owner sees them. The agent never asks for passwords and never publishes on its own."
+"Six specialized agents share the work, powered by Claude. Nothing gets built until the owner approves the plan. Every screen is checked against rules before it's saved, and rewritten once if it fails. Generated code runs in a sandbox, so it can't touch anyone's account. The app's data lives in the owner's own backend, not ours, and publishing always goes through the owner's own Expo account. When an app needs an outside service, the agent reads that service's official docs and opens a dialog for the owner's own keys. Those keys are encrypted, and only the owner sees them. If the app needs server code, the agent tries it once before handing it over, fixes what fails, and remembers what it learned about that service for the next app. The agent never asks for passwords and never publishes on its own."
 
 ## Slide 6: Performance metrics
 
@@ -172,8 +173,8 @@ Note: the Arabic interface is a real change you've already made. If it came from
 - **Milestone 1 (by [FILL IN date]):** 10 pilot owners with live apps
 - **Milestone 2 (by [FILL IN date]):** first-try build success rate of at least [FILL IN]% on 50 test prompts
 - **Milestone 3 (by [FILL IN date]):** 100 paying users
-- **Built, first production test pending:** server functions for generated apps
-- Next features: AI agents inside generated apps (phase 4), publishing server functions to the owner's own EAS Hosting (phase 5), version history, payments inside generated apps
+- **Built, first production test pending:** server functions for generated apps, with a self-test and automatic fixes before handover, failure details and a "Fix it" button for the owner, and a proactive backend step with no technical setup for owners
+- Next features: per-user daily sandbox caps and a platform-wide ceiling (before opening widely), AI agents inside generated apps (phase 4), publishing server functions to the owner's own EAS Hosting (phase 5), version history, payments inside generated apps
 - Needs: funding for pilot model costs **[FILL IN amount]**, an Arabic content creator, SME program partnerships
 
 **Say (20 seconds):**
@@ -233,7 +234,7 @@ You already have `appxprompt_demo_16x9_vo.mp4`. Compare it with this storyboard.
 
 ### 0:46 to 1:16. How it works
 
-**Screen:** the build running (label "Sped up"). Code streams in, screens appear one at a time. Then the finished app in the preview: tap through the catalog and the order screen. Switch a theme. Scan the QR code and show the app on a real phone.
+**Screen:** the build running (label "Sped up"). Code streams in, screens appear one at a time. Then the finished app in the preview: tap through the catalog and the order screen. Switch a theme. Scan the QR code and show the app on a real phone. If the example app has a server function, show its "Tested" badge in the Code tab, and a screen showing the "Sample" badge until real data arrives.
 **On-screen text:** "Sample data", "Sped up 4x" (use the real factor).
 
 **Say (about 75 words):**

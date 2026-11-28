@@ -101,11 +101,13 @@ Team Misbah left scheduling for their next agent. Everything we leave out is a f
 4. Change the plan when the owner asks, and wait.
 5. When the owner approves, take the credits and build: themes and sample data, then shared parts, then each screen.
 6. If the app needs an outside service (live behind a feature flag): research the service's official docs, work out the exact credentials, and open a "Connect a service" dialog for the owner to enter their own keys.
-7. If the plan needs server functions (built, first production test pending): a server builder writes them, and they run only in an isolated sandbox for this project. Each one costs credits like a screen.
-8. Check each screen against the rules, and rewrite it once if it fails.
-9. Show the working app in the preview, with a QR code for the owner's phone.
-10. If the owner wants real accounts or saved data and hasn't connected CloudHike, tell them to click Connect Backend. Once it's connected, deploy the database, sign-in and storage the screens need.
-11. Make the changes the owner asks for by chat or by clicking an element, and rebuild only the screens and parts affected.
+7. If the plan needs server functions (built, first production test pending): a server builder writes them, and they run only in an isolated sandbox for this project. Each one costs credits like a screen. They follow fixed rules: finish within 30 seconds, start slow jobs and collect results later, report errors the user should see plainly, keep replies small, parse defensively, and keep nothing in memory.
+8. Try each new server function once in the sandbox with a cheap sample request, and fix it automatically, up to two rounds, using the failure details. Skip functions that send messages or spend money. This costs the owner no credits, and the Code tab shows Tested, Test failed or Not tested yet.
+9. Check each screen against the rules, and rewrite it once if it fails. Screens that depend on a server function call it when they open and show a "Sample" badge until real data arrives.
+10. Show the working app in the preview, with a QR code for the owner's phone.
+11. If the app needs accounts, saved data, uploads, email or server functions that use app data, open the Connect Backend step for the owner, with a reminder card in the chat. The owner connects, and then the agent deploys the database, sign-in and storage the screens need, with no further technical steps.
+12. Make the changes the owner asks for by chat or by clicking an element, and rebuild only the screens and parts affected.
+13. If a server function fails later, the owner clicks "Fix it" in the Activity tab. The agent explains the cause in plain words, fixes the function, and saves the lesson to the service's notes, so the next app using that service starts right.
 
 **Tools and data it uses**
 - **Reads:** the owner's description and chat, the names of attached files (not their contents), their plan and credits, whether the backend is connected, and fixed lists of allowed packages and parts. When the owner asks for an outside service, it also reads public web pages (Tavily search and a safe page reader that blocks internal addresses) to research the service's official docs. It treats page text as reference, not instructions.
@@ -119,7 +121,9 @@ To the owner, in their workspace. First as a plan card waiting for "Confirm & bu
 
 **What it never does**
 - Never builds or takes credits before the owner approves the plan
-- Never connects CloudHike for the owner, and never asks for keys or passwords in the chat. Keys for outside services go in the dialog, and keys pasted into the chat are removed before they're saved
+- Never connects CloudHike for the owner (it opens the Connect Backend step, and the owner signs in), and never asks for keys or passwords in the chat. Keys for outside services go in the dialog, and keys pasted into the chat are removed before they're saved
+- Never shows failure details, such as hosts called or error text, to the people using an app. Only the owner sees them, with keys scrubbed. App users see a generic message
+- Never runs the self-test on a function that sends messages or spends money
 - Never uses AppxPrompt's own accounts for outside services. The owner brings and pays for their own
 - Never shows server code to shared viewers or public visitors
 - Never deploys without saying what it's deploying and that it's billed to the owner's CloudHike account
@@ -143,6 +147,9 @@ To the owner, in their workspace. First as a plan card waiting for "Confirm & bu
 | Connecting CloudHike | Owner only | It's the owner's account. The agent never sees their keys |
 | Connecting an outside service | Owner only | The agent opens the dialog, but the owner enters their own keys. Only the owner sees them |
 | Writing server functions | Acts after approval | They're part of the approved plan and cost credits like a screen |
+| Testing and fixing a server function | Acts alone | One sample request, up to two fixes, no credits charged, and routes that send or spend are skipped |
+| Fixing a failed function from Activity | Acts after the owner clicks "Fix it" | The owner's click is the approval. The agent also saves the lesson to the service's notes |
+| Opening Connect Backend | Acts alone | It only opens the step and leaves a reminder. The owner connects |
 | Deploying the backend | Acts after approval | It costs the owner money, so the agent names it first |
 | Turning on email | Acts after approval | Needs the owner to accept the email policy |
 | Publishing, making an app public, sharing | Owner only | Through the owner's own accounts and buttons |
@@ -259,12 +266,14 @@ Things a builder reading only the brief would have to guess:
 3. `confirm_plan` (or the owner clicks the button): charges credits and starts the build jobs
 4. `register_service`, when the plan names an outside service: opens the "Connect a service" dialog for the owner's keys (live behind a feature flag)
 5. Foundation Designer: returns 5 themes and the sample data
-6. Server builder, when the plan has server functions: writes them as Expo Router API routes, which run only in a Vercel Sandbox (built, first production test pending)
+6. Server builder, when the plan has server functions: writes them as Expo Router API routes, which run only in a Vercel Sandbox (built, first production test pending). Each new route is then tried once with a sample request (`// testBody`, or `// testBody: skip` for routes that send or spend) and fixed up to two rounds with the diagnosis
 7. Component Designer, then Component Builder: return the shared parts
 8. Screen Builder, once per screen: returns the code, then the rule check runs, with one rewrite if it fails
 9. The workspace shows the preview and QR code
-10. `setup_backend`, once the owner has connected CloudHike: deploys the database, sign-in and storage the screens need
-11. `update_app` or `set_theme` for each change request. Data Designer runs if a change needs new data
+10. `request_backend`, when the app needs accounts, data, uploads, email or server functions that use app data: opens Connect Backend for the owner and leaves a reminder card in the chat
+11. `setup_backend`, once the owner has connected CloudHike (it runs automatically after connecting): deploys the database, sign-in and storage the screens need
+12. `update_app` or `set_theme` for each change request. Data Designer runs if a change needs new data
+13. `add_service_lesson`, after a failure is fixed (including when the owner clicks "Fix it" in Activity): saves what was learned to the service's notes, with no key values, so the next app using that service starts right
 
 **When a call fails**
 - A plan over the limit: the tool says why, and the agent tells the owner plainly
@@ -275,6 +284,9 @@ Things a builder reading only the brief would have to guess:
 - A key is pasted into the chat: it's removed before the message is saved, and also removed from error reports
 - The sandbox fails a start-up self-check (a blocked host is reachable, or the credential count is wrong): it refuses to run, and calls answer "unavailable"
 - Fair-use caps are hit (60 requests a minute per project, 30 seconds per call, 1 MB, 3 hours of sandbox time per project per day): the call is refused
+- A new server function fails its self-test: it's fixed automatically, up to two rounds. If it still fails, the Code tab shows "Test failed", and the owner can click "Fix it" in Activity
+- A planner turn is running out of time: it stops before Vercel's 300-second limit and always saves a reply, and a build it had already started says so
+- Several services need keys: the key dialogs queue, one per service
 
 **Cost per run**
 Estimate: about $0.50 to $0.90 for a 4-screen app, charged at 40 credits (Agent Card 10). Each server function costs credits like a screen. Each round of changes is 5 credits. **[TEST]** Run test case 1 once and note the real tokens and cost.
@@ -342,17 +354,19 @@ Paste "The brief" below into the workbook's prompt. Step 3D lists what to expect
 4. Change the plan when asked, and wait.
 5. On approval, take the credits and build themes and sample data, shared parts, then each screen.
 6. If an outside service is needed, research its official docs and open a dialog for the owner's own keys.
-7. If the plan has server functions, write them and run them only in an isolated sandbox (built, first production test pending).
+7. If the plan has server functions, write them and run them only in an isolated sandbox (built, first production test pending). Try each one once with a sample request and fix it automatically before handover, at no credit cost.
 8. Check each screen and rewrite it once if it fails.
 9. Show the app in the preview with a QR code.
-10. If the owner wants real accounts or saved data, ask them to connect CloudHike, then deploy what the screens need.
+10. If the app needs accounts, saved data, uploads or email, open the Connect Backend step for the owner, then deploy what the screens need once they connect. No technical setup steps for the owner.
 11. Make each change the owner asks for, rebuilding only what's affected.
+12. If a server function fails later, fix it when the owner clicks "Fix it" in Activity, explain the cause in plain words, and save the lesson for the next app using that service.
 
 **Comes out:** A working app in the preview, with its data in the owner's own CloudHike account, for the owner to try and change.
 
 **Never:**
 - Builds or charges before the owner approves the plan
-- Connects CloudHike for the owner, or asks for keys or passwords in the chat (keys go in the dialog, and pasted keys are removed)
+- Connects CloudHike for the owner (it only opens the step), or asks for keys or passwords in the chat (keys go in the dialog, and pasted keys are removed)
+- Shows failure details to app users. Only the owner sees them, with keys scrubbed
 - Uses AppxPrompt's own accounts for outside services, or shows server code to shared viewers
 - Deploys without naming what and saying it's billed to the owner
 - Turns on email before the owner accepts the email policy

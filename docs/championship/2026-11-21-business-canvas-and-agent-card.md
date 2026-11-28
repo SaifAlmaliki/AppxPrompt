@@ -68,7 +68,10 @@ Every business needs a different app, so the steps change each time. The agent d
 **What is already working in your prototype?** (Built)
 - Interview of at least three questions, one at a time, that continues until the agent is about 95% sure, then a screen plan the owner must confirm. The plan names where the app's content comes from and which outside services it needs
 - Outside services and keys (live behind a feature flag): the agent researches a service's official docs, works out the credentials it needs, and opens a "Connect a service" dialog. Keys are encrypted and only the owner sees them
-- Server functions for generated apps (built, first production test pending): they run only in an isolated sandbox per project
+- Server functions for generated apps (built, first production test pending): they run only in an isolated sandbox per project, and each new one is tried once with a sample request and fixed automatically before the owner sees it
+- No technical setup steps for owners: when the app needs accounts, saved data, uploads, email or server functions that use app data, the agent opens "Connect Backend" itself, and setup runs on its own once the owner connects
+- Owner-only failure details in the Activity tab, and a "Fix it" button that sends the failure to the agent, which explains the cause in plain words and fixes the function
+- Screens that depend on a server function call it when they open, and show a "Sample" badge until real data arrives
 - Screens built one at a time in background jobs, with live progress
 - Live preview in a sandboxed frame, plus a code view
 - Editing by chat and by clicking any element
@@ -141,12 +144,15 @@ Guess: intensively for the first week (building and changing the app), then a fe
 - They own the code (ZIP or GitHub) and the backend (their own CloudHike account), so there's no lock-in
 - An Arabic interface built for UAE and GCC owners
 - The agent interviews and plans before it builds, so a non-technical owner isn't left with a blank editor
+- AppxPrompt tests and fixes its own server code, and learns per service: each new server function is tried before handover, and lessons from failures are saved to the service's notes, so the next app using that service starts right
+- No technical setup steps for owners: the agent opens the backend connection itself when the app needs it
 
 **What unique data, workflow or capability helps?**
 - The plan-then-build workflow, with the owner's approval required before credits are spent
 - A rule check on every generated screen, with one automatic rewrite when a screen breaks a rule
 - Edits by chat or by clicking an element, where only the affected screens are rebuilt
 - Themes and shared components, so one change updates the whole app
+- A self-test before handover for server functions, and a one-click "Fix it" in Activity, so the owner doesn't debug server code
 
 **How is it better than existing alternatives?**
 Estimate, to confirm with tests: minutes to a first working app instead of weeks with an agency, for a monthly subscription instead of a large one-time fee.
@@ -249,6 +255,7 @@ Interview (until the agent is about 95% sure), then the plan card, which the own
 - Keys pasted into the chat are removed before they're saved, also removed from error reports, and old chat history got a one-time cleanup
 - Server functions (built, first production test pending) run only in an isolated sandbox per project, never on AppxPrompt's own servers. Network access is limited to the connected services' hosts, keys are delivered over stdin only, and two start-up self-checks refuse to run if anything is off
 - Only the owner's preview and Expo Go can call server functions, with a short-lived pass. Shared viewers and public visitors never see server code
+- Failure details (hosts called, their answers, timeouts, blocked hosts, and the error with any keys scrubbed out) are shown only to the owner in the Activity tab. People using the app see only a generic message
 - The web page reader only reads public pages, blocks internal addresses, and treats page text as reference, not instructions
 
 **What tests, failures and retests prove reliability?**
@@ -290,17 +297,18 @@ The owner types their idea on the AppxPrompt home page (they can attach images, 
 3. Revises the plan from the owner's feedback until they confirm it
 4. If the app needs an outside service (an AI model, calendar, payments, social posting), researches the service's official docs, works out the exact credentials and opens a "Connect a service" dialog for the owner (live behind a feature flag)
 5. Charges credits for the build, then designs the foundation: five themes and the app's sample data
-6. Plans and writes server functions alongside the screens, when the app needs them (built, first production test pending)
+6. Plans and writes server functions alongside the screens, when the app needs them (built, first production test pending). They follow fixed rules: calls must finish within 30 seconds, slow jobs are started and collected later, errors the user should see are reported plainly, replies are small, and nothing is kept in memory. Each new function is then tried once in the sandbox with a cheap sample request, and fixed automatically, up to two rounds, using the failure details. Functions that send messages or spend money are skipped. This test costs the owner no credits
 7. Designs and builds a library of shared components
 8. Builds each screen in a background job, streaming the code live
 9. Checks each screen against the rules (compiles, has a default export, uses only allowed imports, theme colors, and known data). If a check fails, it rewrites the screen once
 10. Shows the running app in the preview. The owner can scan a QR code to open it on their phone
 11. Takes change requests by chat or by clicking an element, and rebuilds only the affected screens and components
-12. When the owner asks, sets up the backend in their CloudHike account and helps them publish
+12. When the app needs accounts, saved data, uploads, email or server functions that use app data, opens the "Connect Backend" step itself and leaves a reminder card in the chat. Once the owner connects, setup runs automatically in their CloudHike account. Helps them publish when they ask
+13. If a server function fails later, the owner clicks "Fix it" in the Activity tab. The agent gets the failure with keys scrubbed, explains the cause in plain words, and fixes the function. It also saves the lesson to the service's notes, so the next app using that service starts right
 
 ## 4. Tools and integrations
 - Claude Sonnet 5.5 through the OpenAI Agents SDK
-- Agent tools: `propose_plan`, `confirm_plan`, `update_app`, `set_theme`, `setup_backend`, `register_service`
+- Agent tools: `propose_plan`, `confirm_plan`, `update_app`, `set_theme`, `setup_backend`, `request_backend`, `register_service`, `add_service_lesson`
 - Tavily web search and a safe page reader, to research outside services (live behind a feature flag)
 - A server builder agent that writes server functions, and Vercel Sandbox (`@vercel/sandbox`) to run them (built, first production test pending)
 - CloudHike: jobs, sign-in, storage, and app backends
@@ -331,7 +339,7 @@ Six agents:
 ## 7. Human approval points
 - Confirming the screen plan before any build or credit charge
 - Every change after the first build (the owner's request is the approval)
-- Connecting CloudHike, which the owner does themselves. The agent never asks for keys or passwords in the chat.
+- Connecting CloudHike, which the owner does themselves (the agent opens the step and leaves a reminder card, but the owner clicks and signs in). The agent never asks for keys or passwords in the chat.
 - Connecting an outside service: the owner enters their own keys in the "Connect a service" dialog. They bring and pay for their own accounts, and AppxPrompt provides none
 - Deploying the backend, which the agent names and says is billed to the owner's account
 - Accepting CloudHike's email policy before email is turned on
@@ -342,6 +350,9 @@ Six agents:
 - **Unclear request:** asks one question at a time until it is about 95% sure, or picks sensible choices and lists them as assumptions in the plan (after ten questions, or when the owner says "just build it")
 - **Key pasted in the chat:** the key is removed before the message is saved, and the owner is pointed to the dialog
 - **Server function sandbox fails a start-up check:** it refuses to run, and calls answer "unavailable"
+- **A new server function fails its self-test:** it's fixed automatically, up to two rounds. If it still fails, the Code tab shows "Test failed" (other states: "Tested", "Not tested yet") and the owner can use "Fix it" in Activity
+- **A turn is running out of time:** planner turns stop before the platform's 300-second limit and always save a reply, saying what was and wasn't done
+- **Several services need keys:** the key dialogs queue, one per service
 - **Request it can't build exactly:** builds the closest version that works and says what's different
 - **Screen breaks the rules:** rewrites it once automatically. If it still won't run, the screen is marked failed and the unbuilt credits are refunded
 - **Out of credits or over a plan limit:** says so plainly and shows the upgrade prompt, without claiming the work happened
@@ -354,7 +365,8 @@ Six agents:
 - Expo, GitHub and CloudHike tokens are encrypted on the server and never sent to the browser
 - Generated code runs in a sandboxed frame without access to the site's cookies or storage
 - Keys for outside services are encrypted in the database and visible only to the owner. Keys pasted in the chat are removed before saving and from error reports
-- Server functions run only in an isolated sandbox per project, and the owner-only Activity tab lists calls (time, function, result, service, duration) without storing anything sensitive
+- Server functions run only in an isolated sandbox per project, and the owner-only Activity tab lists calls (time, function, result, service, duration) and, for failures, the hosts called, their answers and the error with keys scrubbed. Request bodies, headers and queries aren't stored
+- Lessons saved to a service's notes never contain key values
 - An app's own data lives in the owner's CloudHike database, not in AppxPrompt's
 - Public apps show sample data only
 - Deleting a project removes its rows and uploaded files
@@ -382,6 +394,10 @@ Estimate for a 4-screen app, to replace with measured numbers:
 - Free and Pro plans with Stripe
 - Outside services and keys: web research of official docs, a "Connect a service" dialog, encrypted keys (live behind a feature flag)
 - Server functions in an isolated sandbox, with a fair-use cap, an owner-only Activity tab, and an optional per-user allow-list for staged rollout that isn't in use (built, first production test pending). Each server function costs credits like a screen
+- Server functions tested before handover (one sample request, up to two automatic fixes, no credits charged), with a Tested / Test failed / Not tested yet badge in the Code tab
+- Failure diagnostics for the owner in the Activity tab, and "Fix it": the agent explains the cause and fixes the function, then saves the lesson to the service's notes for the next app
+- A proactive backend: the agent opens Connect Backend when the app needs it, and setup runs after connecting
+- Turn time budget: planner turns stop before the platform limit and always save a reply. Server-fed screens call their function on open and show a "Sample" badge until real data arrives
 
 **Planned:**
 - AI agents inside generated apps (for example a booking assistant), whose instructions the owner edits in an Agent tab and end users can't see

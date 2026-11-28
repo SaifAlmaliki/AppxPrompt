@@ -90,7 +90,7 @@ An agent that plans the screens with the owner, builds a working app after they 
 
 **What already works (from the prototype):** chat planning that continues until the agent is about 95% sure, with a plan card to approve, screen-by-screen builds, a live preview, editing by chat and inline, five themes, a QR code for Expo Go, a CloudHike backend, AI images, ZIP export, push to GitHub, web publishing, Android and iOS build files, an English and Arabic interface, and Free and Pro plans through Stripe.
 
-**Newer, not yet fully proven:** outside services and keys (the agent researches a service's official docs and opens a "Connect a service" dialog) are live behind a feature flag. Server functions for generated apps are built, and the first production test is pending. Published apps don't run server functions yet. Planned next: AI agents inside generated apps, and publishing server functions to the owner's own EAS Hosting.
+**Newer, not yet fully proven:** outside services and keys (the agent researches a service's official docs and opens a "Connect a service" dialog) are live behind a feature flag. Server functions for generated apps are built, and the first production test is pending. Each new server function is tried once and fixed automatically before handover, the owner sees failure details and a "Fix it" button in the Activity tab, and the agent saves lessons per service for the next app, so AppxPrompt tests and fixes its own server code, and learns per service. The agent also opens Connect Backend itself when the app needs accounts or saved data, so owners have no technical setup steps. Published apps don't run server functions yet. Planned next: AI agents inside generated apps, and publishing server functions to the owner's own EAS Hosting.
 
 ---
 
@@ -170,7 +170,7 @@ Read the Step 1 sentence to someone outside the Championship. Can they say back 
 |---|---|---|
 | Real value and problem | Not yet | No interviews or "last time" story yet |
 | Technical execution | Some evidence | Working agent, live preview, builds and publishing |
-| Trust, safety and oversight | Started | Plan approval before builds, sandboxed preview, owner-controlled publishing, encrypted keys that only the owner sees, server functions that run only in an isolated sandbox (first production test pending); no written test results or data policy yet |
+| Trust, safety and oversight | Started | Plan approval before builds, sandboxed preview, owner-controlled publishing, encrypted keys that only the owner sees, server functions that run only in an isolated sandbox and are tested before handover (first production test pending), failure details visible only to the owner; no written test results or data policy yet |
 | Innovation and defensibility | Started | Plan-then-build agent, Arabic interface, owner keeps the code; no competitor comparison written yet |
 | Business viability | Started | Free and Pro pricing live in Stripe; no paying customers or cost-per-task numbers yet |
 | Pitch and communication | Started | A demo video exists (`appxprompt_demo_16x9_vo.mp4`) |
