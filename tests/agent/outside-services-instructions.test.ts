@@ -61,6 +61,13 @@ describe("# Outside services", () => {
     expect(text).not.toContain("the app has no server code")
   })
 
+  it("registers each service honestly, and early", () => {
+    const text = plannerInstructions(state())
+    expect(text).toContain("only say a key dialog is open for a service after the tool said so")
+    expect(text).toContain("register them before anything slow")
+    expect(plannerInstructions(state({ integrations: false }))).not.toContain("only say a key dialog is open")
+  })
+
   it("keeps the old backend line when integrations are off", () => {
     expect(plannerInstructions(state({ integrations: false }))).toContain("the app has no server code of its own")
   })

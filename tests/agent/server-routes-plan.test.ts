@@ -182,6 +182,15 @@ describe("builderPrompt server functions", () => {
     const text = builderPrompt({ ...input, plan: { ...plan, serverRoutes: [] } })
     expect(text).not.toContain("# Server functions")
     expect(text).not.toContain("/api/booking/slots")
+    expect(text).not.toContain('visible "Sample" badge')
+    expect(text).not.toContain("Never present made-up content as real")
+  })
+
+  it("tells the screen to call a server-fed function on open and label sample content", () => {
+    const text = builderPrompt(input)
+    expect(text).toContain('visible "Sample" badge')
+    expect(text).toContain("Never present made-up content as real")
+    expect(text).toContain("when the screen opens and when the person refreshes")
   })
 })
 
