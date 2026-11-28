@@ -1,5 +1,6 @@
 import { tool, type Tool } from "@openai/agents"
 import { z } from "zod"
+import { OUT_OF_TIME, outOfTime, type TurnClock } from "@/lib/agent/turn-budget"
 import { RESEARCH_LIMITS, RESEARCH_TIME_MS } from "@/lib/research/limits"
 import { isPublicHttpsUrl, pageCacheKey, readPage, type PageCache } from "@/lib/research/read-page"
 import { ResearchUnavailableError, webSearch, type SearchResult } from "@/lib/research/search"
@@ -68,7 +69,7 @@ const readSchema = z.object({
     .describe("A word or phrase to jump to on a long page, like an endpoint path or 'refresh_token'. Null for the start of the page."),
 })
 
-export function createResearchTools<TContext extends { research: ResearchBudget }>(): Tool<TContext>[] {
+export function createResearchTools<TContext extends { research: ResearchBudget } & TurnClock>(): Tool<TContext>[] {
   const searchTool = tool<typeof searchSchema, TContext>({
     name: "web_search",
     description:
@@ -76,6 +77,7 @@ export function createResearchTools<TContext extends { research: ResearchBudget 
     parameters: searchSchema,
     async execute({ query }, runContext) {
       try {
+        if (outOfTime(runContext!.context)) return OUT_OF_TIME
         const budget = runContext!.context.research
         const turn = turnOf(budget)
         const trimmed = query.trim()
@@ -115,6 +117,7 @@ export function createResearchTools<TContext extends { research: ResearchBudget 
     parameters: readSchema,
     async execute({ url, find }, runContext) {
       try {
+        if (outOfTime(runContext!.context)) return OUT_OF_TIME
         const budget = runContext!.context.research
         const turn = turnOf(budget)
         if (findKeys(url).length > 0) return "Not read: the address looks like it contains a key."

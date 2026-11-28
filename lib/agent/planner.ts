@@ -1,4 +1,4 @@
-import { Agent, assistant, run, tool, user, type AgentInputItem, type Tool } from "@openai/agents"
+import { Agent, assistant, run, tool, user, type AgentInputItem, type RunStreamEvent, type Tool } from "@openai/agents"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
@@ -12,6 +12,7 @@ import { createLeakFilter, findLeakedToolCall } from "@/lib/agent/leaked-tool-ca
 import { endRunAtMaxTurns } from "@/lib/agent/max-turns"
 import { createResearchTools, newResearchBudget, type ResearchBudget } from "@/lib/agent/research-tools"
 import type { ProjectRun } from "@/lib/agent/runs"
+import { canRetry, OUT_OF_TIME, outOfTime, PLANNER_HARD_STOP_MS, stoppedReply } from "@/lib/agent/turn-budget"
 import { BACKEND_SERVICES } from "@/lib/backend-protocol"
 import { screenLimitMessage } from "@/lib/billing/credits"
 import { getBackendStatus, setUpBackend } from "@/lib/cloudhike/backend"
@@ -45,6 +46,8 @@ type PlannerContext = PlannerState & {
   changes: AppChanges | null
   /** What's left of this turn's searches and page reads. */
   research: ResearchBudget
+  /** When this turn started, so tools can stop in time. */
+  turnStartedAt: number
 }
 
 const serverRouteSchema = z.object({
@@ -247,6 +250,7 @@ const proposePlan = tool<typeof planSchema, PlannerContext>({
   parameters: planSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     if (ctx.status === "building") return "The app is being built right now, so the plan can't change."
     if (ctx.builtScreens > 0) return "The app is already built. Use update_app to change it, which keeps the finished screens."
     const refusal = firstPlanGate({
@@ -285,6 +289,7 @@ const confirmPlan = tool<z.ZodObject<Record<string, never>>, PlannerContext>({
   parameters: z.object({}),
   async execute(_input, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     if (!ctx.plan) return "There's no plan to confirm yet. Propose one first."
     if (ctx.status === "building" || ctx.status === "ready") return "The app is already built or being built."
     const missing = creditsMissing(ctx, ctx.plan)
@@ -301,6 +306,7 @@ const updateApp = tool<typeof appChangesSchema, PlannerContext>({
   parameters: appChangesSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     if (ctx.status === "building") return "The app is being built right now, so wait until it finishes."
     if (!ctx.plan || ctx.builtScreens === 0) return "No screens are built yet. Plan the app with propose_plan instead."
     if (ctx.changes) return "The changes are already queued. Tell the person what's being done."
@@ -328,6 +334,7 @@ const setTheme = tool<typeof themeSchema, PlannerContext>({
   parameters: themeSchema,
   async execute({ themeId, newTheme }, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     const themePackage = ctx.plan?.themePackage
     if (!themePackage) return "This app has no themes yet, because it was built before they existed."
 
@@ -360,6 +367,7 @@ const setupBackend = tool<typeof backendSchema, PlannerContext>({
   parameters: backendSchema,
   async execute({ services, sharedCollections, acceptEmailPolicy }, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     if (ctx.status === "building") return "The app is being built right now, and the backend is set up when that finishes."
     if (ctx.builtScreens === 0) return "No screens are built yet. The backend is set up on its own once the build finishes."
     if (!ctx.backend.accountConnected || ctx.backend.state === "disconnected") {
@@ -388,6 +396,7 @@ const registerService = tool<typeof serviceDefinitionSchema, PlannerContext>({
   parameters: serviceDefinitionSchema,
   async execute(input, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     const definition = normalizeService(input)
     if (typeof definition === "string") return `Service not saved: ${definition} Fix it and call register_service again.`
 
@@ -414,6 +423,7 @@ const readServiceNotes = tool<typeof notesSchema, PlannerContext>({
   parameters: notesSchema,
   async execute({ slug }, runContext) {
     const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
     const notes = await getServiceNotes(ctx.projectId, slug)
     if (notes === null) return `No service "${slug}" is registered.`
     return `Notes saved for ${slug}:\n${notes || "(none)"}\n\nWhen you call register_service for it again, keep everything here that's still true and add what you learned.`
@@ -489,6 +499,7 @@ export async function runPlannerTurn(
   assetNames: string[],
   account: PlannerState["account"]
 ): Promise<{ confirmed: boolean; plan: AppPlan | null; changes: AppChanges | null }> {
+  const turnStartedAt = Date.now()
   configureAgents()
   warnIfSearchUnavailable()
 
@@ -529,33 +540,47 @@ export async function runPlannerTurn(
     latestUserMessage: [...thread].reverse().find((message) => message.role === "user")?.content ?? "",
     interviewBlocked: false,
     research: newResearchBudget(),
+    turnStartedAt,
   }
 
   projectRun.emit(statusEvent(thread.length > 1 ? "readingMessage" : "readingRequest"))
   const input = toInputItems(thread)
-  const first = await streamPlannerRun(projectRun, context, input, "")
-  let text = first.text
-  let failedCall = first.leaked !== null && !first.toolRan
+  // A hard stop, so the reply is saved before the platform ends the request.
+  const stop = new AbortController()
+  const stopTimer = setTimeout(() => stop.abort(), Math.max(0, turnStartedAt + PLANNER_HARD_STOP_MS - Date.now()))
+  let text = ""
+  let failedCall = false
+  let stopped = false
+  try {
+    const first = await streamPlannerRun(projectRun, context, input, "", stop.signal)
+    text = first.text
+    stopped = first.stopped
+    failedCall = first.leaked !== null && !first.toolRan
 
-  // The model wrote a tool call out as text, so nothing happened. It gets one more go.
-  if (failedCall) {
-    const retry = await streamPlannerRun(projectRun, context, [...input, assistant(text || "…"), user(leakedCallNudge(first.leaked))], text)
-    text += retry.text
-    failedCall = retry.leaked !== null && !retry.toolRan
+    // The model wrote a tool call out as text, so nothing happened. It gets one more go, if there's time.
+    if (failedCall && !stopped && canRetry(context)) {
+      const retry = await streamPlannerRun(projectRun, context, [...input, assistant(text || "…"), user(leakedCallNudge(first.leaked))], text, stop.signal)
+      text += retry.text
+      stopped = retry.stopped
+      failedCall = retry.leaked !== null && !retry.toolRan
+    }
+  } finally {
+    clearTimeout(stopTimer)
   }
 
   projectRun.emit({ type: "status", label: null })
   // The route has already set the project's chat language to the language of this message.
   const fixed = translatorFor(chatLocale(project), "agentMessages")
-  const content =
-    (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
-    (context.confirmed
-      ? fixed("planStarting")
-      : context.changes
-        ? fixed("changesStarting")
-        : context.proposedPlan
-          ? fixed("planProposed")
-          : fixed("noReply"))
+  const content = stopped
+    ? stoppedReply(text, fixed("turnStopped"))
+    : (failedCall ? [text.trim(), fixed("noReply")].filter(Boolean).join("\n\n") : text.trim()) ||
+      (context.confirmed
+        ? fixed("planStarting")
+        : context.changes
+          ? fixed("changesStarting")
+          : context.proposedPlan
+            ? fixed("planProposed")
+            : fixed("noReply"))
 
   const [saved] = await db
     .insert(messages)
@@ -577,9 +602,7 @@ function leakedCallNudge(tool: string | null) {
  * never reaches the chat: `leaked` names it, and `toolRan` says whether any real call ran.
  * `before` is what the person has already seen, so new text starts a new paragraph.
  */
-async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string) {
-  const result = await run(plannerAgentFor(context.integrations), input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns })
-
+async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext, input: AgentInputItem[], before: string, signal: AbortSignal) {
   let text = ""
   let responseHasText = false
   let toolRan = false
@@ -592,7 +615,40 @@ async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext,
     projectRun.emit({ type: "text-delta", delta: shown })
   }
 
-  for await (const event of result) {
+  // A tool that hangs can keep the stream from ending, so the hard stop also ends the wait for the next event.
+  const hardStop = new Promise<"stopped">((resolve) => {
+    if (signal.aborted) resolve("stopped")
+    else signal.addEventListener("abort", () => resolve("stopped"), { once: true })
+  })
+
+  try {
+    const result = await Promise.race([
+      run(plannerAgentFor(context.integrations), input, { stream: true, context, maxTurns: MAX_PLANNER_TURNS, errorHandlers: endRunAtMaxTurns, signal }),
+      hardStop,
+    ])
+    if (result === "stopped") return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+
+    const events = result[Symbol.asyncIterator]()
+    while (true) {
+      const next = await Promise.race([events.next(), hardStop])
+      if (next === "stopped") {
+        events.return?.().catch(() => {})
+        return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+      }
+      if (next.done) break
+      handle(next.value)
+    }
+    await Promise.race([result.completed, hardStop])
+  } catch (error) {
+    if (!signal.aborted) throw error
+    return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+  }
+  if (signal.aborted) return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: true }
+  show(filter.flush())
+
+  return { text: text.trimEnd(), leaked: filter.leaked, toolRan, stopped: false }
+
+  function handle(event: RunStreamEvent) {
     if (event.type === "raw_model_stream_event") {
       const data = event.data
       if (data.type === "response_started") {
@@ -623,10 +679,6 @@ async function streamPlannerRun(projectRun: ProjectRun, context: PlannerContext,
       announcedTools.clear()
     }
   }
-  await result.completed
-  show(filter.flush())
-
-  return { text: text.trimEnd(), leaked: filter.leaked, toolRan }
 }
 
 type RawChunk = {
