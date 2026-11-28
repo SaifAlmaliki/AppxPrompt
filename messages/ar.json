@@ -1302,6 +1302,10 @@
     "titleConnected": "تم ربط واجهة CloudHike الخلفية",
     "description": "خزّن بيانات تطبيقك في السحابة وزامنها مباشرةً.",
     "descriptionConnected": "تعيش بيانات تطبيقك في حسابك الخاص على CloudHike.",
+    "card": {
+      "text": "اربط الواجهة الخلفية ليتمكّن {name} من حفظ الحسابات والبيانات.",
+      "open": "ربط الواجهة الخلفية"
+    },
     "connectResult": {
       "denied": "ألغيت العملية على CloudHike، لذا لم يتم ربط أي شيء.",
       "error": "تعذّر ربط حسابك على CloudHike. حاول مرة أخرى."
@@ -1616,6 +1620,7 @@
     "workingOutChanges": "جارٍ تحديد التعديلات…",
     "changingTheme": "جارٍ تغيير السمة…",
     "settingUpBackend": "جارٍ إعداد الواجهة الخلفية لتطبيقك…",
+    "connectingBackend": "جارٍ فتح نافذة ربط الواجهة الخلفية…",
     "registeringService": "جارٍ إعداد خدمة…",
     "searchingWeb": "جارٍ البحث في الويب…",
     "readingDocs": "جارٍ قراءة التوثيق…",

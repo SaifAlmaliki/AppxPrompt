@@ -45,6 +45,7 @@ export function BackendDialog({
   onOpenChange,
   backend,
   connectResult,
+  reason,
   onLink,
   onDisconnect,
 }: {
@@ -53,6 +54,8 @@ export function BackendDialog({
   onOpenChange: (open: boolean) => void
   backend: BackendStatus
   connectResult: BackendConnectResult | null
+  /** Why the agent opened this, in a plain sentence. */
+  reason?: string | null
   onLink: () => Promise<boolean>
   onDisconnect: () => Promise<boolean>
 }) {
@@ -83,6 +86,7 @@ export function BackendDialog({
             projectId={projectId}
             backend={backend}
             notice={connectResult && isResultKey(connectResult) ? t(`connectResult.${connectResult}`) : null}
+            reason={reason ?? null}
             onLink={onLink}
           />
         )}
@@ -95,11 +99,13 @@ function ConnectView({
   projectId,
   backend,
   notice,
+  reason,
   onLink,
 }: {
   projectId: string
   backend: BackendStatus
   notice: string | null
+  reason: string | null
   onLink: () => Promise<boolean>
 }) {
   const t = useTranslations("backend")
@@ -117,6 +123,11 @@ function ConnectView({
 
   return (
     <>
+      {reason && (
+        <p dir="auto" className="rounded-2xl bg-violet-500/10 px-3 py-2.5 text-sm leading-relaxed text-violet-900">
+          {reason}
+        </p>
+      )}
       <section className="rounded-2xl border border-border/60 p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">CloudHike</h3>

@@ -152,6 +152,8 @@ export type AppPlan = {
   /** The server functions and agents the app calls. Set when the build starts. */
   serverRoutes?: PlannedServerRoute[]
   pendingChanges?: PendingChanges | null
+  /** Set when the agent found the app needs the backend, so the workspace keeps asking the owner to connect it. */
+  backendNeeded?: boolean
   /** Set once the app runs on its CloudHike backend. Everything in here ships inside the app. */
   backend?: AppBackend | null
 }
@@ -258,6 +260,8 @@ export type AgentEvent =
   | { type: "plan"; plan: AppPlan }
   | { type: "services"; services: ServiceSummary[] }
   | { type: "service-request"; slug: string }
+  /** The app needs the backend: open Connect Backend. `reason` is one plain sentence for the dialog. */
+  | { type: "backend-request"; reason: string }
   | { type: "project-status"; status: ProjectStatus }
   | { type: "screens"; screens: ProjectScreen[] }
   | { type: "screen"; screen: ProjectScreen }

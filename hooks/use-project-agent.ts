@@ -32,6 +32,8 @@ export type AgentState = {
   services: ServiceSummary[]
   /** The services the agent asked for, in order, each until its dialog has opened. */
   serviceRequests: string[]
+  /** Why the agent wants the Connect Backend dialog open, until it has opened. */
+  backendRequest: string | null
   /** True while a request to the agent is open. */
   busy: boolean
   /** What the agent is doing right now, as a status key to word here, or a label saved before there were keys. */
@@ -55,6 +57,7 @@ type Action =
   | { type: "backend-changed"; backend: BackendStatus; plan: AppPlan | null }
   | { type: "service-changed"; slug: string; summary: ServiceSummary | null }
   | { type: "service-request-handled" }
+  | { type: "backend-request-handled" }
   | { type: "new-session" }
   | { type: "file-code"; path: string; code: string }
 
@@ -101,6 +104,8 @@ export function reducer(state: AgentState, action: Action): AgentState {
     }
     case "service-request-handled":
       return { ...state, serviceRequests: state.serviceRequests.slice(1) }
+    case "backend-request-handled":
+      return { ...state, backendRequest: null }
     case "new-session":
       return { ...state, messages: [], streamingText: "", reasoning: "", error: null, sessionRestarted: true }
     case "file-code":
@@ -144,6 +149,8 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
       return { ...state, services: event.services }
     case "service-request":
       return state.serviceRequests.includes(event.slug) ? state : { ...state, serviceRequests: [...state.serviceRequests, event.slug] }
+    case "backend-request":
+      return { ...state, backendRequest: event.reason }
     case "backend":
       return { ...state, backend: event.backend }
     case "project-status":
@@ -221,6 +228,7 @@ export function useProjectAgent(
   const [state, dispatch] = React.useReducer(reducer, {
     ...initial,
     serviceRequests: [],
+    backendRequest: null,
     busy: false,
     activity: null,
     streamingText: "",
@@ -363,5 +371,7 @@ export function useProjectAgent(
   )
   const clearServiceRequest = React.useCallback(() => dispatch({ type: "service-request-handled" }), [])
 
-  return { ...state, send, setTheme, changeBackend, startNewSession, setFileCode, serviceChanged, clearServiceRequest }
+  const clearBackendRequest = React.useCallback(() => dispatch({ type: "backend-request-handled" }), [])
+
+  return { ...state, send, setTheme, changeBackend, startNewSession, setFileCode, serviceChanged, clearServiceRequest, clearBackendRequest }
 }

@@ -1302,6 +1302,10 @@
     "titleConnected": "CloudHike Backend Connected",
     "description": "Store your app's data in the cloud and sync it live.",
     "descriptionConnected": "Your app's data lives in your own CloudHike account.",
+    "card": {
+      "text": "Connect the backend so {name} can save accounts and data.",
+      "open": "Connect backend"
+    },
     "connectResult": {
       "denied": "You cancelled on CloudHike, so nothing was connected.",
       "error": "We couldn't connect your CloudHike account. Please try again."
@@ -1616,6 +1620,7 @@
     "workingOutChanges": "Working out the changes…",
     "changingTheme": "Changing the theme…",
     "settingUpBackend": "Setting up your backend…",
+    "connectingBackend": "Opening Connect Backend…",
     "registeringService": "Setting up a service…",
     "searchingWeb": "Searching the web…",
     "readingDocs": "Reading the docs…",

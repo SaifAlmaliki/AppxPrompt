@@ -23,6 +23,7 @@ import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
 import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
 import { findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
+import { isBackendConnected } from "@/lib/backend-protocol"
 import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
 import { MAX_PROMPT_LENGTH } from "@/lib/projects"
 import { redactKeys } from "@/lib/services/key-patterns"
@@ -42,6 +43,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { BuildProgress } from "@/components/workspace/build-progress"
 import { PlanCard, type PlanCardState } from "@/components/workspace/plan-card"
+import { BackendCard } from "@/components/workspace/backend-card"
 import { ServiceCard } from "@/components/workspace/service-card"
 
 type Agent = ReturnType<typeof useProjectAgent>
@@ -63,6 +65,7 @@ export function ChatPanel({
   editor,
   onKeysRemoved,
   onOpenService,
+  onOpenBackend,
 }: {
   agent: Agent
   assets: ChatAsset[]
@@ -70,6 +73,7 @@ export function ChatPanel({
   /** Keys that were taken out of a message before it was sent. */
   onKeysRemoved: (keys: string[]) => void
   onOpenService: (slug: string) => void
+  onOpenBackend: () => void
 }) {
   const t = useTranslations("chat")
   const tCommon = useTranslations("common")
@@ -296,6 +300,12 @@ export function ChatPanel({
                   <ServiceCard service={service} onOpen={() => onOpenService(service.slug)} />
                 </li>
               ))}
+
+          {!editor.readOnly && agent.plan?.backendNeeded && !isBackendConnected(agent.backend) && (
+            <li>
+              <BackendCard appName={agent.plan.appName} onOpen={onOpenBackend} />
+            </li>
+          )}
 
           {error && (
             <li role="alert" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800">

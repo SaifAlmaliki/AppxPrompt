@@ -2,7 +2,7 @@
 // instead of calling the tool, so nothing happens. This finds that text, so the chat never
 // shows it and the planner can ask the model again.
 
-const TOOL_NAMES = ["update_app", "propose_plan", "confirm_plan", "set_theme", "setup_backend", "register_service", "web_search", "read_page", "read_service_notes"]
+const TOOL_NAMES = ["update_app", "propose_plan", "confirm_plan", "set_theme", "setup_backend", "request_backend", "register_service", "web_search", "read_page", "read_service_notes"]
 
 const LEAK = new RegExp(`<(?:(${TOOL_NAMES.join("|")})\\b|invoke\\s+name="([^"]*)"|function_calls\\b|parameter\\s+name=)`)
 

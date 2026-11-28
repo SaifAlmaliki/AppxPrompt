@@ -30,6 +30,7 @@ const start: AgentState = {
   backend: { accountConnected: false, state: "disconnected", services: [], error: null } as unknown as AgentState["backend"],
   services: [service("openai")],
   serviceRequests: [],
+  backendRequest: null,
   busy: false,
   activity: null,
   streamingText: "",

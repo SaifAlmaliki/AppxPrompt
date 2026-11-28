@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 vi.mock("@openai/agents", () => ({
   Agent: class {
@@ -24,7 +24,7 @@ const names = (tools: { name: string }[]) => tools.map((t) => t.name)
 describe("plannerTools", () => {
   it("has only the app tools when integrations are off", async () => {
     const { plannerTools } = await load()
-    expect(names(plannerTools(false) as never)).toEqual(["propose_plan", "confirm_plan", "update_app", "set_theme", "setup_backend"])
+    expect(names(plannerTools(false) as never)).toEqual(["propose_plan", "confirm_plan", "update_app", "set_theme", "setup_backend", "request_backend"])
   })
 
   it("adds the outside-service and research tools when integrations are on", async () => {
@@ -35,6 +35,7 @@ describe("plannerTools", () => {
       "update_app",
       "set_theme",
       "setup_backend",
+      "request_backend",
       "register_service",
       "read_service_notes",
       "web_search",

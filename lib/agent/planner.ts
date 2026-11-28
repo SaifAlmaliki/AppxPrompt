@@ -48,6 +48,8 @@ type PlannerContext = PlannerState & {
   research: ResearchBudget
   /** When this turn started, so tools can stop in time. */
   turnStartedAt: number
+  /** Set once request_backend opened the dialog this turn, so a plan proposed after it keeps the reminder. */
+  backendRequested?: boolean
 }
 
 const serverRouteSchema = z.object({
@@ -272,6 +274,7 @@ const proposePlan = tool<typeof planSchema, PlannerContext>({
     const plan = normalizePlan(input, PLANS[ctx.account.plan].maxScreens, ctx)
     if (typeof plan === "string") return `Plan not saved: ${plan} Fix it and call propose_plan again.`
 
+    if (ctx.plan?.backendNeeded || ctx.backendRequested) plan.backendNeeded = true
     await db.update(projects).set({ plan, status: "planning" }).where(eq(projects.id, ctx.projectId))
     if (ctx.status !== "planning") ctx.run.emit({ type: "project-status", status: "planning" })
     ctx.plan = plan
@@ -430,7 +433,32 @@ const readServiceNotes = tool<typeof notesSchema, PlannerContext>({
   },
 })
 
-const BASE_TOOLS = [proposePlan, confirmPlan, updateApp, setTheme, setupBackend]
+const requestBackendSchema = z.object({
+  reason: z.string().describe("One plain sentence the owner sees: what in their app needs the backend."),
+})
+
+const requestBackend = tool<typeof requestBackendSchema, PlannerContext>({
+  name: "request_backend",
+  description:
+    "Open the Connect Backend dialog for the owner, because the app needs the backend (accounts, data saved per person or shared, uploads, email, or server functions that use the app's data). The workspace sets the backend up once they connect.",
+  parameters: requestBackendSchema,
+  async execute({ reason }, runContext) {
+    const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
+    if (ctx.backend.accountConnected && ctx.backend.state !== "disconnected") {
+      return "The backend is already connected. If the app is built, call setup_backend."
+    }
+    ctx.backendRequested = true
+    if (ctx.plan) {
+      ctx.plan = await mergePlan(ctx.projectId, { backendNeeded: true })
+      ctx.run.emit({ type: "plan", plan: ctx.plan })
+    }
+    ctx.run.emit({ type: "backend-request", reason })
+    return "The Connect Backend dialog is open. Tell the owner in one sentence what it's for and that it takes a minute; they don't need to type anything after connecting."
+  },
+})
+
+const BASE_TOOLS = [proposePlan, confirmPlan, updateApp, setTheme, setupBackend, requestBackend]
 
 /** The planner's tools for one turn. The instructions get the same flag, so they can't disagree. */
 export function plannerTools(integrations: boolean): Tool<PlannerContext>[] {
@@ -471,6 +499,7 @@ const TOOL_STATUS: Record<string, StatusKey> = {
   update_app: "workingOutChanges",
   set_theme: "changingTheme",
   setup_backend: "settingUpBackend",
+  request_backend: "connectingBackend",
   register_service: "registeringService",
   web_search: "searchingWeb",
   read_page: "readingDocs",

@@ -119,6 +119,7 @@ export function WorkspaceLayout({
 
   const [backendDialogOpen, setBackendDialogOpen] = React.useState(backendConnectResult !== null)
   const [connectNotice, setConnectNotice] = React.useState(backendConnectResult)
+  const [backendReason, setBackendReason] = React.useState<string | null>(null)
   const [shareDialogOpen, setShareDialogOpen] = React.useState(false)
   const [downloadDialogOpen, setDownloadDialogOpen] = React.useState(false)
   const [githubDialogOpen, setGithubDialogOpen] = React.useState(githubConnectResult !== null)
@@ -156,6 +157,17 @@ export function WorkspaceLayout({
     openService(serviceRequests[0])
     clearServiceRequest()
   }, [serviceRequests, dialogOpen, readOnly, openService, clearServiceRequest])
+
+  // The agent asked for the backend: open the dialog once, with its reason.
+  const { backendRequest, clearBackendRequest } = agent
+  React.useEffect(() => {
+    if (backendRequest === null) return
+    if (!readOnly) {
+      setBackendReason(backendRequest)
+      setBackendDialogOpen(true)
+    }
+    clearBackendRequest()
+  }, [backendRequest, readOnly, clearBackendRequest])
 
   // Coming back from GitHub shouldn't reopen the dialog on every reload.
   React.useEffect(() => {
@@ -248,10 +260,14 @@ export function WorkspaceLayout({
       open={backendDialogOpen}
       onOpenChange={(open) => {
         setBackendDialogOpen(open)
-        if (!open) setConnectNotice(null)
+        if (!open) {
+          setConnectNotice(null)
+          setBackendReason(null)
+        }
       }}
       backend={agent.backend}
       connectResult={connectNotice}
+      reason={backendReason}
       onLink={async () => {
         const linked = await agent.changeBackend("POST")
         if (linked) setUpBackendIfBuilt()
@@ -276,7 +292,7 @@ export function WorkspaceLayout({
       onChanged={agent.serviceChanged}
     />
   )
-  const chat = <ChatPanel agent={agent} assets={assets} editor={editor} onKeysRemoved={keysRemoved} onOpenService={openService} />
+  const chat = <ChatPanel agent={agent} assets={assets} editor={editor} onKeysRemoved={keysRemoved} onOpenService={openService} onOpenBackend={() => setBackendDialogOpen(true)} />
   // Rebuilt only when what the running app sees changes: not for code still streaming in,
   // or for the active theme, which reaches it on its own so switching never reloads the app.
   // Edits made by hand reach it on their own too, so it runs the code from before them.

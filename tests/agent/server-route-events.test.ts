@@ -20,6 +20,7 @@ const start = {
   serverRoutes: [route("app/api/a+api.ts")],
   services: [],
   serviceRequests: [],
+  backendRequest: null,
   busy: true,
   activity: null,
   streamingText: "",
