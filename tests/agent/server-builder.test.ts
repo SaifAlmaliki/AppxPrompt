@@ -15,12 +15,14 @@ import type { AppPlan, PlannedServerRoute } from "@/lib/agent-protocol"
 import {
   buildServerRoute,
   createSaveHelperTool,
+  extractTestBody,
   nextServerRoute,
   routeValidationContext,
   serviceContext,
   type ServerRouteContext,
 } from "@/lib/agent/server-builder"
 import { SERVER_BUILDER_INSTRUCTIONS, serverBuilderPrompt } from "@/lib/agent/instructions"
+import type { SelfTestResult } from "@/lib/server-routes/self-test"
 import type { ServiceDefinition } from "@/lib/services/protocol"
 
 const google: ServiceDefinition = {
@@ -229,6 +231,116 @@ describe("buildServerRoute", () => {
     const onChecking = vi.fn()
     await buildServerRoute(context(), { ...options, generate: sequence(validRoute), onChecking })
     expect(onChecking).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("buildServerRoute self-test", () => {
+  const withBody = (route: string, body = '{"query": "coffee"}') => `// testBody: ${body}\n${route}`
+  const first = withBody(validRoute)
+  const second = withBody(validRoute.replace("freeBusy", "freeBusy?x=1"))
+  const third = withBody(validRoute.replace("freeBusy", "freeBusy?x=2"))
+  const options = { saveHelper: vi.fn() }
+  const failure = { status: "failed" as const, httpStatus: 500, diagnostic: { ms: 5, fetches: [{ host: "www.googleapis.com", status: 402, ms: 4 }] } }
+  const results = (...answers: SelfTestResult[]) => vi.fn(async () => answers.shift() ?? { status: "passed" as const })
+
+  it("reads the sample request from the first line", () => {
+    expect(extractTestBody(first)).toEqual({ query: "coffee" })
+    expect(extractTestBody(validRoute)).toBeNull()
+    expect(extractTestBody(withBody(validRoute, "[1]"))).toBeNull()
+    expect(extractTestBody(withBody(validRoute, "{nope}"))).toBeNull()
+  })
+
+  it("tells the builder to give a testBody", () => {
+    expect(SERVER_BUILDER_INSTRUCTIONS).toContain(
+      "- With each route, give a small `testBody` it accepts, using the cheapest real input (for example one item, the shortest option, or a read-only request), so it can be tried once safely."
+    )
+  })
+
+  it("passes the first time", async () => {
+    const run = results({ status: "passed", httpStatus: 200 })
+    const generate = sequence(first)
+    expect(await buildServerRoute(context(), { ...options, generate, selfTest: { run } })).toEqual({
+      code: first,
+      selfTest: { status: "passed", detail: null },
+    })
+    expect(run).toHaveBeenCalledWith(first, { query: "coffee" })
+    expect(generate).toHaveBeenCalledTimes(1)
+  })
+
+  it("gives the builder the exact message, then keeps the fixed route when it passes", async () => {
+    const run = results(failure, { status: "passed", httpStatus: 200 })
+    const generate = sequence(first, second)
+    const result = await buildServerRoute(context(), { ...options, generate, selfTest: { run } })
+    expect(result).toEqual({ code: second, selfTest: { status: "passed", detail: null } })
+
+    const input = generate.mock.calls[1] as unknown as { role: string; content: string }[][]
+    expect(input[0].at(-1)).toEqual({
+      role: "user",
+      content: "The route didn't work when tried: www.googleapis.com answered 402. Fix it and save it again.",
+    })
+    expect(input[0].at(-2)).toEqual({ role: "assistant", content: first })
+    expect(run).toHaveBeenNthCalledWith(2, second, { query: "coffee" })
+  })
+
+  it("stops after two fix rounds and records the failure", async () => {
+    const run = results(failure, failure, failure)
+    const generate = sequence(first, second, third)
+    const result = await buildServerRoute(context(), { ...options, generate, selfTest: { run } })
+    expect(result).toEqual({ code: third, selfTest: { status: "failed", detail: "www.googleapis.com answered 402" } })
+    expect(generate).toHaveBeenCalledTimes(3)
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it("keeps the checked file when a fix breaks the rules", async () => {
+    const result = await buildServerRoute(context(), {
+      ...options,
+      generate: sequence(first, withBody(invalidRoute)),
+      selfTest: { run: results(failure) },
+    })
+    expect(result).toEqual({ code: first, selfTest: { status: "failed", detail: "www.googleapis.com answered 402" } })
+  })
+
+  it("doesn't try without time, or without a sample request", async () => {
+    const run = results()
+    expect(await buildServerRoute(context(), { ...options, generate: sequence(first), selfTest: { run, timeLeftMs: () => 59_000 } })).toEqual({
+      code: first,
+      selfTest: { status: "skipped", detail: "not enough time" },
+    })
+    expect(await buildServerRoute(context(), { ...options, generate: sequence(validRoute), selfTest: { run } })).toEqual({
+      code: validRoute,
+      selfTest: { status: "skipped", detail: "no sample request was given" },
+    })
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it("doesn't start a fix without time for it", async () => {
+    const generate = sequence(first, second)
+    const result = await buildServerRoute(context(), { ...options, generate, selfTest: { run: results(failure), timeLeftMs: () => 100_000 } })
+    expect(result).toMatchObject({ code: first, selfTest: { status: "failed" } })
+    expect(generate).toHaveBeenCalledTimes(1)
+  })
+
+  it("records a skipped try with its reason, and doesn't try an agent", async () => {
+    const skipped = results({ status: "skipped", reason: "a service isn't connected" })
+    expect(await buildServerRoute(context(), { ...options, generate: sequence(first), selfTest: { run: skipped } })).toEqual({
+      code: first,
+      selfTest: { status: "skipped", detail: "a service isn't connected" },
+    })
+    const run = results()
+    const agent = await buildServerRoute(context({ route: { ...slots, kind: "agent" } }), { ...options, generate: sequence(first), selfTest: { run } })
+    expect(agent).toMatchObject({ selfTest: { status: "skipped" } })
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it("carries on when the try itself breaks", async () => {
+    const run = vi.fn(async () => {
+      throw new Error("db down")
+    })
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    expect(await buildServerRoute(context(), { ...options, generate: sequence(first), selfTest: { run } })).toEqual({
+      code: first,
+      selfTest: { status: "skipped", detail: "the test couldn't run" },
+    })
   })
 })
 

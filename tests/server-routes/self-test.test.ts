@@ -27,7 +27,7 @@ function fakeClock() {
       }
       return new Promise<void>((resolve) => {
         timers.push({ at: now + ms, resolve })
-        signal.addEventListener("abort", resolve, { once: true })
+        signal.addEventListener("abort", () => resolve(), { once: true })
       })
     },
   }

@@ -133,7 +133,7 @@ describe("agent messages", () => {
 
   it.each(["en", "ar"] as const)("every message renders in %s", (locale) => {
     const t = strictTranslator(locale, "agentMessages")
-    const values = { count: 3, name: "Home", appName: "Zest", names: "A, B", backendNote: "", message: "x", credits: 5, refundNote: "", built: 1, total: 3, rest: "A", last: "B", parts: "x", what: "x", missed: "" }
+    const values = { count: 3, name: "Home", appName: "Zest", names: "A, B", backendNote: "", message: "x", credits: 5, refundNote: "", built: 1, total: 3, rest: "A", last: "B", parts: "x", what: "x", missed: "", summary: "x" }
     for (const key of keys) {
       const text = t(key, values)
       expect(text, key).not.toBe(`agentMessages.${key}`)

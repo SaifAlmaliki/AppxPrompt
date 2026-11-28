@@ -16,7 +16,7 @@ vi.mock("@/lib/billing/credits", () => ({ refundUnfinishedBuild: vi.fn() }))
 vi.mock("@/lib/cloudhike/backend", () => ({ isBackendLinked: vi.fn(), setUpBackend: vi.fn() }))
 vi.mock("@/lib/imagekit", () => ({ fillGeneratedImages: vi.fn(), hasGeneratedImages: vi.fn() }))
 
-const { changesSummary, listNames } = await import("@/lib/agent/builder")
+const { changesSummary, listNames, selfTestNote } = await import("@/lib/agent/builder")
 
 const TAIL = "Have a look in the preview, and tell me if you'd like anything else changed."
 
@@ -73,5 +73,25 @@ describe("changesSummary in Arabic", () => {
 
   it("says the changes are in when there is nothing to list", () => {
     expect(changesSummary({ added: [], updated: [], removed: [] } as never, "ar")).toContain(ar.agentMessages.changesNone)
+  })
+})
+
+describe("selfTestNote", () => {
+  const planned = [{ id: "trends-feed", path: "app/api/trends+api.ts" }] as never
+  const row = (extra: object = {}) => ({ path: "app/api/trends+api.ts", purpose: "Trends", kind: "function", selfTest: "failed", selfTestDetail: "api.apify.com answered 402.", ...extra })
+
+  it("says in one sentence which function failed its test", () => {
+    expect(selfTestNote([row()], planned, "en")).toBe("The trends feed didn't work in a test: api.apify.com answered 402. You can ask me to fix it.")
+  })
+
+  it("says nothing for functions that passed, were skipped or are helpers", () => {
+    expect(selfTestNote([row({ selfTest: "passed" }), row({ selfTest: "skipped" }), row({ kind: "helper" }), row({ selfTest: null })], planned, "en")).toBe("")
+  })
+
+  it("keeps the name and the summary in their own direction in Arabic", () => {
+    const text = selfTestNote([row()], planned, "ar")
+    expect(text).toContain(isolate("trends feed"))
+    expect(text).toContain(isolate("api.apify.com answered 402"))
+    expect(text).not.toContain("didn't work")
   })
 })
