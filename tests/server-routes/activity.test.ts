@@ -53,7 +53,7 @@ vi.mock("drizzle-orm", async (importOriginal) => ({
 }))
 
 import { MAX_STORED_CALLS, recordServerCall, toCallRow, type ServerCallInput } from "@/lib/server-routes/activity"
-import { serverCallResult } from "@/lib/server-routes/activity-protocol"
+import { describeFetch, failingFetch, serverCallResult } from "@/lib/server-routes/activity-protocol"
 import { readSandboxError } from "@/lib/sandbox/http"
 
 const PROJECT = "11111111-1111-4111-8111-111111111111"
@@ -85,6 +85,36 @@ describe("toCallRow", () => {
       errorCode: null,
       service: null,
       durationMs: 12,
+      detail: null,
+    })
+  })
+
+  const diagnostic = { ms: 30, fetches: [{ host: "api.apify.com", status: 401, ms: 20 }], thrown: { name: "Error", message: "Apify answered 401" } }
+
+  it("stores a valid diagnostic as the call's detail", () => {
+    expect(toCallRow(input({ diagnostic })).detail).toEqual(diagnostic)
+  })
+
+  it("stores nothing when the diagnostic has no outgoing call and no error", () => {
+    expect(toCallRow(input({ diagnostic: { ms: 3, fetches: [] } })).detail).toBeNull()
+  })
+
+  it("drops a diagnostic of the wrong shape, and any field it doesn't know", () => {
+    const bad = [
+      { ms: 1, fetches: [{ host: "api.apify.com/v2/runs?token=x", ms: 1 }] },
+      { ms: 1, fetches: [{ host: "a.com", status: "401", ms: 1 }] },
+      { ms: 1, fetches: [{ host: "a.com", error: "refused", ms: 1 }] },
+      { ms: 1, fetches: Array.from({ length: 11 }, () => ({ host: "a.com", ms: 1 })) },
+      { ms: 1, fetches: [], thrown: { name: "E", message: "m".repeat(201) } },
+      "string",
+      null,
+    ]
+    for (const value of bad) expect(toCallRow(input({ diagnostic: value })).detail).toBeNull()
+    const withExtras = { ...diagnostic, body: "{}", fetches: [{ host: "a.com", status: 200, ms: 1, url: "https://a.com/x?t=1", headers: {} }] }
+    expect(toCallRow(input({ diagnostic: withExtras })).detail).toEqual({
+      ms: 30,
+      fetches: [{ host: "a.com", status: 200, ms: 1 }],
+      thrown: diagnostic.thrown,
     })
   })
 
@@ -105,7 +135,13 @@ describe("recordServerCall", () => {
     await recordServerCall(input({ path: "/api/x?q=1" }))
     expect(state.rows).toHaveLength(1)
     expect(state.rows[0]).toMatchObject({ path: "/api/x", method: "POST" })
-    expect(Object.keys(state.rows[0]).sort()).toEqual(["durationMs", "errorCode", "id", "method", "path", "projectId", "service", "status"])
+    expect(Object.keys(state.rows[0]).sort()).toEqual(["detail", "durationMs", "errorCode", "id", "method", "path", "projectId", "service", "status"])
+  })
+
+  it("round-trips the detail", async () => {
+    const diagnostic = { ms: 9, fetches: [{ host: "api.apify.com", error: "timeout" as const, ms: 9 }] }
+    await recordServerCall(input({ status: 500, diagnostic }))
+    expect(state.rows[0].detail).toEqual(diagnostic)
   })
 
   it("keeps only the newest 200 calls", async () => {
@@ -137,6 +173,23 @@ describe("the error body", () => {
     expect(readSandboxError(200, json, "{}")).toEqual({ code: null, service: null })
     expect(readSandboxError(500, { "content-type": "text/html" }, "<p>oops</p>")).toEqual({ code: null, service: null })
     expect(readSandboxError(500, json, "not json")).toEqual({ code: null, service: null })
+  })
+})
+
+describe("describing a failure", () => {
+  it("picks the call that explains it: blocked, timed out or unreachable first, then an error status", () => {
+    const ok = { host: "ok.example.com", status: 200, ms: 1 }
+    const unauthorized = { host: "api.apify.com", status: 401, ms: 1 }
+    const blocked = { host: "api.apify-storage.com", error: "blocked" as const, ms: 0 }
+    expect(failingFetch(null)).toBeNull()
+    expect(failingFetch({ ms: 1, fetches: [ok] })).toBeNull()
+    expect(failingFetch({ ms: 1, fetches: [ok, unauthorized] })).toBe(unauthorized)
+    expect(failingFetch({ ms: 1, fetches: [unauthorized, blocked] })).toBe(blocked)
+  })
+
+  it("names the words to use", () => {
+    expect(describeFetch({ host: "api.apify.com", status: 401, ms: 1 })).toEqual({ key: "status", host: "api.apify.com", status: 401 })
+    expect(describeFetch({ host: "a.com", error: "timeout", ms: 1 })).toEqual({ key: "timeout", host: "a.com" })
   })
 })
 

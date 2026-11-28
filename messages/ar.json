@@ -930,7 +930,7 @@
         "timeout": "انتهت مهلة {host}",
         "network": "تعذّر الوصول إلى {host}",
         "thrown": "أطلقت الدالة الخطأ {name}: {message}",
-        "calls": "{count, plural, one {استدعاء صادر واحد} two {استدعاءان صادران} few {# استدعاءات صادرة} many {# استدعاءً صادرًا} other {# استدعاء صادر}}",
+        "calls": "{count, plural, one {استدعاء صادر واحد} two {استدعاءان صادران} few {{count, number, integer} استدعاءات صادرة} many {{count, number, integer} استدعاءً صادرًا} other {{count, number, integer} استدعاء صادر}}",
         "milliseconds": "{count} م.ث"
       }
     }

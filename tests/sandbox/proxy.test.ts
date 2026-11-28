@@ -11,6 +11,7 @@ vi.mock("@/lib/sandbox/runner", async (importOriginal) => ({
   takeSandboxRequest: limiter.take,
 }))
 
+import { DIAGNOSTIC_HEADER, MAX_DIAGNOSTIC_HEADER_LENGTH, encodeDiagnostic } from "@/lib/sandbox/diagnostic"
 import { createServerProxy, sandboxPreflight } from "@/lib/sandbox/proxy"
 import { createSandboxToken } from "@/lib/sandbox/token"
 
@@ -211,7 +212,41 @@ describe("server proxy onCall", () => {
       errorCode: "not_connected",
       service: "stripe",
       durationMs: expect.any(Number),
+      diagnostic: null,
     })
+  })
+
+  it("passes the VM's diagnostic to onCall and never to the app", async () => {
+    const onCall = vi.fn()
+    const diagnostic = { ms: 20, fetches: [{ host: "api.apify.com", status: 401, ms: 9 }], thrown: { name: "Error", message: "Apify answered 401" } }
+    runner.invoke.mockResolvedValue({
+      status: 500,
+      headers: {
+        "content-type": "application/json",
+        [DIAGNOSTIC_HEADER]: encodeDiagnostic(diagnostic),
+      },
+      body: JSON.stringify({ error: { code: "unavailable", message: "Something went wrong. Try again." } }),
+    })
+    const response = await call(createServerProxy({ onCall }), ["api", "trends"], { method: "POST", body: "{}" })
+
+    expect(response.headers.get(DIAGNOSTIC_HEADER)).toBeNull()
+    expect(JSON.stringify([...response.headers])).not.toContain("apify")
+    expect(await response.json()).toEqual({ error: { code: "unavailable", message: "Something went wrong. Try again." } })
+    expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ status: 500, errorCode: "unavailable", diagnostic }))
+  })
+
+  it.each([
+    ["malformed", "not base64 !!"],
+    ["not JSON", Buffer.from("hello").toString("base64url")],
+    ["off-shape", Buffer.from(JSON.stringify({ ms: 1, fetches: [{ host: "a.com/x?t=1", ms: 1 }] })).toString("base64url")],
+    ["oversized", "A".repeat(MAX_DIAGNOSTIC_HEADER_LENGTH + 1)],
+  ])("ignores a %s diagnostic header, and still strips it", async (_name, value) => {
+    const onCall = vi.fn()
+    runner.invoke.mockResolvedValue({ status: 200, headers: { "content-type": "application/json", "X-AppxPrompt-Diagnostic": value }, body: "{}" })
+    const response = await call(createServerProxy({ onCall }), ["x"])
+    expect(response.status).toBe(200)
+    expect(response.headers.get(DIAGNOSTIC_HEADER)).toBeNull()
+    expect(onCall).toHaveBeenCalledWith(expect.objectContaining({ diagnostic: null }))
   })
 
   it("reports a successful call with no error", async () => {

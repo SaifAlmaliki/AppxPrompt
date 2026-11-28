@@ -34,6 +34,13 @@ describe("safeResponseHeaders", () => {
     ).toEqual({ "content-type": "application/json", ...SANDBOX_RESPONSE_GUARD_HEADERS })
   })
 
+  it("never forwards the diagnostic header", () => {
+    expect(safeResponseHeaders({ "X-AppxPrompt-Diagnostic": "abc", "content-type": "application/json" })).toEqual({
+      "content-type": "application/json",
+      ...SANDBOX_RESPONSE_GUARD_HEADERS,
+    })
+  })
+
   it("always adds nosniff and a sandboxing CSP, and the VM cannot override them", () => {
     const headers = safeResponseHeaders({ "Content-Security-Policy": "default-src *", "X-Content-Type-Options": "sniff", "content-type": "text/html" })
     expect(headers["x-content-type-options"]).toBe("nosniff")

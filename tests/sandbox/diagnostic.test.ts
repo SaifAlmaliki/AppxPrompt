@@ -19,7 +19,9 @@ const KEY = "sk-proj-" + "a".repeat(40)
 const PLAIN_SECRET = "hunter2-hunter2-hunter2"
 const env = { OPENAI_API_KEY: KEY, PLAIN: PLAIN_SECRET, NODE_ENV: "production" }
 
-const respondSource = generatedServerFiles({ serverRoutes: [] } as unknown as AppPlan).find((file) => file.path === "server/respond.ts")!.code
+const respondSource = generatedServerFiles({
+  serverRoutes: [{ id: "probe", path: "app/api/probe+api.ts", purpose: "p", kind: "function", services: [], access: "public" }],
+} as unknown as AppPlan).find((file) => file.path === "server/respond.ts")!.code
 
 function bundleOf(sources: Record<string, string>): RuntimeBundle {
   const all = { "server/respond.ts": respondSource, ...sources }
