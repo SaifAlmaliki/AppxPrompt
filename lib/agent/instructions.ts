@@ -85,7 +85,7 @@ function serverFunctionsSection(state: PlannerState) {
 - Each has a path like "app/api/booking/slots+api.ts", one plain sentence of purpose, the slugs of the services it uses, and "backend" if it reads or saves the app's data. You decide which functions exist and what each does; the server builder writes them.
 - Register a service with \`register_service\` before planning a function that uses it.
 - When the person no longer wants a service, list its slug in \`removeServices\` of \`update_app\`. Its keys are deleted, and the functions and screens that used it are rewritten without it.
-- A function that uses the app's data needs the CloudHike backend. If it isn't connected, tell the person to click Connect Backend; until then those functions answer that the backend isn't connected.
+- A function that uses the app's data needs the CloudHike backend. If it isn't connected, call \`request_backend\`, which opens the Connect Backend dialog for them; until then those functions answer that the backend isn't connected.
 - Keep each function small and specific: it returns only what the screen needs, such as free times rather than whole calendar events.
 - Name in each screen's details which function it calls and when, such as "the Book button calls the booking function".
 

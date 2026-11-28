@@ -27,11 +27,15 @@ import { reducer, type AgentState } from "@/hooks/use-project-agent"
 
 type Tool = { name: string; execute: (input: unknown, run: { context: unknown }) => Promise<string> }
 
-async function requestBackend() {
+async function tools() {
   vi.resetModules()
   const { plannerTools } = await import("@/lib/agent/planner")
   vi.mocked((await import("@/lib/agent/changes")).mergePlan).mockClear()
-  return (plannerTools(false) as unknown as Tool[]).find((tool) => tool.name === "request_backend")!
+  return plannerTools(false) as unknown as Tool[]
+}
+
+async function requestBackend() {
+  return (await tools()).find((tool) => tool.name === "request_backend")!
 }
 
 const input = { reason: "TrendSwap needs accounts and a database for each person's videos and daily limit." }
@@ -87,8 +91,8 @@ describe("backend requests in the agent state", () => {
 })
 
 describe("the planner's words about the backend", () => {
-  it("tells the agent to call request_backend instead of pointing at a button", () => {
-    const text = plannerInstructions({
+  const prompt = (integrations: boolean) =>
+    plannerInstructions({
       status: "ready",
       platform: "ios",
       plan: null,
@@ -98,9 +102,21 @@ describe("the planner's words about the backend", () => {
       backend: { available: true },
       account: { plan: "free", credits: 10 },
       services: [],
-      integrations: false,
+      integrations,
     } as unknown as PlannerState)
+
+  it.each([false, true])("tells the agent to call request_backend instead of pointing at a button (integrations %s)", (integrations) => {
+    const text = prompt(integrations)
     expect(text).toContain("call `request_backend`")
     expect(text).not.toContain("tell them to click Connect Backend at the top of the workspace")
+    expect(text).not.toContain("click Connect Backend")
+  })
+
+  it("setup_backend points at request_backend when CloudHike isn't connected", async () => {
+    const tool = (await tools()).find((t) => t.name === "setup_backend")!
+    const context = { builtScreens: 2, status: "ready", backend: { accountConnected: false, state: "disconnected", services: [] } }
+    const result = await tool.execute({ services: [], sharedCollections: null, acceptEmailPolicy: false }, { context })
+    expect(result).toContain("request_backend")
+    expect(result).not.toContain("click Connect Backend")
   })
 })

@@ -374,7 +374,7 @@ const setupBackend = tool<typeof backendSchema, PlannerContext>({
     if (ctx.status === "building") return "The app is being built right now, and the backend is set up when that finishes."
     if (ctx.builtScreens === 0) return "No screens are built yet. The backend is set up on its own once the build finishes."
     if (!ctx.backend.accountConnected || ctx.backend.state === "disconnected") {
-      return "CloudHike isn't connected. Ask the person to click Connect Backend at the top of the workspace."
+      return "CloudHike isn't connected. Call request_backend, which opens the Connect Backend dialog for them."
     }
     if (services.includes("email") && !acceptEmailPolicy && !ctx.backend.services.some((service) => service.type === "email")) {
       return "Nothing was deployed. Email needs the person to accept https://cloudhike.dev/legal/email-policy first. Ask them, or call this again without email."
