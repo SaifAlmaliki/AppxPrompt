@@ -8,13 +8,13 @@ import { PLANS } from "@/lib/plans"
 // Responses API), and traces would go to OpenAI's dashboard, so both are
 // configured here once per process.
 
-// CloudHike model ids are provider-prefixed. GET {AI_BASE_URL}/models lists them.
-const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5"
+const DEFAULT_PLANNER_MODEL = "anthropic/claude-opus-5.5"
+const DEFAULT_BUILDER_MODEL = "anthropic/claude-sonnet-5.5"
 
 /** Model for understanding the request, planning, and chatting. */
-export const PLANNER_MODEL = process.env.AI_MODEL || DEFAULT_MODEL
+export const PLANNER_MODEL = process.env.AI_MODEL || DEFAULT_PLANNER_MODEL
 /** Model for writing screen code. */
-export const BUILDER_MODEL = process.env.AI_BUILDER_MODEL || PLANNER_MODEL
+export const BUILDER_MODEL = process.env.AI_BUILDER_MODEL || DEFAULT_BUILDER_MODEL
 
 /** The most screens a plan can have on any AppxPrompt plan, even when the person asks for more. */
 export const MAX_PLAN_SCREENS = PLANS.pro.maxScreens
