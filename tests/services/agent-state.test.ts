@@ -29,7 +29,7 @@ const start: AgentState = {
   serverRoutes: [],
   backend: { accountConnected: false, state: "disconnected", services: [], error: null } as unknown as AgentState["backend"],
   services: [service("openai")],
-  serviceRequest: null,
+  serviceRequests: [],
   busy: false,
   activity: null,
   streamingText: "",
@@ -44,10 +44,18 @@ describe("services in the agent state", () => {
     expect(next.services.map((s) => s.slug)).toEqual(["resend"])
   })
 
-  it("remembers a service request until it is handled", () => {
-    const asked = reducer(start, { type: "event", event: { type: "service-request", slug: "openai" } })
-    expect(asked.serviceRequest).toBe("openai")
-    expect(reducer(asked, { type: "service-request-handled" }).serviceRequest).toBeNull()
+  it("queues service requests in order, and each is handled in turn", () => {
+    const ask = (state: AgentState, slug: string) => reducer(state, { type: "event", event: { type: "service-request", slug } })
+    const asked = ask(ask(start, "openai"), "kie-ai")
+    expect(asked.serviceRequests).toEqual(["openai", "kie-ai"])
+    const first = reducer(asked, { type: "service-request-handled" })
+    expect(first.serviceRequests).toEqual(["kie-ai"])
+    expect(reducer(first, { type: "service-request-handled" }).serviceRequests).toEqual([])
+  })
+
+  it("doesn't queue the same service twice", () => {
+    const ask = (state: AgentState, slug: string) => reducer(state, { type: "event", event: { type: "service-request", slug } })
+    expect(ask(ask(ask(start, "openai"), "kie-ai"), "openai").serviceRequests).toEqual(["openai", "kie-ai"])
   })
 
   it("ignores an event type it doesn't know, so an old tab keeps working", () => {

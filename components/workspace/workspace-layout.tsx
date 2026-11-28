@@ -146,13 +146,16 @@ export function WorkspaceLayout({
     if (serviceConnect) window.history.replaceState(null, "", window.location.pathname)
   }, [serviceConnect])
 
-  // The agent asked for a service: open its dialog once.
-  const { serviceRequest, clearServiceRequest } = agent
+  // The agent asked for services: open one dialog at a time, the next when this one closes.
+  const { serviceRequests, clearServiceRequest } = agent
+  const dialogOpen = serviceDialog !== null
   React.useEffect(() => {
-    if (!serviceRequest) return
-    if (!readOnly) openService(serviceRequest)
+    if (serviceRequests.length === 0) return
+    if (readOnly) return clearServiceRequest()
+    if (dialogOpen) return
+    openService(serviceRequests[0])
     clearServiceRequest()
-  }, [serviceRequest, readOnly, openService, clearServiceRequest])
+  }, [serviceRequests, dialogOpen, readOnly, openService, clearServiceRequest])
 
   // Coming back from GitHub shouldn't reopen the dialog on every reload.
   React.useEffect(() => {

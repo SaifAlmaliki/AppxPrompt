@@ -17,7 +17,7 @@ const idle: AgentState = {
   serverRoutes: [],
   backend: { accountConnected: false, state: "disconnected", services: [], error: null } as unknown as AgentState["backend"],
   services: [],
-  serviceRequest: null,
+  serviceRequests: [],
   busy: true,
   activity: "Reading your request…",
   streamingText: "",

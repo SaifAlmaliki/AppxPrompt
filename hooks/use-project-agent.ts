@@ -30,8 +30,8 @@ export type AgentState = {
   serverRoutes: ProjectServerRoute[]
   backend: BackendStatus
   services: ServiceSummary[]
-  /** The service the agent asked for, until the dialog has opened for it. */
-  serviceRequest: string | null
+  /** The services the agent asked for, in order, each until its dialog has opened. */
+  serviceRequests: string[]
   /** True while a request to the agent is open. */
   busy: boolean
   /** What the agent is doing right now, as a status key to word here, or a label saved before there were keys. */
@@ -100,7 +100,7 @@ export function reducer(state: AgentState, action: Action): AgentState {
       }
     }
     case "service-request-handled":
-      return { ...state, serviceRequest: null }
+      return { ...state, serviceRequests: state.serviceRequests.slice(1) }
     case "new-session":
       return { ...state, messages: [], streamingText: "", reasoning: "", error: null, sessionRestarted: true }
     case "file-code":
@@ -143,7 +143,7 @@ function applyEvent(state: AgentState, event: AgentEvent): AgentState {
     case "services":
       return { ...state, services: event.services }
     case "service-request":
-      return { ...state, serviceRequest: event.slug }
+      return state.serviceRequests.includes(event.slug) ? state : { ...state, serviceRequests: [...state.serviceRequests, event.slug] }
     case "backend":
       return { ...state, backend: event.backend }
     case "project-status":
@@ -220,7 +220,7 @@ export function useProjectAgent(
 ) {
   const [state, dispatch] = React.useReducer(reducer, {
     ...initial,
-    serviceRequest: null,
+    serviceRequests: [],
     busy: false,
     activity: null,
     streamingText: "",

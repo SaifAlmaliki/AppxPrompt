@@ -19,7 +19,7 @@ const start = {
   screens: [],
   serverRoutes: [route("app/api/a+api.ts")],
   services: [],
-  serviceRequest: null,
+  serviceRequests: [],
   busy: true,
   activity: null,
   streamingText: "",
