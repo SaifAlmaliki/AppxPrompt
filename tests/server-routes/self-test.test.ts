@@ -190,8 +190,14 @@ describe("selfTestRoute", () => {
 
 describe("plainText", () => {
   it("makes error text one short line without Markdown characters", () => {
-    expect(plainText("bad *thing*\n[click](http://x) `code` # > | ~ _x_", 200)).toBe("bad thing clickhttp://x code x")
+    expect(plainText("bad *thing*\n[click](http://x) `code` # > | ~ _x_", 200)).toBe("bad thing clickx code x")
     expect(plainText("a".repeat(300), 50)).toHaveLength(50)
+  })
+
+  it("reduces a link to its host so it can't turn into one in the chat", () => {
+    expect(plainText("GET https://api.example.com/v1/items?key=1 failed, see http://docs.example.com:8080/x", 200)).toBe(
+      "GET api.example.com failed, see docs.example.com"
+    )
   })
 
   it("is applied to what was thrown", () => {

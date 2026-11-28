@@ -172,9 +172,11 @@ function fetchProblem(fetch: CallDiagnostic["fetches"][number]): string | null {
 
 const MAX_THROWN_TEXT = 120
 
-/** Error text that is safe to put in a chat sentence: one line, no Markdown control characters, and not long. */
+/** Error text that is safe to put in a chat sentence: one line, no Markdown control characters, no links, and not long. */
 export function plainText(text: string, max: number): string {
-  const clean = text.replace(/[*_[\]()#>|~`\\]/g, "").replace(/\s+/g, " ").trim()
+  const clean = text
+    .replace(/https?:\/\/([^\s/?#:]*)\S*/gi, "$1")
+    .replace(/[*_[\]()#>|~`\\]/g, "").replace(/\s+/g, " ").trim()
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean
 }
 

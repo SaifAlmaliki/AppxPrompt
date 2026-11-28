@@ -951,6 +951,10 @@
         "thrown": "أطلقت الدالة الخطأ {name}: {message}",
         "calls": "{count, plural, one {استدعاء صادر واحد} two {استدعاءان صادران} few {{count, number, integer} استدعاءات صادرة} many {{count, number, integer} استدعاءً صادرًا} other {{count, number, integer} استدعاء صادر}}",
         "timed": "{line} · {count} م.ث"
+      },
+      "fix": {
+        "button": "أصلِحها",
+        "message": "فشلت دالة الخادم {function}: {reason}. يرجى إصلاحها."
       }
     }
   },

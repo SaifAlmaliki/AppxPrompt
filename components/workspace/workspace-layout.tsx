@@ -12,7 +12,14 @@ import { useAuth } from "@/lib/auth-client"
 import { filesForRole, projectSlug } from "@/lib/generated-app/export-project"
 import { generatedAppFiles, previewProject } from "@/lib/generated-app/project-files"
 import { generatedServerFiles, type ServerTarget } from "@/lib/generated-app/server-files"
-import { isRunnable, type AppPlan, type ChatMessage, type ProjectScreen, type ProjectServerRoute } from "@/lib/agent-protocol"
+import {
+  isRunnable,
+  type AppPlan,
+  type ChatMessage,
+  type ProjectScreen,
+  type ProjectServerRoute,
+  type ServerFailureContext,
+} from "@/lib/agent-protocol"
 import type { BackendConnectResult, BackendStatus } from "@/lib/backend-protocol"
 import type { GitHubConnectResult } from "@/lib/github-protocol"
 import type { ProjectPlatform, ProjectStatus } from "@/lib/projects"
@@ -181,6 +188,11 @@ export function WorkspaceLayout({
   const setUpBackendIfBuilt = React.useCallback(() => {
     if (agent.status === "ready") void send({ action: "message", content: t("setUpBackendMessage") })
   }, [agent.status, send, t])
+
+  const fixServerFailure = React.useCallback(
+    (content: string, failure: ServerFailureContext) => void send({ action: "message", content, failure }),
+    [send]
+  )
 
   // Only once per trip to CloudHike: reloading the page mustn't deploy or ask again.
   const handledConnect = React.useRef(false)
@@ -367,6 +379,7 @@ export function WorkspaceLayout({
       webPublish={webPublish}
       onOpenPublish={() => setPublishDialogOpen(true)}
       showActivity={!readOnly}
+      onFixServerFailure={!readOnly && !agent.busy && agent.status === "ready" ? fixServerFailure : undefined}
     />
   )
 

@@ -24,7 +24,7 @@ import {
 
 import { useHighlightedCode } from "@/hooks/use-highlighted-code"
 import type { WebPublishState } from "@/hooks/use-web-publish"
-import type { AppPlan, ProjectScreen, SelfTestStatus } from "@/lib/agent-protocol"
+import type { AppPlan, ProjectScreen, SelfTestStatus, ServerFailureContext } from "@/lib/agent-protocol"
 import type { ServerTarget } from "@/lib/generated-app/server-files"
 import type { ElementEdits, PreviewFile, PreviewProject } from "@/lib/preview-protocol"
 import { resetPreviewStorage } from "@/lib/preview-storage"
@@ -68,6 +68,7 @@ export function PreviewPanel({
   webPublish,
   onOpenPublish,
   showActivity,
+  onFixServerFailure,
 }: {
   projectId: string
   plan: AppPlan | null
@@ -93,6 +94,8 @@ export function PreviewPanel({
   onOpenPublish: () => void
   /** The owner's Activity tab. Anyone else only looks at the app. */
   showActivity: boolean
+  /** Asks the agent to fix a failed server function call. Undefined while it can't take a message. */
+  onFixServerFailure?: (message: string, failure: ServerFailureContext) => void
 }) {
   const t = useTranslations("preview")
   const [reloadSignal, setReloadSignal] = React.useState(0)
@@ -150,7 +153,7 @@ export function PreviewPanel({
       </TabsContent>
       {showActivity && (
         <TabsContent value="activity" className="min-h-0">
-          <ActivityPanel projectId={projectId} />
+          <ActivityPanel projectId={projectId} onFix={onFixServerFailure} />
         </TabsContent>
       )}
     </Tabs>

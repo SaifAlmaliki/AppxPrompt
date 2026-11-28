@@ -4,6 +4,7 @@
 import type { Screen, ServerRoute } from "@/db/schema"
 import type { AppBackend, BackendStatus } from "@/lib/backend-protocol"
 import type { UpgradeReason } from "@/lib/plans"
+import { sanitizeDiagnostic, type CallDiagnostic } from "@/lib/sandbox/diagnostic"
 import type { ProjectStatus } from "@/lib/projects"
 import type { ServiceSummary } from "@/lib/services/protocol"
 import type { ThemePackage } from "@/lib/themes"
@@ -240,11 +241,45 @@ export function splitElementMessage(content: string) {
   return { text: content.slice(match[0].length), element: { file: match[1], line: Number(match[2]), label: match[3], screen: match[4] } }
 }
 
+/** A server function call that failed, as the Activity tab stored it: its address, its status and the checked diagnostic. */
+export type ServerFailureContext = {
+  path: string
+  status: number
+  diagnostic: CallDiagnostic
+}
+
+const FAILURE_BLOCK = /^<server-failure path="([^"]*)" status="(\d{3})">\n[^\n]*\n<\/server-failure>\n\n/
+const MAX_FAILURE_PATH = 300
+
+/** Only characters an address can hold, so the path can't close its attribute or start a tag. */
+export function failurePath(path: string) {
+  return path.replace(/[^A-Za-z0-9_\-./[\]@:+~%]/g, "").slice(0, MAX_FAILURE_PATH)
+}
+
+/** The diagnostic as one line of JSON that can't hold a tag: `<` and `>` are written as escapes, which JSON reads back the same. */
+function failureJson(diagnostic: CallDiagnostic) {
+  const checked = sanitizeDiagnostic(diagnostic) ?? { ms: 0, fetches: [] }
+  return JSON.stringify(checked).replace(/[<>\u2028\u2029]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`)
+}
+
+/** A chat message with what happened to a server function in front of it. It's saved like this, so the agent knows on later turns. */
+export function messageWithFailure(content: string, failure: ServerFailureContext) {
+  const status = Number.isInteger(failure.status) && failure.status >= 100 && failure.status <= 599 ? failure.status : 500
+  return `<server-failure path="${failurePath(failure.path)}" status="${status}">\n${failureJson(failure.diagnostic)}\n</server-failure>\n\n${content}`
+}
+
+/** What the person wrote, and the failure the workspace attached to it. */
+export function splitFailureMessage(content: string) {
+  const match = content.match(FAILURE_BLOCK)
+  if (!match) return { text: content, failure: null }
+  return { text: content.slice(match[0].length), failure: { path: match[1], status: Number(match[2]) } }
+}
+
 /** What the client asks the agent to do. */
 export type AgentRequest =
   /** Pick up where the project is: answer a waiting prompt or resume a build. */
   | { action: "start" }
-  | { action: "message"; content: string; element?: ElementContext }
+  | { action: "message"; content: string; element?: ElementContext; failure?: ServerFailureContext }
   | { action: "confirm" }
 
 /** A line of `status.*` in the message files, worded by whoever shows it. */

@@ -7,6 +7,7 @@ import {
   activityOf,
   componentFilePath,
   messageWithElement,
+  messageWithFailure,
   type AgentEvent,
   type AgentRequest,
   type Activity,
@@ -249,7 +250,11 @@ export function useProjectAgent(
           ? {
               id: `local-${Date.now()}`,
               role: "user" as const,
-              content: request.element ? messageWithElement(request.content, request.element) : request.content,
+              content: request.element
+                ? messageWithElement(request.content, request.element)
+                : request.failure
+                  ? messageWithFailure(request.content, request.failure)
+                  : request.content,
             }
           : request.action === "confirm"
             ? { id: `local-${Date.now()}`, role: "user" as const, content: t("confirmMessage") }

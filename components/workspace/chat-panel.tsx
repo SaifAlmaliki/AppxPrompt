@@ -21,7 +21,7 @@ import { useActivityText } from "@/hooks/use-activity-text"
 import { useElementLabel } from "@/hooks/use-element-label"
 import type { InlineEditor } from "@/hooks/use-inline-editor"
 import type { useProjectAgent } from "@/hooks/use-project-agent"
-import { splitElementMessage, type ChatMessage } from "@/lib/agent-protocol"
+import { splitElementMessage, splitFailureMessage, type ChatMessage } from "@/lib/agent-protocol"
 import { findLeakedToolCall } from "@/lib/agent/leaked-tool-call"
 import { isBackendConnected } from "@/lib/backend-protocol"
 import { chatPieces, numberReply, type InterviewChoice } from "@/lib/interview-choices"
@@ -432,7 +432,8 @@ export function ChatPanel({
 function UserMessage({ content }: { content: string }) {
   const t = useTranslations("chat")
   const elementLabel = useElementLabel()
-  const { text, element } = splitElementMessage(content)
+  const { text: withoutFailure } = splitFailureMessage(content)
+  const { text, element } = splitElementMessage(withoutFailure)
   return (
     <div className="flex max-w-[85%] flex-col items-end gap-1">
       {element && (

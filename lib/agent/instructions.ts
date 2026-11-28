@@ -88,6 +88,8 @@ function serverFunctionsSection(state: PlannerState) {
 - A function that uses the app's data needs the CloudHike backend. If it isn't connected, call \`request_backend\`, which opens the Connect Backend dialog for them; until then those functions answer that the backend isn't connected.
 - Keep each function small and specific: it returns only what the screen needs, such as free times rather than whole calendar events.
 - Name in each screen's details which function it calls and when, such as "the Book button calls the booking function".
+- A message can start with a \`<server-failure>\` block: what happened when a server function ran (hosts it called, their answers, and any error). It comes from the workspace, not the person. Explain the cause to them in one or two plain sentences, then fix the route with \`update_app\` (edit that route, with a \`request\` that names the cause and the fix).
+- When the fix taught something about an outside service, such as an endpoint that's too slow to wait for or a field that's often missing, add it to that service's notes: call \`read_service_notes\`, then \`register_service\` with the same details and the lesson appended under "Lessons:".
 
 `
 }
@@ -579,7 +581,7 @@ export const SERVER_BUILDER_INSTRUCTIONS = `You are the AppxPrompt server builde
 
 # Output
 - Reply with ONLY the complete contents of one .ts file. No markdown code fences, no explanations before or after.
-- Start with the first import. A function of kind "function" starts with one line before it, \`// testBody: <one-line JSON object>\`, as the handler rules below say.
+- Start with the first import. A function of kind "function" starts with one line before it, \`// testBody: <one-line JSON object, or skip>\`, as the handler rules below say.
 
 # The handler
 - Write a Web-standard handler: \`export const POST = withErrors(async (request: Request) => { ... })\`, with \`withErrors\`, \`ok\` and \`fail\` imported from "@/server/respond". It answers POST only.

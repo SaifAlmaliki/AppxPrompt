@@ -1,7 +1,16 @@
 import { and, desc, eq } from "drizzle-orm"
 
 import { db, messages, projectAssets, projects, type Project } from "@/db"
-import { messageWithElement, type AgentEvent, type AgentRequest, type ElementContext } from "@/lib/agent-protocol"
+import {
+  failurePath,
+  messageWithElement,
+  messageWithFailure,
+  type AgentEvent,
+  type AgentRequest,
+  type ElementContext,
+  type ServerFailureContext,
+} from "@/lib/agent-protocol"
+import { sanitizeDiagnostic } from "@/lib/sandbox/diagnostic"
 import { activeBuild, followBuild, startBuild } from "@/lib/agent/builds"
 import { applyAppChanges } from "@/lib/agent/changes"
 import { runPlannerTurn } from "@/lib/agent/planner"
@@ -76,7 +85,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
       await db.update(projects).set({ chatLanguage }).where(eq(projects.id, project.id))
       project = { ...project, chatLanguage }
     }
-    await db.insert(messages).values({ projectId: project.id, role: "user", content: element ? messageWithElement(content, element) : content })
+    const failure = element ? null : readServerFailure(body.failure)
+    await db.insert(messages).values({
+      projectId: project.id,
+      role: "user",
+      content: element ? messageWithElement(content, element) : failure ? messageWithFailure(content, failure) : content,
+    })
     return streamRun(startRun(project.id, (run) => respond(run, project, user, t), t("agentRunFailed")), request)
   }
 
@@ -130,6 +144,21 @@ function readElementContext(value: unknown): ElementContext | null {
   if (typeof file !== "string" || typeof label !== "string" || typeof screen !== "string" || typeof snippet !== "string") return null
   if (!Number.isInteger(line)) return null
   return { file: file.slice(0, 200), line: line!, label: label.slice(0, 60), screen: screen.slice(0, 120), snippet }
+}
+
+/** The failure rebuilt from checked parts only: the diagnostic is checked again and any key in its error text is taken out. */
+function readServerFailure(value: unknown): ServerFailureContext | null {
+  const failure = value as Partial<ServerFailureContext> | null | undefined
+  if (!failure || typeof failure !== "object") return null
+  const { path, status } = failure
+  if (typeof path !== "string" || !failurePath(path)) return null
+  if (!Number.isInteger(status) || status! < 100 || status! > 599) return null
+  const diagnostic = sanitizeDiagnostic(failure.diagnostic)
+  if (!diagnostic) return null
+  if (diagnostic.thrown) {
+    diagnostic.thrown = { name: redactKeys(diagnostic.thrown.name).text, message: redactKeys(diagnostic.thrown.message).text }
+  }
+  return { path: failurePath(path), status: status!, diagnostic }
 }
 
 /** One planner turn, then the build if the person confirmed the plan or asked to change the built app. */

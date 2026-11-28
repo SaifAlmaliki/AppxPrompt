@@ -951,6 +951,10 @@
         "thrown": "The function threw {name}: {message}",
         "calls": "{count, plural, one {# outgoing call} other {# outgoing calls}}",
         "timed": "{line} · {count} ms"
+      },
+      "fix": {
+        "button": "Fix it",
+        "message": "The {function} server function failed: {reason}. Please fix it."
       }
     }
   },
