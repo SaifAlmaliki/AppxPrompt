@@ -7,6 +7,7 @@ import { and, asc, eq, inArray, ne, notInArray } from "drizzle-orm"
 import { db, projectCredentials, projectServices } from "@/db"
 import { seal, unseal } from "@/lib/cloudhike/crypto"
 import { refreshAccessToken, runCheck, type CheckOutcome } from "@/lib/services/check"
+import { addLesson } from "@/lib/services/lessons"
 import { refreshTokenName, SERVER_KEY_NAME, SYSTEM_SERVICE_SLUG } from "@/lib/services/protocol"
 import type { CheckResult, ServiceDefinition, ServiceSummary } from "@/lib/services/protocol"
 import { canCheck, credentialCollision, definitionNames, staleCredentialNames } from "@/lib/services/rules"
@@ -192,6 +193,32 @@ export async function getServiceNotes(projectId: string, slug: string): Promise<
     .from(projectServices)
     .where(and(eq(projectServices.projectId, projectId), eq(projectServices.slug, slug)))
   return row ? row.definition.notes : null
+}
+
+/** Adds one lesson to a service's notes. It changes the notes and nothing else: not the fields, hosts, auth, check, values or status. */
+export async function addServiceLesson(
+  projectId: string,
+  slug: string,
+  lesson: string,
+): Promise<{ ok: true; added: boolean } | { ok: false; reason: string }> {
+  return db.transaction(async (tx) => {
+    if (slug === SYSTEM_SERVICE_SLUG) return { ok: false, reason: `No service "${slug}" is registered.` }
+    const [row] = await tx
+      .select({ definition: projectServices.definition })
+      .from(projectServices)
+      .where(and(eq(projectServices.projectId, projectId), eq(projectServices.slug, slug)))
+      .for("update")
+    if (!row) return { ok: false, reason: `No service "${slug}" is registered.` }
+    const result = addLesson(row.definition.notes, lesson)
+    if ("refused" in result) return { ok: false, reason: result.refused }
+    if (result.added) {
+      await tx
+        .update(projectServices)
+        .set({ definition: { ...row.definition, notes: result.notes }, updatedAt: new Date() })
+        .where(and(eq(projectServices.projectId, projectId), eq(projectServices.slug, slug)))
+    }
+    return { ok: true, added: result.added }
+  })
 }
 
 /** Saves the service, or returns why it can't be saved. */

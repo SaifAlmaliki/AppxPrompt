@@ -10,6 +10,7 @@ import {
   canFixCall,
   describeFetch,
   failingFetch,
+  fixMessage,
   serverCallResult,
   serverFailureOf,
   type ServerCallEntry,
@@ -57,24 +58,6 @@ function CallDetail({ call, failed }: { call: ServerCallEntry; failed: boolean }
   )
 }
 
-/** The plain reason a call failed, as the row words it: the failing outgoing call, what was thrown, or else the result itself. */
-function useFailureReason() {
-  const t = useTranslations("preview.activity")
-  return (call: ServerCallEntry) => {
-    const detail = call.detail
-    const line = (fetch: FetchDiagnostic) => {
-      const { key, host, status } = describeFetch(fetch)
-      return t(`detail.${key}`, { host, status: status ?? 0 })
-    }
-    const problem = failingFetch(detail)
-    const parts = [
-      ...(problem ? [line(problem)] : []),
-      ...(detail?.thrown ? [t("detail.thrown", { name: detail.thrown.name, message: detail.thrown.message })] : []),
-    ]
-    return parts.length > 0 ? parts.join("; ") : t(`results.${serverCallResult(call)}`, { status: call.status })
-  }
-}
-
 /** The owner's view of their app's recent server function calls. Mounted only while its tab is open. */
 export function ActivityPanel({
   projectId,
@@ -85,7 +68,6 @@ export function ActivityPanel({
   onFix?: (message: string, failure: ServerFailureContext) => void
 }) {
   const t = useTranslations("preview.activity")
-  const failureReason = useFailureReason()
   const format = useFormatter()
   const [calls, setCalls] = React.useState<ServerCallEntry[] | null>(null)
   const [failed, setFailed] = React.useState(false)
@@ -177,9 +159,7 @@ export function ActivityPanel({
                             variant="outline"
                             size="sm"
                             className="mt-1.5 rounded-full text-xs"
-                            onClick={() =>
-                              onFix(t("fix.message", { function: call.path, reason: failureReason(call) }), serverFailureOf(call))
-                            }
+                            onClick={() => onFix(fixMessage(call, (key, values) => t(key as never, values as never)), serverFailureOf(call))}
                           >
                             <WrenchIcon />
                             {t("fix.button")}

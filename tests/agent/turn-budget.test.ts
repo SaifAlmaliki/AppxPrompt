@@ -14,6 +14,7 @@ vi.mock("@/lib/agent/config", () => ({ configureAgents: vi.fn(), DEFAULT_SCREEN_
 vi.mock("@/lib/cloudhike/backend", () => ({ getBackendStatus: vi.fn(), setUpBackend: vi.fn() }))
 vi.mock("@/lib/server-routes/store", () => ({ listServerRoutes: vi.fn(), removeServerRoutes: vi.fn() }))
 vi.mock("@/lib/services/store", () => ({
+  addServiceLesson: vi.fn(),
   getServiceNotes: vi.fn(),
   listServiceSummaries: vi.fn(),
   registerService: vi.fn(),
@@ -164,10 +165,10 @@ describe("planner tools when the turn is out of time", () => {
   it("the other tools stop too", async () => {
     const all = await tools()
     vi.setSystemTime(START + PLANNER_TURN_BUDGET_MS - 30_000)
-    for (const name of ["propose_plan", "confirm_plan", "update_app", "set_theme", "setup_backend", "request_backend", "read_service_notes", "web_search", "read_page"]) {
+    for (const name of ["propose_plan", "confirm_plan", "update_app", "set_theme", "setup_backend", "request_backend", "read_service_notes", "add_service_lesson", "web_search", "read_page"]) {
       const emit = vi.fn()
       const context = { turnStartedAt: START, projectId: "p1", run: { emit }, research: { searches: 6, pages: 10 } }
-      expect(await all[name].execute({ query: "x", url: "https://example.com", find: null, slug: "a" }, { context }), name).toBe(OUT_OF_TIME)
+      expect(await all[name].execute({ query: "x", url: "https://example.com", find: null, slug: "a", service: "a", lesson: "x" }, { context }), name).toBe(OUT_OF_TIME)
       expect(emit).not.toHaveBeenCalled()
     }
   })

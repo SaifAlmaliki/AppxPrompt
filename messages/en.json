@@ -954,7 +954,14 @@
       },
       "fix": {
         "button": "Fix it",
-        "message": "The {function} server function failed: {reason}. Please fix it."
+        "message": "The {function} server function failed: {reason}. Please fix it.",
+        "reason": {
+          "status": "{host} answered {status}",
+          "blocked": "it tried to call {host}, which isn't an allowed host",
+          "timeout": "it timed out calling {host}",
+          "network": "it couldn't reach {host}",
+          "thrown": "it hit an error in its code"
+        }
       }
     }
   },
@@ -1657,6 +1664,7 @@
     "searchingWeb": "Searching the web…",
     "readingDocs": "Reading the docs…",
     "readingServiceNotes": "Checking what I know about this service…",
+    "savingLesson": "Saving what I learned…",
     "creatingBackendProject": "Creating your CloudHike project…",
     "deployingBackend": "Deploying your backend services…",
     "connectingApp": "Connecting your app…",

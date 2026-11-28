@@ -194,6 +194,10 @@ describe("plainText", () => {
     expect(plainText("a".repeat(300), 50)).toHaveLength(50)
   })
 
+  it("reduces a bare www address to its host", () => {
+    expect(plainText("see www.example.com/docs?x=1 now", 200)).toBe("see example.com now")
+  })
+
   it("reduces a link to its host so it can't turn into one in the chat", () => {
     expect(plainText("GET https://api.example.com/v1/items?key=1 failed, see http://docs.example.com:8080/x", 200)).toBe(
       "GET api.example.com failed, see docs.example.com"

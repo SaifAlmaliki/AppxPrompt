@@ -3,7 +3,7 @@
 export const SERVER_CALL_ERROR_CODES = ["not_connected", "sign_in", "bad_request", "unavailable", "preview"] as const
 export type ServerCallErrorCode = (typeof SERVER_CALL_ERROR_CODES)[number]
 
-import type { ServerFailureContext } from "@/lib/agent-protocol"
+import { failurePath, type ServerFailureContext } from "@/lib/agent-protocol"
 import type { CallDiagnostic, FetchDiagnostic } from "@/lib/sandbox/diagnostic"
 
 export type ServerCallEntry = {
@@ -31,6 +31,30 @@ export function describeFetch(fetch: FetchDiagnostic): FetchDescription {
 export function failingFetch(detail: CallDiagnostic | null): FetchDiagnostic | null {
   if (!detail) return null
   return detail.fetches.find((fetch) => fetch.error) ?? detail.fetches.find((fetch) => (fetch.status ?? 0) >= 400) ?? null
+}
+
+/**
+ * Why a call failed, as a kind of reason with only the host and status of an outgoing call. Never the text it threw,
+ * which can come from a service: the sentence sent to the agent is ours alone, and the facts travel in the failure block.
+ */
+export type FailureReason = { key: FetchDescription["key"] | "thrown" | "result"; host?: string; status?: number }
+
+export function failureReason(call: Pick<ServerCallEntry, "detail">): FailureReason {
+  const problem = failingFetch(call.detail)
+  if (problem) return describeFetch(problem)
+  return call.detail?.thrown ? { key: "thrown" } : { key: "result" }
+}
+
+export type ActivityTranslator = (key: string, values?: Record<string, string | number>) => string
+
+/** The sentence the owner sends to fix a failed call, from `preview.activity`. It names the function and a reason of ours, and no text from the call. */
+export function fixMessage(call: Pick<ServerCallEntry, "path" | "status" | "errorCode" | "detail">, t: ActivityTranslator): string {
+  const reason = failureReason(call)
+  const text =
+    reason.key === "result"
+      ? t(`results.${serverCallResult(call)}`, { status: call.status })
+      : t(`fix.reason.${reason.key}`, { host: reason.host ?? "", status: reason.status ?? 0 })
+  return t("fix.message", { function: failurePath(call.path) || "?", reason: text.replace(/[.\s]+$/, "") })
 }
 
 /** Whether the owner can ask the agent to fix this call: the function broke or didn't understand what it was sent. */

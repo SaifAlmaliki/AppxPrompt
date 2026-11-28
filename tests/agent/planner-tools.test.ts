@@ -12,7 +12,7 @@ vi.mock("@openai/agents", () => ({
 vi.mock("@/db", () => ({ db: {}, messages: {}, projects: {}, screens: {} }))
 vi.mock("@/lib/agent/config", () => ({ configureAgents: vi.fn(), DEFAULT_SCREEN_COUNT: 4, PLANNER_MODEL: "test" }))
 vi.mock("@/lib/cloudhike/backend", () => ({ getBackendStatus: vi.fn(), setUpBackend: vi.fn() }))
-vi.mock("@/lib/services/store", () => ({ getServiceNotes: vi.fn(), listServiceSummaries: vi.fn(), registerService: vi.fn() }))
+vi.mock("@/lib/services/store", () => ({ addServiceLesson: vi.fn(), getServiceNotes: vi.fn(), listServiceSummaries: vi.fn(), registerService: vi.fn() }))
 
 async function load() {
   vi.resetModules()
@@ -38,9 +38,31 @@ describe("plannerTools", () => {
       "request_backend",
       "register_service",
       "read_service_notes",
+      "add_service_lesson",
       "web_search",
       "read_page",
     ])
+  })
+})
+
+describe("add_service_lesson", () => {
+  const run = (context: object = {}) => ({ context: { turnStartedAt: Date.now(), projectId: "p1", ...context } })
+
+  it("only saves the lesson through the store, and says what happened", async () => {
+    const { plannerTools } = await load()
+    const store = await import("@/lib/services/store")
+    const lesson = (plannerTools(true) as unknown as { name: string; execute: (input: unknown, run: unknown) => Promise<string> }[]).find((t) => t.name === "add_service_lesson")!
+    vi.mocked(store.addServiceLesson).mockResolvedValueOnce({ ok: true, added: true })
+    expect(await lesson.execute({ service: " apify ", lesson: "Runs are slow" }, run())).toContain("Saved")
+    expect(store.addServiceLesson).toHaveBeenCalledWith("p1", "apify", "Runs are slow")
+    expect(store.registerService).not.toHaveBeenCalled()
+    vi.mocked(store.addServiceLesson).mockResolvedValueOnce({ ok: false, reason: 'No service "x" is registered.' })
+    expect(await lesson.execute({ service: "x", lesson: "y" }, run())).toBe('Lesson not saved: No service "x" is registered.')
+  })
+
+  it("is left out when integrations are off", async () => {
+    const { plannerTools } = await load()
+    expect(names(plannerTools(false) as never)).not.toContain("add_service_lesson")
   })
 })
 

@@ -189,9 +189,21 @@ export function WorkspaceLayout({
     if (agent.status === "ready") void send({ action: "message", content: t("setUpBackendMessage") })
   }, [agent.status, send, t])
 
+  // Assume desktop on the server; the three-panel layout is the main target.
+  const isDesktop = React.useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => true
+  )
+  const [mobileView, setMobileView] = React.useState<MobileView>("chat")
+
+  // On a phone the chat is another view, so open it to show the agent taking the message.
   const fixServerFailure = React.useCallback(
-    (content: string, failure: ServerFailureContext) => void send({ action: "message", content, failure }),
-    [send]
+    (content: string, failure: ServerFailureContext) => {
+      if (!isDesktop) setMobileView("chat")
+      void send({ action: "message", content, failure })
+    },
+    [isDesktop, send]
   )
 
   // Only once per trip to CloudHike: reloading the page mustn't deploy or ask again.
@@ -382,14 +394,6 @@ export function WorkspaceLayout({
       onFixServerFailure={!readOnly && !agent.busy && agent.status === "ready" ? fixServerFailure : undefined}
     />
   )
-
-  // Assume desktop on the server; the three-panel layout is the main target.
-  const isDesktop = React.useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(DESKTOP_QUERY).matches,
-    () => true
-  )
-  const [mobileView, setMobileView] = React.useState<MobileView>("chat")
 
   if (isDesktop) {
     return (

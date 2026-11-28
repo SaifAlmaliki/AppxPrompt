@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { findKeys } from "@/lib/services/key-patterns"
+import { MAX_NOTES_LENGTH } from "@/lib/services/lessons"
 import { envPrefix, SYSTEM_SERVICE_SLUG, type ServiceCheck, type ServiceDefinition, type ServiceField } from "@/lib/services/protocol"
 
 const SLUG = /^[a-z][a-z0-9-]{1,39}$/
@@ -131,7 +132,7 @@ export function normalizeService(input: z.infer<typeof serviceDefinitionSchema>)
   if (input.name.length < 1 || input.name.length > 60) return "The name must be 1 to 60 characters."
   if (input.purpose.length > 300) return "The purpose must be at most 300 characters."
   if (input.setupSteps.length > 4000) return "The setup steps must be at most 4000 characters."
-  if (input.notes.length > 20000) return "The notes must be at most 20000 characters."
+  if (input.notes.length > MAX_NOTES_LENGTH) return `The notes must be at most ${MAX_NOTES_LENGTH} characters.`
   if (!isHttps(input.docsUrl)) return `The docs url must be an https URL, not "${input.docsUrl}".`
 
   if (input.fields.length < 1 || input.fields.length > 10) {

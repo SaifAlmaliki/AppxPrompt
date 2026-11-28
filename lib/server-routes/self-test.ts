@@ -176,6 +176,7 @@ const MAX_THROWN_TEXT = 120
 export function plainText(text: string, max: number): string {
   const clean = text
     .replace(/https?:\/\/([^\s/?#:]*)\S*/gi, "$1")
+    .replace(/\bwww\.([^\s/?#:]*)\S*/gi, "$1")
     .replace(/[*_[\]()#>|~`\\]/g, "").replace(/\s+/g, " ").trim()
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean
 }

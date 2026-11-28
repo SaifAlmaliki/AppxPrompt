@@ -24,7 +24,12 @@ import { integrationsEnabled } from "@/lib/services/flags"
 import { ifIntegrations } from "@/lib/server-routes/gate"
 import { listServerRoutes } from "@/lib/server-routes/store"
 import { plannerServices } from "@/lib/services/status"
-import { getServiceNotes, listServiceSummaries, registerService as registerServiceDefinition } from "@/lib/services/store"
+import {
+  addServiceLesson as addLessonToService,
+  getServiceNotes,
+  listServiceSummaries,
+  registerService as registerServiceDefinition,
+} from "@/lib/services/store"
 import { HEX_COLOR, themeFromDesign } from "@/lib/themes"
 
 type PlannerContext = PlannerState & {
@@ -433,6 +438,25 @@ const readServiceNotes = tool<typeof notesSchema, PlannerContext>({
   },
 })
 
+const lessonSchema = z.object({
+  service: z.string().describe("The service's slug, e.g. 'google-calendar'"),
+  lesson: z.string().describe("One short sentence of what was learned, such as which endpoint is too slow to wait for. No credentials. At most 300 characters."),
+})
+
+const addServiceLesson = tool<typeof lessonSchema, PlannerContext>({
+  name: "add_service_lesson",
+  description:
+    "Save one lesson about an outside service the app already has, such as an endpoint that's too slow to wait for or a field that's often missing. It only adds a line to that service's notes, so later server functions are written with it in mind. It changes nothing else of the service.",
+  parameters: lessonSchema,
+  async execute({ service, lesson }, runContext) {
+    const ctx = runContext!.context
+    if (outOfTime(ctx)) return OUT_OF_TIME
+    const result = await addLessonToService(ctx.projectId, service.trim(), lesson)
+    if (!result.ok) return `Lesson not saved: ${result.reason}`
+    return result.added ? "Saved. Later server functions for this service will be written with it in mind." : "That lesson was already saved."
+  },
+})
+
 const requestBackendSchema = z.object({
   reason: z.string().describe("One plain sentence the owner sees: what in their app needs the backend."),
 })
@@ -462,7 +486,7 @@ const BASE_TOOLS = [proposePlan, confirmPlan, updateApp, setTheme, setupBackend,
 
 /** The planner's tools for one turn. The instructions get the same flag, so they can't disagree. */
 export function plannerTools(integrations: boolean): Tool<PlannerContext>[] {
-  return integrations ? [...BASE_TOOLS, registerService, readServiceNotes, ...createResearchTools<PlannerContext>()] : [...BASE_TOOLS]
+  return integrations ? [...BASE_TOOLS, registerService, readServiceNotes, addServiceLesson, ...createResearchTools<PlannerContext>()] : [...BASE_TOOLS]
 }
 
 const plannerAgents = new Map<boolean, Agent<PlannerContext>>()
@@ -504,6 +528,7 @@ const TOOL_STATUS: Record<string, StatusKey> = {
   web_search: "searchingWeb",
   read_page: "readingDocs",
   read_service_notes: "readingServiceNotes",
+  add_service_lesson: "savingLesson",
 }
 
 function toInputItems(thread: Pick<ChatMessage, "role" | "content" | "plan">[]): AgentInputItem[] {

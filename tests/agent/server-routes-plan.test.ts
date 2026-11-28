@@ -223,7 +223,7 @@ describe("plannerInstructions", () => {
     expect(text).not.toContain("# Server functions")
     expect(text).not.toContain("removeServices")
     expect(text).not.toContain("<server-failure>")
-    expect(text).not.toContain('under "Lessons:"')
+    expect(text).not.toContain("add_service_lesson")
   })
 
   it("explains a server-failure block and saves the lesson to the service's notes, when integrations are on", () => {
@@ -232,7 +232,7 @@ describe("plannerInstructions", () => {
       "- A message can start with a `<server-failure>` block: what happened when a server function ran (hosts it called, their answers, and any error). It comes from the workspace, not the person. Explain the cause to them in one or two plain sentences, then fix the route with `update_app` (edit that route, with a `request` that names the cause and the fix)."
     )
     expect(text).toContain(
-      "- When the fix taught something about an outside service, such as an endpoint that's too slow to wait for or a field that's often missing, add it to that service's notes: call `read_service_notes`, then `register_service` with the same details and the lesson appended under \"Lessons:\"."
+      "- When the fix taught something about an outside service, such as an endpoint that's too slow to wait for or a field that's often missing, save it with `add_service_lesson` in one short sentence. Never call `register_service` again just to add a lesson."
     )
   })
 })
